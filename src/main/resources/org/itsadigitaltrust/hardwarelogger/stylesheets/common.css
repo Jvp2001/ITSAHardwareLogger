@@ -1,0 +1,15 @@
+*
+{
+    -fx-font-size: 12px;
+}
+
+.h3
+{
+    -fx-font-size: 22px;
+}
+
+
+.text-field
+{
+    -fx-text-alignment: left ;
+}

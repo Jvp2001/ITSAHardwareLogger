@@ -1,0 +1,1 @@
+addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.1.1")
