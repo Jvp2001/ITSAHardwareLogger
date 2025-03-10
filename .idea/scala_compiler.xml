@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="DependencyInjection,DependencyInjection.main,DependencyInjection.test,ITSAHardwareLogger,ITSAHardwareLogger.DependencyInjection,ITSAHardwareLogger.DependencyInjection.main,ITSAHardwareLogger.DependencyInjection.test,dependencyinjection,dependencyinjection.main,dependencyinjection.test" />
-    <profile name="sbt 2" modules="ITSAHardwareLogger.main,ITSAHardwareLogger.test">
+    <profile name="sbt 1" modules="itsahardwarelogger_7108" />
+    <profile name="sbt 2" modules="ITSAHardwareLogger">
       <parameters>
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />

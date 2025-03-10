@@ -1,14 +1,16 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 import com.softwaremill.macwire.*
+import javafx.event.{ActionEvent, EventHandler}
 import javafx.fxml.{FXML, FXMLLoader, Initializable}
-import javafx.scene.control.{Button, Tab, TabPane}
+import javafx.scene.control.Alert.AlertType
+import javafx.scene.control.{Alert, Button, ButtonType, Tab, TabPane}
 import javafx.scene.layout.BorderPane
 import org.itsadigitaltrust.hardwarelogger.core.DIManager
 import org.itsadigitaltrust.hardwarelogger.models.Memory
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.{TabTableViewModel, TableRowViewModel}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TabTableViewModel, TableRowViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{MemoryTabView, TabTableView}
 
 import java.net.URL
@@ -17,7 +19,7 @@ import scala.compiletime.uninitialized
 
 
 
-class HardwareLoggerRootView extends BorderPane with Initializable:
+class HardwareLoggerRootView(val viewModel: HardwareLoggerRootViewModel) extends Initializable:
 
   @FXML
   private var tabPane: TabPane = uninitialized
@@ -26,7 +28,12 @@ class HardwareLoggerRootView extends BorderPane with Initializable:
   @FXML var saveButton: Button = uninitialized
 
 
-  def reload(): Unit = ()
+
+  @FXML
+  def reload(event: ActionEvent): Unit =
+    println("Reloading")
+    viewModel.reload()
+
 
   override def initialize(url: URL, resourceBundle: ResourceBundle): Unit =
     val tables = Seq(
@@ -37,6 +44,10 @@ class HardwareLoggerRootView extends BorderPane with Initializable:
     tabs.foreach: tab =>
       tabPane.getTabs.add(tab)
 
+    reloadButton.setOnAction { (t: ActionEvent) =>
+      reload(t)
+      new Alert(AlertType.INFORMATION, "Test", ButtonType.OK).showAndWait()
+    }
 
 
   def createTabFromTable[M, T <: TableRowViewModel[M]](table: TabTableView[M, T], name: String): Tab =
