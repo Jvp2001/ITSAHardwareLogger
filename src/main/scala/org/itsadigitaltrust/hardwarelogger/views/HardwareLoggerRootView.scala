@@ -1,26 +1,30 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
-import com.softwaremill.macwire.*
 import javafx.event.{ActionEvent, EventHandler}
 import javafx.fxml.{FXML, FXMLLoader, Initializable}
 import javafx.scene.control.Alert.AlertType
-import javafx.scene.control.{Alert, Button, ButtonType, Tab, TabPane}
+import javafx.scene.control.{Alert, Button, ButtonType, Label, Tab, TabPane, TextField}
+import javafx.scene.input.KeyCode
 import javafx.scene.layout.BorderPane
-import org.itsadigitaltrust.hardwarelogger.core.DIManager
 import org.itsadigitaltrust.hardwarelogger.models.Memory
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TabTableViewModel, TableRowViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{MemoryTabView, TabTableView}
+import org.springframework.stereotype.Controller
 
 import java.net.URL
 import java.util.ResourceBundle
 import scala.compiletime.uninitialized
 
 
+@Controller
+class HardwareLoggerRootView(val viewModel: HardwareLoggerRootViewModel, private val memoryTab: MemoryTabView) extends Initializable:
 
-class HardwareLoggerRootView(val viewModel: HardwareLoggerRootViewModel) extends Initializable:
-
+  @FXML
+  private var idTextField: TextField = uninitialized
+  @FXML
+  private var idErrorLabel: Label = uninitialized
   @FXML
   private var tabPane: TabPane = uninitialized
 
@@ -37,8 +41,10 @@ class HardwareLoggerRootView(val viewModel: HardwareLoggerRootViewModel) extends
 
   override def initialize(url: URL, resourceBundle: ResourceBundle): Unit =
     val tables = Seq(
-      "Memory" -> new MemoryTabView(TabTableViewModel[Memory, MemoryTableRowViewModel](DIManager.getHardwareGrabberService, DIManager.getNotificationCentre, hs => hs.getMemory().map(m => new MemoryTableRowViewModel(m)))
-    ))
+//      "Memory" -> new MemoryTabView(TabTableViewModel[Memory, MemoryTableRowViewModel](DIManager.getHardwareGrabberService, DIManager.getNotificationCentre, hs => hs.getMemory().map(m => new MemoryTableRowViewModel(m))))
+      "Memory" -> memoryTab
+    )
+
     val tabs = tables.map: (key, value) =>
       createTabFromTable(value, key)
     tabs.foreach: tab =>
@@ -48,6 +54,22 @@ class HardwareLoggerRootView(val viewModel: HardwareLoggerRootViewModel) extends
       reload(t)
       new Alert(AlertType.INFORMATION, "Test", ButtonType.OK).showAndWait()
     }
+
+    saveButton.disableProperty().bind(viewModel.validIDProperty)
+    idTextField.textProperty().bindBidirectional(viewModel.idStringProperty)
+    idErrorLabel.textProperty().bind(viewModel.idErrorStringProperty)
+
+    idTextField.requestFocus()
+
+    idTextField.focusedProperty().addListener: change =>
+      if !idTextField.isFocused then
+        viewModel.validateID()
+
+    idTextField.setOnKeyPressed: event =>
+      event.getCode match
+        case KeyCode.ENTER => viewModel.save()
+        case _ => ()
+
 
 
   def createTabFromTable[M, T <: TableRowViewModel[M]](table: TabTableView[M, T], name: String): Tab =

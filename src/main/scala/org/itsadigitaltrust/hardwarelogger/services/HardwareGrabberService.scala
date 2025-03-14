@@ -1,5 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
+import org.springframework.stereotype.Service
+
+@Service
 trait HardwareGrabberService:
   import org.itsadigitaltrust.hardwarelogger.models.*
   def getGeneralInfo(): GeneralInfo

@@ -6,14 +6,18 @@ import javafx.scene.control.Alert.AlertType
 import org.itsadigitaltrust.hardwarelogger.core.NotificationCentre
 import org.itsadigitaltrust.hardwarelogger.models.HardwareModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
-
-final class TabTableViewModel[M, VM <: TableRowViewModel[M]](hardwareGrabberService: HardwareGrabberService, notificationCentre: NotificationCentre, reloadData: => HardwareGrabberService => Seq[VM]) extends ViewModel:
+import org.springframework.stereotype.Component
+import org.springframework.context.annotation.Bean
+import scala.runtime.AbstractPartialFunction
+import scala.runtime.AbstractFunction1
+@Component
+final class TabTableViewModel[M, VM <: TableRowViewModel[M]](hardwareGrabberService: HardwareGrabberService, notificationCentre: NotificationCentre/*,  reloadData: => ReloadData[Seq[VM]] */) extends ViewModel:
   val data: ObservableList[VM] = FXCollections.emptyObservableList()
 
   def reload(): Unit =
     data.clear()
 
-    data.addAll(reloadData(hardwareGrabberService) *)
+   // data.addAll(reloadData(hardwareGrabberService) *)
 
     val alert = new Alert(AlertType.INFORMATION, "Loaded!")
     alert.showAndWait()
@@ -23,5 +27,8 @@ final class TabTableViewModel[M, VM <: TableRowViewModel[M]](hardwareGrabberServ
     reload()
 
 
-object TabTableViewModel:
-  type ReloadData[E, T <: E] = HardwareGrabberService => List[T]
+// object TabTableViewModel:
+  // @Component
+  // @Bean
+  // final class ReloadData[R](f: HardwareGrabberService => R):
+  //   def apply(hardwareGrabberService: HardwareGrabberService): R = f(hardwareGrabberService)

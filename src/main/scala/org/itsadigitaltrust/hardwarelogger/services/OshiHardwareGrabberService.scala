@@ -1,7 +1,9 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-import org.itsadigitaltrust.hardwarelogger.models.{GeneralInfo, HardDrive, Media, Memory, Processor}
+import org.itsadigitaltrust.hardwarelogger.models.*
+import org.springframework.stereotype.Service
 
+@Service
 class OshiHardwareGrabberService extends HardwareGrabberService:
   override def getGeneralInfo(): GeneralInfo = ???
 

@@ -8,29 +8,35 @@
 <?import javafx.scene.control.TabPane?>
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0"
             prefWidth="600.0" xmlns="http://javafx.com/javafx/23" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView">
-
+            fx:controller="org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView"
+            stylesheets="@stylesheets/common.css">
     <top>
-        <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0"
+        <VBox alignment="CENTER_LEFT" prefHeight="50.0" prefWidth="200.0" spacing="10.0"
               BorderPane.alignment="CENTER_LEFT">
-            <Label minWidth="0.0" text="ID" textAlignment="CENTER" HBox.hgrow="ALWAYS">
-                <opaqueInsets>
-                    <Insets top="10.0"/>
-                </opaqueInsets>
-                <HBox.margin>
-                    <Insets/>
-                </HBox.margin>
-                <padding>
-                    <Insets left="10.0"/>
-                </padding>
-            </Label>
-            <TextField HBox.hgrow="ALWAYS" fx:id="idTextField">
-                <HBox.margin>
-                    <Insets right="10.0"/>
-                </HBox.margin>
+            <HBox VBox.vgrow="ALWAYS" spacing="10.0">
 
-            </TextField>
-        </HBox>
+                <Label minWidth="0.0" text="ID" textAlignment="CENTER" HBox.hgrow="ALWAYS">
+
+                    <HBox.margin>
+                        <Insets left="10.0"/>
+                    </HBox.margin>
+                </Label>
+                <TextField fx:id="idTextField" HBox.hgrow="ALWAYS">
+                    <HBox.margin>
+                        <Insets right="10.0"/>
+                    </HBox.margin>
+
+                </TextField>
+            </HBox>
+            <Label fx:id="idErrorLabel" styleClass="error">
+                <padding>
+                    <Insets left="35.0"/>
+                </padding>
+                <VBox.margin>
+                    <Insets bottom="5.0"/>
+                </VBox.margin>
+            </Label>
+        </VBox>
     </top>
     <bottom>
 <!--        <HBox alignment="CENTER" minHeight="30" BorderPane.alignment="CENTER">-->

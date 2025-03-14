@@ -6,17 +6,10 @@ import javafx.scene.control.TableColumn.CellDataFeatures
 import javafx.scene.control.{Tab, TableColumn, TableView}
 import javafx.util.Callback
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{TabTableViewModel, TableRowViewModel}
-
-type PropertyType[P] = P match
-  case Integer => IntegerProperty
-  case Long => LongProperty
-  case Float => FloatProperty
-  case Double => DoubleProperty
-  case Boolean => BooleanProperty
-  case Enum[e] => ObjectProperty[e]
-  case Any => ObjectProperty[Any]
+import org.springframework.stereotype.{Component, Controller}
 
 
+@Controller
 class TabTableView[M, T <: TableRowViewModel[M]](val viewModel: TabTableViewModel[M, T]) extends TableView[T]:
 
 

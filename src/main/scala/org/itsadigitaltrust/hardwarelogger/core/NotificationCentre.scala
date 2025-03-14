@@ -1,10 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.core
 
+import org.springframework.stereotype.Service
+
 import scala.collection.mutable
 
 type NotificationCallback = (key: String, args: Seq[Any]) => Unit
+
 trait NotificationCentre:
-  import Operators.notIn
+  import org.itsadigitaltrust.common.Operators.notIn
   private val notifications: mutable.Map[String, List[NotificationCallback]] = mutable.Map[String, List[NotificationCallback]]()
 
   def subscribe(key: String)(callback: NotificationCallback): Unit =
@@ -15,5 +18,6 @@ trait NotificationCentre:
     notifications(key).foreach: callback =>
       callback(key, args)
 
+@Service
 final class SimpleNotificationCentre extends NotificationCentre
 

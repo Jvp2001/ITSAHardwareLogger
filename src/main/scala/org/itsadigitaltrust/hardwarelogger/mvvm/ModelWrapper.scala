@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.mvvm
 
 import javafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.core.Operators.in
+import org.itsadigitaltrust.common.Operators.in
 import org.itsadigitaltrust.hardwarelogger.mvvm.properties.*
 import org.itsadigitaltrust.hardwarelogger.mvvm.properties.accessorfunctions.*
 
@@ -243,7 +243,7 @@ class ModelWrapper[M](
       field.reload(value)
     field.property
 
-  private def addIdentifed[T, R <: Property[T]](fieldName: String, propertyField: PropertyField[T, M, R]): R =
+  private def addIdentified[T, R <: Property[T]](fieldName: String, propertyField: PropertyField[T, M, R]): R =
     if fieldName in identifiedFields then
       val property: Property[R] = identifiedFields(fieldName).property.asInstanceOf[Property[R]]
       property.getValue
@@ -305,18 +305,17 @@ class ModelWrapper[M](
     dirtyFlag.get()
 
 
-  // After
-  def field[T, R <: Property[T], PBase <: Property[T]](getter: Getter[PBase, M], setter: MutableSetter[M, T], defaultValue: T)(ctor: => () => PBase): PBase =
-    add(new BeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
-
-  def immutableField[T, R <: Property[T], PBase <: Property[T]](getter: Getter[PBase, M], setter: ImmutableSetter[M, T], defaultValue: T)(ctor: => () => PBase): PBase =
-    add(new ImmutableBeanPropertyField(propertyWasChanged, getter, setter, defaultValue: T, () => ctor()))
+//  def field[T, R <: Property[T], PBase <: Property[T]](getter: Getter[PBase, M], setter: MutableSetter[M, T], defaultValue: T)(ctor: => () => PBase): PBase =
+//    add(new BeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
+//
+//  def immutableField[T, R <: Property[T], PBase <: Property[T]](getter: Getter[PBase, M], setter: ImmutableSetter[M, T], defaultValue: T)(ctor: => () => PBase): PBase =
+//    add(new ImmutableBeanPropertyField(propertyWasChanged, getter, setter, defaultValue: T, () => ctor()))
 
   def field[T, R <: Property[T], PBase <: Property[T]](identifier: String, getter: Getter[PBase, M], setter: MutableSetter[M, T], defaultValue: T = null.asInstanceOf[T])(ctor: => () => PBase): PBase =
-    addIdentifed(identifier, new BeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
+    addIdentified(identifier, new BeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
 
   def immutableField[T, R <: Property[T], PBase <: Property[T]](identifier: String, getter: Getter[PBase, M],
-                                                                setter: ImmutableSetter[M, T], defaultValue: T = "")
+                                                                setter: ImmutableSetter[M, T], defaultValue: T = null.asInstanceOf[T])
                                                                (ctor: => () => PBase): PBase =
     addIdentifedImmutable(identifier, new ImmutableBeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
 

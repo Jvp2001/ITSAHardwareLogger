@@ -3,18 +3,20 @@ package org.itsadigitaltrust.hardwarelogger.core
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.util.Callback
+import org.springframework.boot.SpringBootConfiguration
+import org.springframework.context.ConfigurableApplicationContext
 
 import java.net.URL
 
-object SFXMLLoader:
+class SFXMLLoader(private val springContext: ConfigurableApplicationContext):
+  private val loader: FXMLLoader = new FXMLLoader()
+  loader.setControllerFactory(springContext.getBean)
+  
   def load[T](url: URL): T =
-    val loader = new FXMLLoader(url)
-    loader.setControllerFactory(new Callback[Class[_], AnyRef] {
-      override def call(p: Class[_]): AnyRef =
-
-    })
+    loader.setLocation(url)
+   
     loader.load()
 
-  def load[T](path: String): T =
-    load(getClass.getResource(path).toURI.toURL)
+  def load[T](klass: Class[?], path: String): T =
+    load(klass.getResource(path).toURI.toURL)
 

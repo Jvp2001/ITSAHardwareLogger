@@ -13,3 +13,10 @@
 {
     -fx-text-alignment: left ;
 }
+
+.error
+{
+    -fx-text-fill: red;
+    -fx-font-size: 12px;
+    -fx-start-margin: 10px;
+}

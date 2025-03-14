@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <profile name="sbt 1" modules="itsahardwarelogger_7108" />
+    <option name="implicitConversions" value="true" />
+    <option name="macros" value="true" />
+    <option name="experimental" value="true" />
+    <profile name="sbt 1" modules="ITSAHardwareLogger.Common,ITSAHardwareLogger.Macros,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.test" />
     <profile name="sbt 2" modules="ITSAHardwareLogger">
       <parameters>
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
       </parameters>
     </profile>
   </component>
