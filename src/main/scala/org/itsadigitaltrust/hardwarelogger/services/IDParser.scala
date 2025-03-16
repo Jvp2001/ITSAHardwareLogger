@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 
-
 import scala.annotation.tailrec
 import scala.compiletime.uninitialized
 import scala.util.boundary
@@ -223,7 +222,7 @@ class IDParser:
           if result.number.isEmpty then
             handleTokens(tokens, index + 1, ParsedResult(result.prefix, Some(value), result.decimal, result.checkDigit, result.suffix))
           else
-            handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number, result.decimal,  Some(value), result.suffix))
+            handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number, result.decimal, Some(value), result.suffix))
 
         case Token.DecimalPoint =>
           if index < 2 && result.number.isEmpty then
@@ -279,19 +278,20 @@ object IDParser:
         case MissingCheckDigit => "ID is missing the check digit"
         case TooLongCheckDigit => "The check digit should be a single digit"
         case TooManyDecimalPoints => "You must only have one decimal point in the ID."
-        case InvalidCharacter(expected, got) => s"Expected $expected, but got $got instead."
+        case InvalidCharacter(expected, got) => s"Expected $expected, but got $got   instead."
         case ScannerError(msg, at) => s"Scanner error: $msg at location $at."
   end ParserError
 
   given Conversion[ParserError, ParserResult] with
     override def apply(x: ParserError): ParserResult = Left(x)
+
   given Conversion[IDScanner.Token.Error, ParserError] with
     override def apply(x: IDScanner.Token.Error): ParserError = ParserError.ScannerError(x.msg, x.at)
 
-  given Conversion[ParsedResult, ParserResult] with 
+  given Conversion[ParsedResult, ParserResult] with
     def apply(x: ParsedResult): ParserResult = Right(x)
 
-  def apply(input: String): ParserResult = 
+  def apply(input: String): ParserResult =
     val parser = new IDParser
     parser.parse(input)
 end IDParser

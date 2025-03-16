@@ -1,82 +1,176 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
-import javafx.event.{ActionEvent, EventHandler}
-import javafx.fxml.{FXML, FXMLLoader, Initializable}
-import javafx.scene.control.Alert.AlertType
-import javafx.scene.control.{Alert, Button, ButtonType, Label, Tab, TabPane, TextField}
-import javafx.scene.input.KeyCode
-import javafx.scene.layout.BorderPane
-import org.itsadigitaltrust.hardwarelogger.models.Memory
-import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TabTableViewModel, TableRowViewModel}
-import org.itsadigitaltrust.hardwarelogger.views.tabs.{MemoryTabView, TabTableView}
-import org.springframework.stereotype.Controller
 
-import java.net.URL
-import java.util.ResourceBundle
-import scala.compiletime.uninitialized
-
-
-@Controller
-class HardwareLoggerRootView(val viewModel: HardwareLoggerRootViewModel, private val memoryTab: MemoryTabView) extends Initializable:
-
-  @FXML
-  private var idTextField: TextField = uninitialized
-  @FXML
-  private var idErrorLabel: Label = uninitialized
-  @FXML
-  private var tabPane: TabPane = uninitialized
-
-  @FXML var reloadButton: Button = uninitialized
-  @FXML var saveButton: Button = uninitialized
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewModel
+import org.itsadigitaltrust.hardwarelogger.views.tabs.{HardDrivesTabView, MemoryTabView}
+import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
+import scalafx.scene.input.KeyCode
 
 
 
-  @FXML
-  def reload(event: ActionEvent): Unit =
-    println("Reloading")
-    viewModel.reload()
+class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel]:
+  override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
+
+  stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
+  minWidth = Double.NegativeInfinity
+  minHeight = Double.NegativeInfinity
+  maxWidth = Double.NegativeInfinity
+  maxHeight = Double.NegativeInfinity
+  prefWidth = 600.0
+  prefHeight = 400.0
+
+  private val idLabel = new Label:
+    text = "ID"
+    minWidth = 0.0
+    textAlignment = TextAlignment.Center
+    hgrow = Always
+    margin = Insets(0, 0, 0, 10.0)
+
+  private val idTextField = new TextField:
+    hgrow = Always
+    margin = Insets(0, 10.0, 0, 0)
+    text <==> viewModel.idStringProperty
+    focused.onChange: (change, oldValue, focused) =>
+      if !focused then
+        viewModel.validateID()
+    onKeyPressed = event =>
+      if event.getCode == KeyCode.Enter then
+        viewModel.save()
 
 
-  override def initialize(url: URL, resourceBundle: ResourceBundle): Unit =
-    val tables = Seq(
-//      "Memory" -> new MemoryTabView(TabTableViewModel[Memory, MemoryTableRowViewModel](DIManager.getHardwareGrabberService, DIManager.getNotificationCentre, hs => hs.getMemory().map(m => new MemoryTableRowViewModel(m))))
-      "Memory" -> memoryTab
+
+  private val idErrorLabel = new Label:
+    styleClass += "error"
+    padding = Insets(0, 0, 0, 35.0)
+    margin =  Insets(0, 0, 5.0, 0)
+    text <== viewModel.idErrorStringProperty
+
+
+  private val idContainer = new HBox:
+    vgrow = Always
+    margin = Insets(5.0, 0.0, 0.0, 0.0)
+    spacing = 10.0
+    children ++= Seq(idLabel, idTextField)
+
+  top = new VBox:
+    private val region = new Region:
+      maxWidth = 10.0
+    alignment = CenterLeft
+    prefHeight = 50.0
+    prefWidth = 200.0
+    spacing = 10.0
+    children ++= Seq(region, idContainer, idErrorLabel)
+
+  private val tabPane = new TabPane:
+    prefHeight = prefWidth.get
+    prefWidth = 200.0
+    tabClosingPolicy = Unavailable
+    alignmentInParent = Pos.Center
+    vgrow = Always
+    tabs ++= Seq(
+      createTab("Memory", new MemoryTabView),
+      createTab("HDD", new HardDrivesTabView)
     )
 
-    val tabs = tables.map: (key, value) =>
-      createTabFromTable(value, key)
-    tabs.foreach: tab =>
-      tabPane.getTabs.add(tab)
-
-    reloadButton.setOnAction { (t: ActionEvent) =>
-      reload(t)
-      new Alert(AlertType.INFORMATION, "Test", ButtonType.OK).showAndWait()
-    }
-
-    saveButton.disableProperty().bind(viewModel.validIDProperty)
-    idTextField.textProperty().bindBidirectional(viewModel.idStringProperty)
-    idErrorLabel.textProperty().bind(viewModel.idErrorStringProperty)
-
-    idTextField.requestFocus()
-
-    idTextField.focusedProperty().addListener: change =>
-      if !idTextField.isFocused then
-        viewModel.validateID()
-
-    idTextField.setOnKeyPressed: event =>
-      event.getCode match
-        case KeyCode.ENTER => viewModel.save()
-        case _ => ()
 
 
+  private val reloadButton = new Button:
+    text = "Reload"
+    onAction = _ => viewModel.reload()
+    alignment = Center
+    margin = Insets(0, 20.0, 0, 0)
 
-  def createTabFromTable[M, T <: TableRowViewModel[M]](table: TabTableView[M, T], name: String): Tab =
-    val tab = new Tab(name)
-    tab.setClosable(false)
-    tab.setContent( table)
-    tab
+
+  private val saveButton = new Button:
+    text = "Save"
+    onAction = _ => viewModel.reload()
+    alignment = Center
+    margin = Insets(0, 10.0, 0, 0)
+
+    disable <== viewModel.validIDProperty
+
+
+  private val centerButtonsContainer = new HBox:
+    alignment = Center
+    prefWidth = 200.0
+    prefHeight = 100.0
+    children += new Region:
+      prefWidth = 200.0
+      prefHeight = prefWidth.get
+      hgrow = Always
+
+    children ++= Seq(reloadButton, saveButton)
+
+  center = new VBox:
+    BorderPane.setAlignment(this, Center)
+    children ++= Seq(tabPane, centerButtonsContainer)
+
+  private def createTab[N <: Node](title: String, rootContent: N): Tab =
+    new Tab:
+      text = title
+      closable = false
+      content = rootContent
+
+  idTextField.requestFocus()
+
+
+
+
+
+
+
+
+
+
+//
+//
+//
+//  private val memoryTab: MemoryTabView = new MemoryTabView
+//
+//  @FXML
+//  def reload(event: ActionEvent): Unit =
+//    println("Reloading")
+//    viewModel.reload()
+//
+//
+//  override def initialize(url: URL, resourceBundle: ResourceBundle): Unit =
+//    val tables = Seq(
+//      //      "Memory" -> new MemoryTabView(TabTableViewModel[Memory, MemoryTableRowViewModel](DIManager.getHardwareGrabberService, DIManager.getNotificationCentre, hs => hs.getMemory().map(m => new MemoryTableRowViewModel(m))))
+//      "Memory" -> memoryTab
+//    )
+//
+//    val tabs = tables.map: (key, value) =>
+//      createTabFromTable(value, key)
+//    tabs.foreach: tab =>
+//      tabPane.getTabs.add(tab)
+//
+//    reloadButton.setOnAction { (t: ActionEvent) =>
+//      reload(t)
+//      new Alert(AlertType.INFORMATION, "Test", ButtonType.OK).showAndWait()
+//    }
+//
+//    saveButton.disableProperty().bind(viewModel.validIDProperty)
+//    idTextField.textProperty().bindBidirectional(viewModel.idStringProperty)
+//    idErrorLabel.textProperty().bind(viewModel.idErrorStringProperty)
+//
+//    idTextField.requestFocus()
+//
+//    idTextField.focusedProperty().addListener: change =>
+//      if !idTextField.isFocused then
+//        viewModel.validateID()
+//
+//    idTextField.setOnKeyPressed: event =>
+//      event.getCode match
+//        case KeyCode.ENTER => viewModel.save()
+//        case _ => ()
+//
+//
+//  def createTabFromTable[M, T <: TableRowViewModel[M]](table: TabTableView[M, T], name: String): Tab =
+//    val tab = new Tab(name)
+//    tab.setClosable(false)
+//    tab.setContent(table)
+//    tab
 
 //
 //class RootView extends BorderPane:

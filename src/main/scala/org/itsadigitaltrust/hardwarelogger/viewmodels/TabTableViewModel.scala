@@ -1,34 +1,39 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
-import javafx.collections.{FXCollections, ObservableList}
+import scalafx.collections.*
 import javafx.scene.control.Alert
 import javafx.scene.control.Alert.AlertType
-import org.itsadigitaltrust.hardwarelogger.core.NotificationCentre
 import org.itsadigitaltrust.hardwarelogger.models.HardwareModel
-import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
-import org.springframework.stereotype.Component
-import org.springframework.context.annotation.Bean
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, NotificationCentre, ServicesModule}
+
+
 import scala.runtime.AbstractPartialFunction
-import scala.runtime.AbstractFunction1
-@Component
-final class TabTableViewModel[M, VM <: TableRowViewModel[M]](hardwareGrabberService: HardwareGrabberService, notificationCentre: NotificationCentre/*,  reloadData: => ReloadData[Seq[VM]] */) extends ViewModel:
-  val data: ObservableList[VM] = FXCollections.emptyObservableList()
+import scala.runtime.AbstractFunction1 
+
+class TabTableViewModel[M, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadData: HardwareGrabberService => Seq[M]) extends ViewModel with ServicesModule:
+  type RowViewModel = VM
+  val data: ObservableBuffer[VM] = ObservableBuffer()
 
   def reload(): Unit =
     data.clear()
 
-   // data.addAll(reloadData(hardwareGrabberService) *)
+     data.addAll(reloadData(hardwareGrabberService).map(rowCtor))
 
     val alert = new Alert(AlertType.INFORMATION, "Loaded!")
     alert.showAndWait()
 
 
-  notificationCentre.subscribe("RELOPAD"): (*, _) =>
+  notificationCentre.subscribe("RELOAD"): (*, _) =>
     reload()
 
 
-// object TabTableViewModel:
-  // @Component
+  // object TabTableViewModel:
+  //
   // @Bean
   // final class ReloadData[R](f: HardwareGrabberService => R):
   //   def apply(hardwareGrabberService: HardwareGrabberService): R = f(hardwareGrabberService)
+
+
+end TabTableViewModel
+
+

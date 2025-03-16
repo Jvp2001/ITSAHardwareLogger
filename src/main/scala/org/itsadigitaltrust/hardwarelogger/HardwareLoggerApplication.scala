@@ -1,46 +1,33 @@
 package org.itsadigitaltrust.hardwarelogger
 
-import javafx.application.{Application, Platform}
-import javafx.scene.control.{TableColumn, TableView}
-import javafx.scene.{Parent, Scene}
-import javafx.scene.layout.BorderPane
-import javafx.stage.Stage
-import org.itsadigitaltrust.hardwarelogger.core.SFXMLLoader
-import org.springframework.beans.factory.annotation.Configurable
-import org.springframework.boot.SpringApplication
-import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.context.annotation.ComponentScan
+
+import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
+import org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView
+
+
 import oshi.SystemInfo
+import scalafx.application.JFXApp3
+import scalafx.application.JFXApp3.PrimaryStage
+import scalafx.Includes.{*, given}
+import scalafx.scene.Scene
+import scalafx.scene.layout.{BorderPane, Pane}
 
 import scala.compiletime.uninitialized
 
 
-@ComponentScan(basePackages = Array("org.itsadigitaltrust.hardwarelogger"))
-@SpringBootApplication
-class HardwareLoggerApplication extends Application:
-  private var springContext: ConfigurableApplicationContext = uninitialized
-  private var sfmlLoader: SFXMLLoader = uninitialized
-  private var rootNode: Parent = uninitialized
+object HardwareLoggerApplication extends JFXApp3:
 
-  override def init(): Unit =
-    springContext = SpringApplication.run(classOf[HardwareLoggerApplication])
-     sfmlLoader = new SFXMLLoader(springContext)
-    rootNode = sfmlLoader.load(getClass, "HardwareLoggerRootView.fxml")
 
-  override def start(stage: Stage): Unit =
-    stage.setMinWidth(600)
-    stage.setMinHeight(800)
-    stage.setTitle("Hardware Logger")
-//    Platform.runLater: () =>
-//    Platform.runLater: () =>
-    stage.setMaximized(true)
-    stage.setScene(new Scene(rootNode, 1020, 720))
+  override def start(): Unit =
+
+    stage = new PrimaryStage:
+      minWidth = 600
+      minHeight = 800
+      title = "Hardware Logger"
+      maximized = true
+      scene = new Scene(1020, 720):
+        root = new HardwareLoggerRootView
     stage.show()
-
-
-  override def stop(): Unit =
-    springContext.close()
 
 end HardwareLoggerApplication
 

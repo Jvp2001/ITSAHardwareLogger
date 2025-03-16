@@ -1,18 +1,52 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
-import javafx.scene.control.Tab
-import org.itsadigitaltrust.hardwarelogger.models.Memory
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
-import org.itsadigitaltrust.hardwarelogger.viewmodels.TabTableViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.{MemoryTabViewModel, TabTableViewModel}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Component
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.models.Memory
+import scalafx.Includes.*
+import scalafx.beans.property.IntegerProperty
 
-@Component
-final class MemoryTabView(viewModel: TabTableViewModel[Memory, MemoryTableRowViewModel]) extends TabTableView[Memory, MemoryTableRowViewModel](viewModel):
 
-  private val sizeColumn = createAndAddColumn("Size"): cellValue =>
+final class MemoryTabView extends VBox:
+  given viewModel: MemoryTabViewModel = new MemoryTabViewModel
+
+  private val totalMemLabel = new Label:
+    text = "Total Memory"
+    margin = Insets(0.0, 10.0, 0.0, 10.0)
+
+  private val totalMemValueLabel = new Label:
+    text <== viewModel.totalMemoryProperty
+
+
+  private val totalMemoryContainer = new HBox:
+    prefHeight = 20.0
+    prefWidth = 200.0
+    margin = Insets(10.0, 0, 0, 0)
+    children = Seq(totalMemLabel, totalMemValueLabel)
+
+
+  private val tableView = new TabTableView[Memory, MemoryTableRowViewModel]()
+    //    minWidth = Double.MaxValue
+    //    minHeight = Double.MaxValue
+
+
+
+  import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+
+  private val sizeColumn = tableView.createAndAddColumn("Size"): cellValue =>
     cellValue.sizeProperty
 
-  private val descriptionColumn = createAndAddColumn("Description"): cellValue =>
+  private val descriptionColumn = tableView.createAndAddColumn("Description"): cellValue =>
     cellValue.descriptionProperty
+
+
+  spacing = 10.0
+  children = Seq(
+    totalMemoryContainer,
+    tableView
+  )
+
+end MemoryTabView
+

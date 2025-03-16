@@ -1,16 +1,15 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
-import javafx.beans.property.{BooleanProperty, SimpleBooleanProperty, SimpleStringProperty, StringProperty}
-import org.itsadigitaltrust.hardwarelogger.core.NotificationCentre
-import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService
-import org.springframework.stereotype.Component
+import scalafx.beans.property.*
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, ServicesModule}
 
-@Component
-final class HardwareLoggerRootViewModel(private val hardwareIDValidationService: HardwareIDValidationService, private val notificationCentre: NotificationCentre) extends ViewModel:
 
-  val validIDProperty: BooleanProperty = SimpleBooleanProperty(false)
-  val idStringProperty: StringProperty = SimpleStringProperty()
-  val idErrorStringProperty: StringProperty = SimpleStringProperty()
+final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
+
+
+  val validIDProperty: BooleanProperty = BooleanProperty(false)
+  val idStringProperty: StringProperty = StringProperty("")
+  val idErrorStringProperty: StringProperty = StringProperty("")
 
   validIDProperty.bind(idErrorStringProperty.isNotEmpty)
 
@@ -22,8 +21,8 @@ final class HardwareLoggerRootViewModel(private val hardwareIDValidationService:
 
     if validIDProperty.get() then
       println("Saving...")
-      
-  
+
+
   def validateID(): Unit =
 
     val currentID: String = Option(idStringProperty.get()).getOrElse("")

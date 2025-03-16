@@ -1,4 +1,41 @@
-//package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
+package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
+
+import org.itsadigitaltrust.hardwarelogger.models.{HardDrive, HardDriveType}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+import scalafx.beans.property.*
+
+import java.lang
+
+
+final case class HardDriveTableRowViewModel(model: HardDrive) extends TableRowViewModel[HardDrive](model):
+
+  def healthProperty: LongProperty =
+    wrapper.field[Long, Number, LongProperty, LongProperty]("Health", _.health, 100L)(LongProperty.apply)
+
+  def sizeProperty: LongProperty =
+    wrapper.field[Long, Number, LongProperty, LongProperty]("Size", _.size, 0L)(LongProperty.apply)
+    
+  def modelProperty: StringProperty =
+    wrapper.field("model", _.model, "")(StringProperty.apply)
+
+  def serialProperty: StringProperty =
+    wrapper.field("serial", _.serial, "")(StringProperty.apply)
+
+  def typeProperty: ObjectProperty[HardDriveType] =
+    wrapper.field("type", _.`type`, HardDriveType.SATA)(ObjectProperty.apply)
+
+  def idProperty: StringProperty =
+    wrapper.field("id", _.id, "NOT LOGGED")(StringProperty.apply)
+
+  def isSSDProperty: BooleanProperty =
+    wrapper.field[Boolean, lang.Boolean,BooleanProperty, BooleanProperty]("isSSD", _.isSSD, false)(BooleanProperty.apply)
+    
+    
+  
+
+
+
+
 //
 //import javafx.beans.property.*
 //import org.itsadigitaltrust.hardwarelogger.models.HardDrive

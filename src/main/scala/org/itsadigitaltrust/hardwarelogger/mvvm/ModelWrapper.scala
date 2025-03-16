@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.mvvm
 
-import javafx.beans.property.*
+import scalafx.beans.property.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.common.Operators.in
 import org.itsadigitaltrust.hardwarelogger.mvvm.properties.*
 import org.itsadigitaltrust.hardwarelogger.mvvm.properties.accessorfunctions.*
@@ -22,15 +23,16 @@ import scala.compiletime.uninitialized
 class ModelWrapper[M](
                        private val modelProperty: ObjectProperty[M],
                      ):
-  setup()
+
   /** In Scala, the class's body is the constructor's body. */
 
   private val dirtyFlag = new ReadOnlyBooleanWrapper()
   private val diffFlag = new ReadOnlyBooleanWrapper()
-  private val fields = mutable.LinkedHashSet[PropertyField[?, M, ? <: Property[?]]]()
-  private val identifiedFields = mutable.LinkedHashMap[String, PropertyField[?, M, ? <: Property[?]]]()
-  private val immutableFields = mutable.LinkedHashSet[ImmutablePropertyField[?, M, ? <: Property[?]]]()
+  private var fields = new mutable.LinkedHashSet[PropertyField[?, ?, M, ? <: Property[?, ?]]]()
+  private var identifiedFields = new mutable.LinkedHashMap[String, PropertyField[?, ?,  M, ? <: Property[?, ?]]]()
+  private var immutableFields = new mutable.LinkedHashSet[ImmutablePropertyField[?, ?, M, ? <: Property[?, ?]]]()
 
+  setup()
 
   /**
    * This flag is needed to support immutable fields. Without immutables when [[# commit ( )]] is invoked,
@@ -51,17 +53,13 @@ class ModelWrapper[M](
    * the property of the model element that will be wrapped.
    */
   def this(model: M) =
-    this(SimpleObjectProperty[M](model))
-
-  /**
-   * Create a new instance of [[ModelWrapper]] that is empty at the moment. You have to define the model element
-   * that should be wrapped afterwards with the [[#set( Object )]] method.
-   */
-  def this() =
-    this(SimpleObjectProperty())
+    this(ObjectProperty[M](model))
 
 
   private def setup(): Unit =
+    fields = new mutable.LinkedHashSet[PropertyField[?, ?, M, ? <: Property[?, ?]]]()
+    identifiedFields = new mutable.LinkedHashMap[String, PropertyField[?, ?, M, ? <: Property[?, ?]]]()
+    immutableFields = new mutable.LinkedHashSet[ImmutablePropertyField[?, ?, M, ? <: Property[?, ?]]]()
     reload()
     modelProperty.addListener: (observable, oldValue, newValue) =>
       /*
@@ -160,7 +158,7 @@ class ModelWrapper[M](
    * @param wrappedModelInstance the model instance to apply each field
    * @param method               The method to invoke on each field
    */
-  private def iterateOverAllFields[ModelType](wrappedModelInstance: ModelType)(method: => PropertyField[?, M, ?] => ModelType => ?): Unit =
+  private def iterateOverAllFields[ModelType](wrappedModelInstance: ModelType)(method: => PropertyField[?, ?, M, ?] => ModelType => ?): Unit =
     fields.foreach(field => method(field)(wrappedModelInstance))
     immutableFields.foreach(field => method(field)(wrappedModelInstance))
   end iterateOverAllFields
@@ -220,12 +218,12 @@ class ModelWrapper[M](
     fields.foreach(_.commit(model))
 
 
-  private def propertyWasChanged(): Unit =
+  def propertyWasChanged(): Unit =
     dirtyFlag.set(true)
     calculateDifferenceFlag()
 
   private def calculateDifferenceFlag(): Unit =
-    val allFields: mutable.LinkedHashSet[PropertyField[?, M, ?]] = fields
+    val allFields: mutable.LinkedHashSet[PropertyField[?, ?, M, ?]] = fields
     allFields ++= immutableFields
     model match
       case Some(wrappedModelInstance) =>
@@ -237,21 +235,25 @@ class ModelWrapper[M](
   end calculateDifferenceFlag
 
 
-  private def add[T, R <: Property[T]](field: PropertyField[T, M, R]): R =
+  def add[T, J, R <: Property[T, J]](field: PropertyField[T, J, M, R]): R =
     fields.add(field)
     model.foreach: value =>
       field.reload(value)
-    field.property
+    field.targetProperty
+  end add
 
-  private def addIdentified[T, R <: Property[T]](fieldName: String, propertyField: PropertyField[T, M, R]): R =
+
+  def addIdentified[T, J, R <: Property[T, J]](fieldName: String, propertyField: PropertyField[T, J, M, R]): R =
     if fieldName in identifiedFields then
-      val property: Property[R] = identifiedFields(fieldName).property.asInstanceOf[Property[R]]
-      property.getValue
+      val property: Property[T, J] = identifiedFields(fieldName).targetProperty.asInstanceOf[Property[T,J]]
+      property.asInstanceOf[R]
     else
       identifiedFields(fieldName) = propertyField
       add(propertyField)
+  end addIdentified
 
-  private def addImmutable[T, R <: Property[T]](field: ImmutablePropertyField[T, M, R]): R =
+
+  def addImmutable[T, J, R <: Property[T, J]](field: ImmutablePropertyField[T, J, M, R]): R =
     immutableFields += field
 
     model match
@@ -259,15 +261,19 @@ class ModelWrapper[M](
         field.reload(value)
       case None => ()
 
-    field.property
+    field.targetProperty
+  end addImmutable
 
-  private def addIdentifedImmutable[T, R <: Property[T]](fieldName: String, propertyField: ImmutablePropertyField[T, M, R]): R =
+
+  def addIdentifiedImmutable[T, J, R <: Property[T, J]](fieldName: String, propertyField: ImmutablePropertyField[T, J, M, R]): R =
     if fieldName in identifiedFields then
-      val property: Property[R] = identifiedFields(fieldName).property.asInstanceOf[Property[R]]
-      property.getValue
-    else
-      identifiedFields(fieldName) = propertyField
-      addImmutable(propertyField)
+      val property: Property[R, R] = identifiedFields(fieldName).targetProperty.asInstanceOf[Property[R, R]]
+      return property.getValue
+
+    identifiedFields(fieldName) = propertyField
+    addImmutable(propertyField)
+  end addIdentifiedImmutable
+
 
 
   def differentProperty: ReadOnlyBooleanProperty =
@@ -304,19 +310,197 @@ class ModelWrapper[M](
   def isDirty: Boolean =
     dirtyFlag.get()
 
+//  def field[T, J, R <: Property[T, J], PS <: R](identifier: String, getter: Getter[T, M], setter: MutableSetter[M, J], defaultValue: J = null.asInstanceOf[J])( propertySupplier: T => PS): PS =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, propertySupplier))
+  def field[T, J, R <: Property[T, J], PS <: R](identifier: String, getter: Getter[T, M], defaultValue: J)( propertySupplier: T => PS): PS =
+    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, (m,j: J) => (), defaultValue, propertySupplier))
+  def field[T, R <: Property[T, Number], PS <: R](identifier: String, getter: Getter[T, M], defaultValue: Number)( propertySupplier: T => PS): PS =
+    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, (m,j: Number) => (), defaultValue, propertySupplier))
 
-//  def field[T, R <: Property[T], PBase <: Property[T]](getter: Getter[PBase, M], setter: MutableSetter[M, T], defaultValue: T)(ctor: => () => PBase): PBase =
-//    add(new BeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
+  def immutableField[T, J, R <: Property[T, J], PS <: R](identifier: String, getter: Getter[T, M], setter: ImmutableSetter[M, J], defaultValue: J = null.asInstanceOf[J])( propertySupplier: T => PS): PS =
+    addIdentified(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, propertySupplier))
 //
-//  def immutableField[T, R <: Property[T], PBase <: Property[T]](getter: Getter[PBase, M], setter: ImmutableSetter[M, T], defaultValue: T)(ctor: => () => PBase): PBase =
-//    add(new ImmutableBeanPropertyField(propertyWasChanged, getter, setter, defaultValue: T, () => ctor()))
+//  def field(identifier: String, accessor: StringPropertyAccessor[M]): StringProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, "", () => new StringProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: StringPropertyAccessor[M], defaultValue: String): StringProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new StringProperty(null, identifier)))
 
-  def field[T, R <: Property[T], PBase <: Property[T]](identifier: String, getter: Getter[PBase, M], setter: MutableSetter[M, T], defaultValue: T = null.asInstanceOf[T])(ctor: => () => PBase): PBase =
-    addIdentified(identifier, new BeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
-
-  def immutableField[T, R <: Property[T], PBase <: Property[T]](identifier: String, getter: Getter[PBase, M],
-                                                                setter: ImmutableSetter[M, T], defaultValue: T = null.asInstanceOf[T])
-                                                               (ctor: => () => PBase): PBase =
-    addIdentifedImmutable(identifier, new ImmutableBeanPropertyField(propertyWasChanged, getter, setter, defaultValue, () => ctor()))
+//  def field(getter: BooleanGetter[M], setter: BooleanSetter[M]): BooleanProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, false, () => new BooleanProperty()))
+//
+//  def field(getter: BooleanGetter[M], setter: BooleanSetter[M], defaultValue: Boolean): BooleanProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new BooleanProperty()))
+//
+//  def immutableField(getter: BooleanGetter[M], immutableSetter: BooleanImmutableSetter[M], defaultValue: Boolean): BooleanProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new BooleanProperty()))
+//
+//  def field(accessor: BooleanPropertyAccessor[M]): BooleanProperty =
+//    add(new FxPropertyField(this.propertyWasChanged(), accessor, false, () => new BooleanProperty()))
+//
+//  def field(accessor: BooleanPropertyAccessor[M], defaultValue: Boolean): BooleanProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new BooleanProperty()))
+//
+//  def field(identifier: String, getter: BooleanGetter[M], setter: BooleanSetter[M]): BooleanProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new BooleanProperty(null, identifier)))
+//
+//  def field(identifier: String, getter: BooleanGetter[M], setter: BooleanSetter[M], defaultValue: Boolean): BooleanProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new BooleanProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: BooleanGetter[M], immutableSetter: BooleanImmutableSetter[M]): BooleanProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new BooleanProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: BooleanGetter[M], immutableSetter: BooleanImmutableSetter[M], defaultValue: Boolean): BooleanProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new BooleanProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: BooleanPropertyAccessor[M]): BooleanProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged(), accessor, () => new BooleanProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: BooleanPropertyAccessor[M], defaultValue: Boolean): BooleanProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new BooleanProperty(null, identifier)))
+//
+//  def field(getter: DoubleGetter[M], setter: DoubleSetter[M]): DoubleProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, 0, () => new DoubleProperty()))
+//
+//  def immutableField(getter: DoubleGetter[M], immutableSetter: DoubleImmutableSetter[M]): DoubleProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new DoubleProperty()))
+//
+//  def field(getter: DoubleGetter[M], setter: DoubleSetter[M], defaultValue: Double): DoubleProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new DoubleProperty()))
+//
+//  def immutableField(getter: DoubleGetter[M], immutableSetter: DoubleImmutableSetter[M], defaultValue: Double): DoubleProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new DoubleProperty()))
+//
+//  def field(accessor: DoublePropertyAccessor[M]): DoubleProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, () => new DoubleProperty()))
+//
+//  def field(accessor: DoublePropertyAccessor[M], defaultValue: Double): DoubleProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new DoubleProperty()))
+//
+//  def field(identifier: String, getter: DoubleGetter[M], setter: DoubleSetter[M]): DoubleProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new DoubleProperty(null, identifier)))
+//
+//  def field(identifier: String, getter: DoubleGetter[M], setter: DoubleSetter[M], defaultValue: Double): DoubleProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new DoubleProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: DoubleGetter[M], immutableSetter: DoubleImmutableSetter[M]): DoubleProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new DoubleProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: DoubleGetter[M], immutableSetter: DoubleImmutableSetter[M], defaultValue: Double): DoubleProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new DoubleProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: DoublePropertyAccessor[M]): DoubleProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, () => new DoubleProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: DoublePropertyAccessor[M], defaultValue: Double): DoubleProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new DoubleProperty(null, identifier)))
+//
+//  def field(getter: FloatGetter[M], setter: FloatSetter[M]): FloatProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new FloatProperty()))
+//
+//  def immutableField(getter: FloatGetter[M], immutableSetter: FloatImmutableSetter[M]): FloatProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new FloatProperty()))
+//
+//  def field(getter: FloatGetter[M], setter: FloatSetter[M], defaultValue: Float): FloatProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new FloatProperty()))
+//
+//  def immutableField(getter: FloatGetter[M], immutableSetter: FloatImmutableSetter[M], defaultValue: Float): FloatProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new FloatProperty()))
+//
+//  def field(accessor: FloatPropertyAccessor[M]): FloatProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, () => new FloatProperty()))
+//
+//  def field(accessor: FloatPropertyAccessor[M], defaultValue: Float): FloatProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new FloatProperty()))
+//
+//  def field(identifier: String, getter: FloatGetter[M], setter: FloatSetter[M]): FloatProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new FloatProperty(null, identifier)))
+//
+//  def field(identifier: String, getter: FloatGetter[M], setter: FloatSetter[M], defaultValue: Float): FloatProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new FloatProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: FloatGetter[M], immutableSetter: FloatImmutableSetter[M]): FloatProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new FloatProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: FloatGetter[M], immutableSetter: FloatImmutableSetter[M], defaultValue: Float): FloatProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new FloatProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: FloatPropertyAccessor[M]): FloatProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, () => new FloatProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: FloatPropertyAccessor[M], defaultValue: Float): FloatProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new FloatProperty(null, identifier)))
+//
+//  def field(getter: IntGetter[M], setter: IntSetter[M]): IntegerProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new IntegerProperty()))
+//
+//  def immutableField(getter: IntGetter[M], immutableSetter: IntImmutableSetter[M]): IntegerProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new IntegerProperty()))
+//
+//  def field(getter: IntGetter[M], setter: IntSetter[M], defaultValue: Int): IntegerProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new IntegerProperty()))
+//
+//  def immutableField(getter: IntGetter[M], immutableSetter: IntImmutableSetter[M], defaultValue: Int): IntegerProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new IntegerProperty()))
+//
+//  def field(accessor: IntPropertyAccessor[M]): IntegerProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, () => new IntegerProperty()))
+//
+//  def field(accessor: IntPropertyAccessor[M], defaultValue: Int): IntegerProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new IntegerProperty()))
+//
+//  def field(identifier: String, getter: IntGetter[M], setter: IntSetter[M]): IntegerProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new IntegerProperty(null, identifier)))
+//
+//  def field(identifier: String, getter: IntGetter[M], setter: IntSetter[M], defaultValue: Int): IntegerProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new IntegerProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: IntGetter[M], immutableSetter: IntImmutableSetter[M]): IntegerProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new IntegerProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: IntGetter[M], immutableSetter: IntImmutableSetter[M], defaultValue: Int): IntegerProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new IntegerProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: IntPropertyAccessor[M]): IntegerProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, () => new IntegerProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: IntPropertyAccessor[M], defaultValue: Int): IntegerProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new IntegerProperty(null, identifier)))
+//
+//  def field(getter: LongGetter[M], setter: LongSetter[M]): LongProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new LongProperty()))
+//
+//  def immutableField(getter: LongGetter[M], immutableSetter: LongImmutableSetter[M]): LongProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new LongProperty()))
+//
+//  def field(getter: LongGetter[M], setter: LongSetter[M], defaultValue: Long): LongProperty =
+//    add(new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new LongProperty()))
+//
+//  def immutableField(getter: LongGetter[M], immutableSetter: LongImmutableSetter[M], defaultValue: Long): LongProperty =
+//    addImmutable(new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new LongProperty()))
+//
+//  def field(accessor: LongPropertyAccessor[M]): LongProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, () => new LongProperty()))
+//
+//  def field(accessor: LongPropertyAccessor[M], defaultValue: Long): LongProperty =
+//    add(new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new LongProperty()))
+//
+//  def field(identifier: String, getter: LongGetter[M], setter: LongSetter[M]): LongProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, () => new LongProperty(null, identifier)))
+//
+//  def field(identifier: String, getter: LongGetter[M], setter: LongSetter[M], defaultValue: Long): LongProperty =
+//    addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, () => new LongProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: LongGetter[M], immutableSetter: LongImmutableSetter[M]): LongProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, () => new LongProperty(null, identifier)))
+//
+//  def immutableField(identifier: String, getter: LongGetter[M], immutableSetter: LongImmutableSetter[M], defaultValue: Long): LongProperty =
+//    addIdentifiedImmutable(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, immutableSetter, defaultValue, () => new LongProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: LongPropertyAccessor[M]): LongProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, () => new LongProperty(null, identifier)))
+//
+//  def field(identifier: String, accessor: LongPropertyAccessor[M], defaultValue: Long): LongProperty =
+//    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new LongProperty(null, identifier)))
 
 end ModelWrapper

@@ -1,0 +1,25 @@
+package org.itsadigitaltrust.hardwarelogger.core
+
+
+object ui:
+  export scalafx.Includes.*
+  export scalafx.Includes.given
+  export scalafx.scene.Node
+  export scalafx.scene.control.{Tab, TableColumn, TableView, TabPane, Button, Label, TextField}
+  export scalafx.scene.layout.{
+    VBox, HBox, BorderPane, Priority, Region
+  }
+  export scalafx.scene.layout.Priority.*
+
+  export scalafx.scene.text.TextAlignment
+  export scalafx.scene.text.Font
+
+  export scalafx.geometry.Insets
+  export scalafx.geometry.Pos
+  export Pos.{Center, CenterLeft, TopLeft, TopCenter, TopRight, CenterRight}
+
+  export org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+
+
+
+

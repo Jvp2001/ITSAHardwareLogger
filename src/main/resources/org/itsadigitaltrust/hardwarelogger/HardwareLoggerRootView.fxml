@@ -39,22 +39,23 @@
         </VBox>
     </top>
     <bottom>
-<!--        <HBox alignment="CENTER" minHeight="30" BorderPane.alignment="CENTER">-->
-<!--            <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS"/>-->
-<!--            <ProgressIndicator progress="0.0">-->
-<!--                <HBox.margin>-->
-<!--                    <Insets right="20.0"/>-->
-<!--                </HBox.margin>-->
-<!--            </ProgressIndicator>-->
-<!--        </HBox>-->
+        <!--        <HBox alignment="CENTER" minHeight="30" BorderPane.alignment="CENTER">-->
+        <!--            <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS"/>-->
+        <!--            <ProgressIndicator progress="0.0">-->
+        <!--                <HBox.margin>-->
+        <!--                    <Insets right="20.0"/>-->
+        <!--                </HBox.margin>-->
+        <!--            </ProgressIndicator>-->
+        <!--        </HBox>-->
     </bottom>
     <center>
 
-        <VBox prefHeight="Infinity" prefWidth="Infinity" BorderPane.alignment="CENTER" >
-            <TabPane fx:id="tabPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER" VBox.vgrow="ALWAYS"/>
-            <HBox alignment="CENTER"            prefHeight="100.0" prefWidth="200.0">
+        <VBox prefHeight="Infinity" prefWidth="Infinity" BorderPane.alignment="CENTER">
+            <TabPane fx:id="tabPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE"
+                     BorderPane.alignment="CENTER" VBox.vgrow="ALWAYS"/>
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0">
                 <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS"/>
-                    <Button alignment="CENTER" mnemonicParsing="false" text="Reload" fx:id="reloadButton"
+                <Button alignment="CENTER" mnemonicParsing="false" text="Reload" fx:id="reloadButton"
                         onAction="#reload">
                     <HBox.margin>
                         <Insets right="20.0"/>

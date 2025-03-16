@@ -1,12 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.models
 
-import org.springframework.context.annotation.Bean
-import org.springframework.stereotype.Component
+
 import org.itsadigitaltrust.macros.ScalaSpringBeanComponent
 import scala.annotation.experimental
 
 
-@ScalaSpringBeanComponent
+//@ScalaSpringBeanComponent
 final case class GeneralInfo(
                               computerID: String,
                               description: String,
@@ -17,10 +16,10 @@ final case class GeneralInfo(
                             )
 
 
-@ScalaSpringBeanComponent
+//@ScalaSpringBeanComponent
 final case class HardDrive(
                             health: Int,
-                            size: String,
+                            size: Long,
                             model: String,
                             serial: String,
                             `type`: HardDriveType,
@@ -28,29 +27,28 @@ final case class HardDrive(
                             isSSD: Boolean = false
                           )
 
-@Component
-@Bean
+//
+//
+//@Bean
 enum HardDriveType extends Enum[HardDriveType]:
   case SATA, NVME, PATA
 
-@ScalaSpringBeanComponent
+//@ScalaSpringBeanComponent
 final case class Media(description: String, handle: String)
 
-@ScalaSpringBeanComponent
-final case class Memory( size: Int,  description: String)
+//@ScalaSpringBeanComponent
+final case class Memory(size: Long, description: String)
 
-@ScalaSpringBeanComponent
+//@ScalaSpringBeanComponent
 final case class Processor(
-                             chipType: String,
-                             speed: String,
-                             shortDescription: String,
-                             longDescription: String,
-                             serial: String,
-                             width: Int = 0,
-                             cores: Int = 0
+                            chipType: String,
+                            speed: Long,
+                            shortDescription: String,
+                            longDescription: String,
+                            serial: String,
+                            width: Int = 0,
+                            cores: Int = 0
                           )
-
-
 
 
 type HardwareModel = GeneralInfo | HardDrive | Memory | Media | Processor

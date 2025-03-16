@@ -1,17 +1,18 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-import org.springframework.stereotype.Service
 
-@Service
+
 trait HardwareGrabberService:
+
   import org.itsadigitaltrust.hardwarelogger.models.*
-  def getGeneralInfo(): GeneralInfo
 
-  def getHardDrives(): List[HardDrive]
+  def getGeneralInfo: GeneralInfo
 
-  def getMemory(): List[Memory]
+  def getHardDrives: List[HardDrive]
 
-  def getProcessors(): List[Processor]
+  def getMemory: List[Memory]
 
-  def getMedia(): List[Media]
+  def getProcessors: List[Processor]
+
+  def getMedia: List[Media]
   

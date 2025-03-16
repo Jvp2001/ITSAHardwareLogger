@@ -2,13 +2,10 @@ package org.itsadigitaltrust.macros
 
 import scala.quoted.* 
 import scala.annotation.MacroAnnotation
-import org.springframework.context.annotation.Bean
-import org.springframework.stereotype.Component
+
 import scala.annotation.experimental
 
 
-@Bean
-@Component
 @experimental
 class ScalaSpringBeanComponent extends NoArgConstructor
 

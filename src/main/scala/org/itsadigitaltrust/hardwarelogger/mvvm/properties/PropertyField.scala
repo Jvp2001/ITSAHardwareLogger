@@ -1,10 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.mvvm.properties
 
-import javafx.beans.property.Property
+import scalafx.beans.property.Property
 import org.itsadigitaltrust.hardwarelogger.mvvm.ModelWrapper
 
 import scala.sys.error
 // Based off https://github.com/sialcasa/mvvmFX/blob/develop/mvvmfx/src/main/java/de/saxsys/mvvmfx/utils/mapping/PropertyField.java
+
 /**
  * This interface defines the operations that are possible for each field of a wrapped class.
  *
@@ -15,9 +16,9 @@ import scala.sys.error
  * @tparam R
  * return type.
  * The type of the Property that is returned via [[#getProperty()]], f.e.
- * [[javafx.beans.property.StringProperty]] or [[Property[String]].
+ * [[scalafx.beans.property.StringProperty]] or [[Property[String]].
  */
-trait PropertyField[T, M, R <: Property[T]]:
+trait PropertyField[T, J, M, R <: Property[T, J]]:
 
   def commit(wrappedObject: M): Unit
 
@@ -27,9 +28,9 @@ trait PropertyField[T, M, R <: Property[T]]:
 
   def updateDefault(wrappedObject: M): Unit
 
-  val property: R
+  val targetProperty: R
 
-  def getProperty: R = property
+  def getProperty: R = targetProperty
 
   /**
    * Determines if the value in the model object and the property field are different or not.
@@ -44,11 +45,10 @@ trait PropertyField[T, M, R <: Property[T]]:
   def isDifferent(wrappedObject: M): Boolean
 
 
-
 end PropertyField
 
 
-trait ImmutablePropertyField[T, M, R <: Property[T]] extends PropertyField[T, M, R]:
+trait ImmutablePropertyField[T, J, M, R <: Property[T, J]] extends PropertyField[T, J, M, R]:
   def commitImmutable(wrappedObject: M): M
 
   override final def commit(wrappedObject: M): Unit =

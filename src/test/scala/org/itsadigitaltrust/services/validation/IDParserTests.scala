@@ -34,8 +34,8 @@ class IDParserTests extends AnyFunSuite:
   test("Invalid ID with invalid character"):
     val result = IDParser("H82437.1@")
     result match
-      case Left(value) => 
+      case Left(value) =>
         assert(value.isInstanceOf[ParserError.ScannerError])
-          
+
       case Right(value) => assert(false)
     

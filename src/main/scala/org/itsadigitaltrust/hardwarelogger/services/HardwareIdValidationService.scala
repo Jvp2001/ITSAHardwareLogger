@@ -1,8 +1,9 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 
+
 import java.util.regex.Pattern
-import org.springframework.stereotype.Service
+
 
 import scala.annotation.tailrec
 import org.itsadigitaltrust.macros.NoArgConstructor
@@ -11,63 +12,66 @@ import scala.util.boundary
 
 
 trait HardwareIDValidationService:
-    import HardwareIDValidationService.*
-    def validate(input: String): ValidationResult
+
+  import HardwareIDValidationService.*
+
+  def validate(input: String): ValidationResult
 
 object HardwareIDValidationService:
-    type ValidationResult = Either[ValidationError, true]
-    enum ValidationError:
-        case ParserError(error: IDParser.ParserError)
-        case IncorrectCheckDigit(expected: String, got: String)
+  type ValidationResult = Either[ValidationError, true]
 
-        override def toString: String =
-            this match
-                case ParserError(error) => error.toString()
-                case IncorrectCheckDigit(expected, got) => s"Expected the check digit to be: $expected, but got: $got instead."
+  enum ValidationError:
+    case ParserError(error: IDParser.ParserError)
+    case IncorrectCheckDigit(expected: String, got: String)
 
-    given Conversion[IDParser.ParserError, ValidationError] with
-        override def apply(x: IDParser.ParserError): ValidationError =
-            ValidationError.ParserError(x)
+    override def toString: String =
+      this match
+        case ParserError(error) => error.toString()
+        case IncorrectCheckDigit(expected, got) => s"Expected the check digit to be: $expected, but got: $got instead."
+
+  given Conversion[IDParser.ParserError, ValidationError] with
+    override def apply(x: IDParser.ParserError): ValidationError =
+      ValidationError.ParserError(x)
 end HardwareIDValidationService
 
 
-@Service
 class SimpleHardwareIDValidationService extends HardwareIDValidationService:
-    import HardwareIDValidationService.*
-    import HardwareIDValidationService.ValidationError.*
-    import org.itsadigitaltrust.common.Operators.*
-    import org.itsadigitaltrust.common.*
 
-    final val multiplier = 3
+  import HardwareIDValidationService.*
+  import HardwareIDValidationService.ValidationError.*
+  import org.itsadigitaltrust.common.Operators.*
+  import org.itsadigitaltrust.common.*
 
-    override def validate(input: String): ValidationResult =
-        boundary:
-            IDParser(input) match
-                case Left(value) => error(value)
-                case Right(value) =>
-                    val userCheckDigit = value.checkDigit.getOrElse("0").toInt
-                    val numberSeq: IndexedSeq[Char] = value.number.getOrError(Left(IDParser.ParserError.MissingNumber)).iterator.toIndexedSeq
-                    val oddTotal = calculateOddSum(numberSeq)
-                    val evenTotal = calculateEvenSum(numberSeq)
-                    val calculatedCheckDigit = (oddTotal + evenTotal * multiplier) % 10
+  final val multiplier = 3
 
-                    if userCheckDigit != calculatedCheckDigit then
-                        error(ValidationError.IncorrectCheckDigit(s"$calculatedCheckDigit", s"$userCheckDigit"))
-                    else
-                        Right(true)
+  override def validate(input: String): ValidationResult =
+    boundary:
+      IDParser(input) match
+        case Left(value) => error(value)
+        case Right(value) =>
+          val userCheckDigit = value.checkDigit.getOrElse("0").toInt
+          val numberSeq: IndexedSeq[Char] = value.number.getOrError(Left(IDParser.ParserError.MissingNumber)).iterator.toIndexedSeq
+          val oddTotal = calculateOddSum(numberSeq)
+          val evenTotal = calculateEvenSum(numberSeq)
+          val calculatedCheckDigit = (oddTotal + evenTotal * multiplier) % 10
 
-    def calculateOddSum[T <: Char](numberSeq: IndexedSeq[T]): Int =
-        numberSeq.getEvenIndexItems.map(_.asDigit).sum
+          if userCheckDigit != calculatedCheckDigit then
+            error(ValidationError.IncorrectCheckDigit(s"$calculatedCheckDigit", s"$userCheckDigit"))
+          else
+            Right(true)
 
-    def calculateEvenSum[T <: Char](numberSeq: IndexedSeq[T]): Int =
-        numberSeq.getOddIndexItems.map(_.asDigit).sum
+  def calculateOddSum[T <: Char](numberSeq: IndexedSeq[T]): Int =
+    numberSeq.getEvenIndexItems.map(_.asDigit).sum
 
-    private def error(error: ValidationError)(using boundary.Label[ValidationResult]) =
-        boundary.break(Left(error))
+  def calculateEvenSum[T <: Char](numberSeq: IndexedSeq[T]): Int =
+    numberSeq.getOddIndexItems.map(_.asDigit).sum
+
+  private def error(error: ValidationError)(using boundary.Label[ValidationResult]) =
+    boundary.break(Left(error))
 
 
 
-   
+
 //
 //
 //    def validate(input: String): Either[HardwareIDValidatonServiceError, Int] =

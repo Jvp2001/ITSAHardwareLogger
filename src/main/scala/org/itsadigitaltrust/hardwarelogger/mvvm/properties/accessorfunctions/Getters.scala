@@ -7,7 +7,7 @@ type IntGetter[M] = Getter[Int, M]
 type LongGetter[M] = Getter[Long, M]
 type FloatGetter[M] = Getter[Float, M]
 type DoubleGetter[M] = Getter[Double, M]
-
+type BooleanGetter[M] = Getter[Boolean, M]
 
 
 

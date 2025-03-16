@@ -9,7 +9,7 @@
          tabClosingPolicy="UNAVAILABLE"
          tabDragPolicy="FIXED">
 
-<tabs>
-    <GeneralInfoTabView/>
-</tabs>
+    <tabs>
+        <GeneralInfoTabView/>
+    </tabs>
 </TabPane>
