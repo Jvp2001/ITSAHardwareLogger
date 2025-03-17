@@ -1,7 +1,7 @@
 //package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 //
 //import javafx.beans.property.*
-//import org.itsadigitaltrust.hardwarelogger.models.{GeneralInfo, Processor}
+//import org.itsadigitaltrust.hardwarelogger.models.{GeneralInfoModel, Processor}
 //import org.itsadigitaltrust.hardwarelogger.mvvm.properties.accessorfunctions.{StringGetter, StringSetter}
 //import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 ////
@@ -43,7 +43,7 @@
 ////  def cores: Int = coresProp.get()
 //
 //
-//final class GeneralInfoTableRowViewModel(model: GeneralInfo) extends TableRowViewModel[GeneralInfo](model):
+//final class GeneralInfoTableRowViewModel(model: GeneralInfoModel) extends TableRowViewModel[GeneralInfoModel](model):
 //  def computerIDProperty: StringProperty =
 //    wrapper.field("computerID", _.computerID, (m, v) => m.copy(computerID = v), "")(() => new SimpleStringProperty())
 //

@@ -1,12 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.models
 
 
-import org.itsadigitaltrust.macros.ScalaSpringBeanComponent
 import scala.annotation.experimental
 
 
 //@ScalaSpringBeanComponent
-final case class GeneralInfo(
+final case class GeneralInfoModel(
                               computerID: String,
                               description: String,
                               model: String,
@@ -17,7 +16,7 @@ final case class GeneralInfo(
 
 
 //@ScalaSpringBeanComponent
-final case class HardDrive(
+final case class HardDriveModel(
                             health: Int,
                             size: Long,
                             model: String,
@@ -34,13 +33,13 @@ enum HardDriveType extends Enum[HardDriveType]:
   case SATA, NVME, PATA
 
 //@ScalaSpringBeanComponent
-final case class Media(description: String, handle: String)
+final case class MediaModel(description: String, handle: String)
 
 //@ScalaSpringBeanComponent
-final case class Memory(size: Long, description: String)
+final case class MemoryModel(size: Long, description: String)
 
 //@ScalaSpringBeanComponent
-final case class Processor(
+final case class ProcessorModel(
                             chipType: String,
                             speed: Long,
                             shortDescription: String,
@@ -51,5 +50,5 @@ final case class Processor(
                           )
 
 
-type HardwareModel = GeneralInfo | HardDrive | Memory | Media | Processor
+type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel
 

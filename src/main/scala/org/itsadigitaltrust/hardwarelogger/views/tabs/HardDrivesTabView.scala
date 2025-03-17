@@ -1,13 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
-import org.itsadigitaltrust.hardwarelogger.models.HardDrive
+import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import scalafx.scene.control.cell.CheckBoxTableCell
 
-private given viewModel: TabTableViewModel[HardDrive,HardDriveTableRowViewModel] = new TabTableViewModel(HardDriveTableRowViewModel.apply, _.getHardDrives)
+private given viewModel: TabTableViewModel[HardDriveModel,HardDriveTableRowViewModel] = new TabTableViewModel(HardDriveTableRowViewModel.apply, _.getHardDrives)
 
-class HardDrivesTabView extends TabTableView[HardDrive, HardDriveTableRowViewModel]:
+class HardDrivesTabView extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
 
   import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 

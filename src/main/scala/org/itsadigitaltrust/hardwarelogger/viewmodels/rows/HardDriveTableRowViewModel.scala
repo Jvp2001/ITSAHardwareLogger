@@ -1,13 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
-import org.itsadigitaltrust.hardwarelogger.models.{HardDrive, HardDriveType}
+import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveType}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 
 import java.lang
 
 
-final case class HardDriveTableRowViewModel(model: HardDrive) extends TableRowViewModel[HardDrive](model):
+final case class HardDriveTableRowViewModel(model: HardDriveModel) extends TableRowViewModel[HardDriveModel](model):
 
   def healthProperty: LongProperty =
     wrapper.field[Long, Number, LongProperty, LongProperty]("Health", _.health, 100L)(LongProperty.apply)
@@ -38,7 +38,7 @@ final case class HardDriveTableRowViewModel(model: HardDrive) extends TableRowVi
 
 //
 //import javafx.beans.property.*
-//import org.itsadigitaltrust.hardwarelogger.models.HardDrive
+//import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 //import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 //
 ////final class HardDriveTableRowViewModel(
@@ -80,7 +80,7 @@ final case class HardDriveTableRowViewModel(model: HardDrive) extends TableRowVi
 //
 //
 //
-//final class HardDriveTableRowViewModel(model: HardDrive) extends TableRowViewModel[HardDrive](model):
+//final class HardDriveTableRowViewModel(model: HardDriveModel) extends TableRowViewModel[HardDriveModel](model):
 //  def healthProperty: IntegerProperty =
 //    wrapper.field("health", _.health, (m, v) => m.health = v, 0)(() => new SimpleIntegerProperty())
 //

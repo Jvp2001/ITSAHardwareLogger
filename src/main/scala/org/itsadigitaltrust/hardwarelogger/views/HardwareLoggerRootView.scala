@@ -20,6 +20,8 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
   prefWidth = 600.0
   prefHeight = 400.0
 
+
+
   private val idLabel = new Label:
     text = "ID"
     minWidth = 0.0
@@ -34,9 +36,9 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     focused.onChange: (change, oldValue, focused) =>
       if !focused then
         viewModel.validateID()
-    onKeyPressed = event =>
-      if event.getCode == KeyCode.Enter then
-        viewModel.save()
+    onAction = _ =>
+      viewModel.save()
+
 
 
 
@@ -69,7 +71,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     alignmentInParent = Pos.Center
     vgrow = Always
     tabs ++= Seq(
-      createTab("Memory", new MemoryTabView),
+      createTab("MemoryModel", new MemoryTabView),
       createTab("HDD", new HardDrivesTabView)
     )
 
@@ -112,10 +114,11 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
       closable = false
       content = rootContent
 
+  viewModel.idFieldFocusProperty.onChange: (_, oldValue, newValue) =>
+    if newValue then
+      idTextField.requestFocus()
+
   idTextField.requestFocus()
-
-
-
 
 
 
@@ -136,8 +139,8 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
 //
 //  override def initialize(url: URL, resourceBundle: ResourceBundle): Unit =
 //    val tables = Seq(
-//      //      "Memory" -> new MemoryTabView(TabTableViewModel[Memory, MemoryTableRowViewModel](DIManager.getHardwareGrabberService, DIManager.getNotificationCentre, hs => hs.getMemory().map(m => new MemoryTableRowViewModel(m))))
-//      "Memory" -> memoryTab
+//      //      "MemoryModel" -> new MemoryTabView(TabTableViewModel[MemoryModel, MemoryTableRowViewModel](DIManager.getHardwareGrabberService, DIManager.getNotificationCentre, hs => hs.getMemory().map(m => new MemoryTableRowViewModel(m))))
+//      "MemoryModel" -> memoryTab
 //    )
 //
 //    val tabs = tables.map: (key, value) =>

@@ -6,13 +6,13 @@ trait HardwareGrabberService:
 
   import org.itsadigitaltrust.hardwarelogger.models.*
 
-  def getGeneralInfo: GeneralInfo
+  def getGeneralInfo: GeneralInfoModel
 
-  def getHardDrives: List[HardDrive]
+  def getHardDrives: List[HardDriveModel]
 
-  def getMemory: List[Memory]
+  def getMemory: List[MemoryModel]
 
-  def getProcessors: List[Processor]
+  def getProcessors: List[ProcessorModel]
 
-  def getMedia: List[Media]
+  def getMedia: List[MediaModel]
   

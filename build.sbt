@@ -24,7 +24,7 @@ lazy val root = (project in file("."))
     libraryDependencies += "com.github.oshi" % "oshi-core" % "6.7.1",
     libraryDependencies ++= commonDependencies
 
-  ).dependsOn(common, macros)
+  ).dependsOn(common, macros, backend)
 
 
 lazy val common = (project in file("Common"))
@@ -51,6 +51,14 @@ lazy val macros = (project in file("Macros"))
     name := "Macros",
   ).dependsOn(common)
 
+
+lazy val backend = (project in file("Backend"))
+  .settings(
+    name := "Backend",
+    libraryDependencies ++= commonDependencies,
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+    unmanagedSourceDirectories in Test += file("tests")
+  ).dependsOn(common)
 
 
 

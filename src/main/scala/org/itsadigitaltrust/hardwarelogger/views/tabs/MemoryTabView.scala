@@ -4,7 +4,7 @@ import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{MemoryTabViewModel, TabTableViewModel}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.models.Memory
+import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import scalafx.Includes.*
 import scalafx.beans.property.IntegerProperty
 
@@ -27,7 +27,7 @@ final class MemoryTabView extends VBox:
     children = Seq(totalMemLabel, totalMemValueLabel)
 
 
-  private val tableView = new TabTableView[Memory, MemoryTableRowViewModel]()
+  private val tableView = new TabTableView[MemoryModel, MemoryTableRowViewModel]()
     //    minWidth = Double.MaxValue
     //    minHeight = Double.MaxValue
 
