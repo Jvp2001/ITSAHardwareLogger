@@ -1,25 +1,33 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
 import com.mysql.cj.jdbc.MysqlDataSource
+import org.itsadigitaltrust.common
+import org.itsadigitaltrust.common.{Result, Success}
 
-import java.io.{File, FileInputStream}
+import java.io.{File, FileInputStream, FileNotFoundException, FileReader}
 import java.net.URI
 import java.util.Properties
 import javax.sql.DataSource
-import scala.util.{Using, boundary}
+import scala.util.{Failure, Using, boundary}
 
 object DataStoreLoader:
   enum Error:
-    case PropertyNotFound(expected: String, got: String)
+    case PropertyNotFound(name: String)
+    case FileNotFound(name: String)
+
+    override def toString: String = this match
+      case Error.PropertyNotFound(name) => s"Cannot find property with $name!"
+      case FileNotFound(name) => s"Cannot find file $name!"
 
   import scala.compiletime.*
+
   opaque type PropertyFileName = String
+
   object PropertyFileName:
     inline def apply(file: String): PropertyFileName =
-      inline if file == ""  || file == null then error(codeOf(file) + " cannot be empty or null!")
-//      else if file.split("/")(0) != "db.properties" then error (codeOf(file) + " must end with .properties!")
+      inline if file == "" || file == null then error(codeOf(file) + " cannot be empty or null!")
+      //      else if file.split("/")(0) != "db.properties" then error (codeOf(file) + " must end with .properties!")
       else file
-
 
 
   private type Prefix = "MYSQL" | "ORACEL"
@@ -32,34 +40,39 @@ object DataStoreLoader:
       case "ORACEL" => error("Oracle is not supported yet!")
 
 
-  def trySetProperty[T](name: String, mysqlDataSource: MysqlDataSource, props: Properties, setter: (MysqlDataSource, T) => Unit)(using label: boundary.Label[Error]): Unit =
-    if !props.containsKey(name) then
-      val error = Error.PropertyNotFound(name, name)
-      boundary.break[Error](error)
-    else
-      setter(mysqlDataSource, props.get(name).asInstanceOf[T])
 
 
-  def apply(configFile: URI)(using label: boundary.Label[Error]): MysqlDataSource =
-    val dataSource = MysqlDataSource()
-    val file = new File(configFile)
-    Using(new FileInputStream(file)): fis =>
+  def apply(configFile: URI): Result[MysqlDataSource, Error] =
+    Result:
+      val dataSource = MysqlDataSource()
+      val file = new File(configFile)
+
       val props = new Properties()
-      println(fis.getFD)
-      props.load(fis)
+      val use = Using(new FileInputStream(new File(configFile))): fis =>
+        props.load(fis)
+      use match
+        case Failure(exception) =>
+          exception match
+            case _:FileNotFoundException => Result.error(Error.FileNotFound(configFile.getRawPath))
+        case util.Success(_) => ()
 
-      dataSource.setURL(props.get("URL").toString)
-      dataSource.setUser(props.get("USERNAME").toString)
-      dataSource.setPassword(props.get("PASSWORD").toString)
-      dataSource.setPort(props.get("PORT").toString.toInt)
-      println(dataSource.getURL)
-      println(dataSource.getUser)
-      println(dataSource.getPassword)
-      println(dataSource.getPort)
+      println(props)
 
+      Map[String, (MysqlDataSource, String) => Unit](
+        "URL" -> ((ds: MysqlDataSource, v: String) =>
+          ds.setURL(v)
+          ),
+        "USERNAME" -> ((ds, v) =>
+          ds.setUser(v)
+          ),
+        "PASSWORD" -> ((ds, v) =>
+          ds.setPassword(v)
+          )
+      ).foreach: prop =>
+        if !props.containsKey(prop._1) then
+          Result.error(Error.PropertyNotFound(prop._1))
 
-    dataSource
-
+      Result.success(dataSource)
 
 
 

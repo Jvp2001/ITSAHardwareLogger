@@ -10,10 +10,10 @@ import java.lang
 final case class HardDriveTableRowViewModel(model: HardDriveModel) extends TableRowViewModel[HardDriveModel](model):
 
   def healthProperty: LongProperty =
-    wrapper.field[Long, Number, LongProperty, LongProperty]("Health", _.health, 100L)(LongProperty.apply)
+    wrapper.field[Long, LongProperty, LongProperty]("Health", _.health, 100L)(LongProperty.apply)
 
   def sizeProperty: LongProperty =
-    wrapper.field[Long, Number, LongProperty, LongProperty]("Size", _.size, 0L)(LongProperty.apply)
+    wrapper.field[Long, LongProperty, LongProperty]("Size", _.size.toLong, 0L)(LongProperty.apply)
     
   def modelProperty: StringProperty =
     wrapper.field("model", _.model, "")(StringProperty.apply)

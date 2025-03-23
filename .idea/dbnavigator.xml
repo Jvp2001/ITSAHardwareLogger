@@ -19,6 +19,9 @@
       <assistant-state connection-id="4e7469e4-0d88-4c1a-8e60-27d167f632ee" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
+      <assistant-state connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
+        <messages />
+      </assistant-state>
       <assistant-state connection-id="200779e2-f5bc-429d-b1e3-7634037eaed9" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
@@ -34,64 +37,9 @@
     <loaded-nodes />
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
-    <connection id="200779e2-f5bc-429d-b1e3-7634037eaed9">
-      <console name="ITSA" type="STANDARD" schema="mysql" session="Main" />
-    </connection>
-    <connection id="4e7469e4-0d88-4c1a-8e60-27d167f632ee">
-      <console name="itsaw" type="STANDARD" schema="mysql" session="Main"><![CDATA[CREATE TABLE `wiping` (
-  `int` int(11) NOT NULL AUTO_INCREMENT,
-  `hdd_id` varchar(500) NOT NULL,
-  `serial` varchar(500) NOT NULL,
-  `model` varchar(500) NOT NULL,
-  `insertiondate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `capicty` varchar(45) DEFAULT NULL,
-  `type` varchar(45) DEFAULT NULL,
-  `descr` varchar(100) DEFAULT NULL,
-  `health` tinyint(3) NOT NULL DEFAULT '-1',
-  `to_update` tinyint(1) NOT NULL DEFAULT '1',
-  `is_ssd` tinyint(1) NOT NULL DEFAULT '0',
-  `form_factor` varchar(10) DEFAULT NULL,
-  PRIMARY KEY (`int`),
-  UNIQUE KEY `idx_wiping_unique_serial_model` (`serial`,`model`) COMMENT 'Prevents the same physical drive being recorded with two IDs',
-  UNIQUE KEY `idx_wiping_unique_hdd_id` (`hdd_id`) COMMENT 'Prevents the same ID being recorded for two different physical drives'
-) ENGINE=InnoDB AUTO_INCREMENT=74649 DEFAULT CHARSET=latin1;
-CREATE TABLE `media` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `itsaid` varchar(45) NOT NULL,
-  `descr` varchar(100) NOT NULL,
-  `handle` varchar(45) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=37937 DEFAULT CHARSET=latin1;
-CREATE TABLE `memory` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `size` varchar(45) NOT NULL,
-  `itsaid` varchar(45) NOT NULL,
-  `descr` varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=89402 DEFAULT CHARSET=latin1;
-CREATE TABLE `info` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `genid` varchar(100) NOT NULL,
-  `gendesc` varchar(100) NOT NULL,
-  `genproduct` varchar(100) NOT NULL,
-  `genvendor` varchar(45) DEFAULT NULL,
-  `itsaid` varchar(45) NOT NULL,
-  `genserial` varchar(100) DEFAULT NULL,
-  `totalmemory` varchar(100) DEFAULT NULL,
-  `cpudescription` varchar(100) NOT NULL,
-  `cpuspeed` varchar(100) NOT NULL,
-  `cpuproduct` varchar(1000) DEFAULT NULL,
-  `cpuvendor` varchar(500) DEFAULT NULL,
-  `cpuserial` varchar(100) DEFAULT NULL,
-  `cpuwidth` varchar(45) DEFAULT NULL,
-  `insertiondate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `OS` varchar(45) NOT NULL,
-  `cpucores` varchar(2) DEFAULT '1',
-  `lastupdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `pc_id_index` (`itsaid`) COMMENT 'Prevents two entries for the same PC'
-) ENGINE=InnoDB AUTO_INCREMENT=56716 DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;]]></console>
+    <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
+      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select * from itsahw.memory order by id Desc limit 4;
+select * from itsahw.disks order by id Desc limit 4;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
@@ -99,21 +47,35 @@ CREATE TABLE `info` (
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
     <open-files>
-      <object connection-id="4e7469e4-0d88-4c1a-8e60-27d167f632ee" object-ref="consoles/itsaw" />
+      <object connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" object-ref="consoles/itsahw" />
     </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
-    <connection id="200779e2-f5bc-429d-b1e3-7634037eaed9" />
-    <connection id="4e7469e4-0d88-4c1a-8e60-27d167f632ee" />
+    <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />
   </component>
   <component name="DBNavigator.Project.DatasetFilterManager">
-    <filter-actions connection-id="200779e2-f5bc-429d-b1e3-7634037eaed9" dataset="mysql.default_roles" active-filter-id="" />
+    <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.memory" active-filter-id="" />
+    <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.disks" active-filter-id="">
+      <filter id="0654033b-49af-4fbc-8e62-4563263f07e9" name="Filter" temporary="false" custom-name="false" type="basic" join-type="AND">
+        <condition column="id" operator="=" value="" active="true" />
+      </filter>
+    </filter-actions>
+    <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.wiping" active-filter-id="" />
   </component>
   <component name="DBNavigator.Project.ExecutionManager">
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa" connection-id="200779e2-f5bc-429d-b1e3-7634037eaed9" session-id="MAIN" current-schema="mysql" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+  </component>
+  <component name="DBNavigator.Project.MethodExecutionManager">
+    <method-browser />
+    <execution-history>
+      <group-entries value="true" />
+      <execution-inputs />
+    </execution-history>
+    <execution-variables-cache />
   </component>
   <component name="DBNavigator.Project.ObjectQuickFilterManager">
     <last-used-operator value="EQUAL" />
@@ -124,14 +86,14 @@ CREATE TABLE `info` (
   </component>
   <component name="DBNavigator.Project.ScriptExecutionManager" clear-outputs="true">
     <recently-used-interfaces>
-      <mapping database-type="MYSQL" interface-id="DEFAULT" />
+      <mapping database-type="MYSQL" interface-id="c326ca20-5802-4b57-8d88-9810fc5a63de" />
     </recently-used-interfaces>
   </component>
   <component name="DBNavigator.Project.Settings">
     <connections>
-      <connection id="200779e2-f5bc-429d-b1e3-7634037eaed9" active="true" signed="true">
+      <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" active="true" signed="true">
         <database>
-          <name value="ITSA" />
+          <name value="itsahw" />
           <description value="" />
           <database-type value="MYSQL" />
           <config-type value="BASIC" />
@@ -142,7 +104,7 @@ CREATE TABLE `info` (
           <url-type value="DATABASE" />
           <host value="localhost" />
           <port value="3306" />
-          <database value="mysql" />
+          <database value="itsahw" />
           <tns-folder value="" />
           <tns-profile value="" />
           <type value="USER_PASSWORD" />
@@ -193,108 +155,7 @@ CREATE TABLE `info` (
           <tcp-port-to value="4999" />
           <debugger-type value="ASK" />
         </debugger>
-        <object-filters hide-empty-schemas="false" hide-pseudo-columns="false" hide-audit-columns="false">
-          <object-filters />
-          <object-type-filter use-master-settings="true">
-            <object-type name="SCHEMA" enabled="true" />
-            <object-type name="USER" enabled="true" />
-            <object-type name="ROLE" enabled="true" />
-            <object-type name="PRIVILEGE" enabled="true" />
-            <object-type name="CHARSET" enabled="true" />
-            <object-type name="TABLE" enabled="true" />
-            <object-type name="VIEW" enabled="true" />
-            <object-type name="MATERIALIZED_VIEW" enabled="true" />
-            <object-type name="NESTED_TABLE" enabled="true" />
-            <object-type name="COLUMN" enabled="true" />
-            <object-type name="INDEX" enabled="true" />
-            <object-type name="CONSTRAINT" enabled="true" />
-            <object-type name="DATASET_TRIGGER" enabled="true" />
-            <object-type name="DATABASE_TRIGGER" enabled="true" />
-            <object-type name="SYNONYM" enabled="true" />
-            <object-type name="SEQUENCE" enabled="true" />
-            <object-type name="PROCEDURE" enabled="true" />
-            <object-type name="FUNCTION" enabled="true" />
-            <object-type name="PACKAGE" enabled="true" />
-            <object-type name="TYPE" enabled="true" />
-            <object-type name="TYPE_ATTRIBUTE" enabled="true" />
-            <object-type name="ARGUMENT" enabled="true" />
-            <object-type name="JAVA_CLASS" enabled="true" />
-            <object-type name="JAVA_INNER_CLASS" enabled="true" />
-            <object-type name="JAVA_FIELD" enabled="true" />
-            <object-type name="JAVA_METHOD" enabled="true" />
-            <object-type name="DIMENSION" enabled="true" />
-            <object-type name="CLUSTER" enabled="true" />
-            <object-type name="DBLINK" enabled="true" />
-            <object-type name="CREDENTIAL" enabled="true" />
-            <object-type name="AI_PROFILE" enabled="true" />
-          </object-type-filter>
-        </object-filters>
-      </connection>
-      <connection id="4e7469e4-0d88-4c1a-8e60-27d167f632ee" active="true" signed="true">
-        <database>
-          <name value="itsaw" />
-          <description value="" />
-          <database-type value="MYSQL" />
-          <config-type value="BASIC" />
-          <database-version value="9.2" />
-          <driver-source value="BUNDLED" />
-          <driver-library value="" />
-          <driver value="" />
-          <url-type value="DATABASE" />
-          <host value="localhost" />
-          <port value="3306" />
-          <database value="mysql" />
-          <tns-folder value="" />
-          <tns-profile value="" />
-          <type value="USER_PASSWORD" />
-          <user value="root" />
-          <token-type value="" />
-          <token-config-file value="" />
-          <token-profile value="" />
-          <session-user value="root@localhost" />
-        </database>
-        <properties>
-          <auto-commit value="false" />
-        </properties>
-        <ssh-settings>
-          <active value="false" />
-          <proxy-host value="" />
-          <proxy-port value="22" />
-          <proxy-user value="" />
-          <auth-type value="PASSWORD" />
-          <key-file value="" />
-        </ssh-settings>
-        <ssl-settings>
-          <active value="false" />
-          <certificate-authority-file value="" />
-          <client-certificate-file value="" />
-          <client-key-file value="" />
-        </ssl-settings>
-        <details>
-          <charset value="UTF-8" />
-          <session-management value="true" />
-          <ddl-file-binding value="true" />
-          <database-logging value="true" />
-          <connect-automatically value="true" />
-          <restore-workspace value="true" />
-          <restore-workspace-deep value="false" />
-          <environment-type value="default" />
-          <connectivity-timeout value="30" />
-          <idle-time-to-disconnect value="30" />
-          <idle-time-to-disconnect-pool value="5" />
-          <credential-expiry-time value="10" />
-          <max-connection-pool-size value="7" />
-          <alternative-statement-delimiter value="" />
-        </details>
-        <debugger>
-          <compile-dependencies value="true" />
-          <tcp-driver-tunneling value="false" />
-          <tcp-host-address value="" />
-          <tcp-port-from value="4000" />
-          <tcp-port-to value="4999" />
-          <debugger-type value="ASK" />
-        </debugger>
-        <object-filters hide-empty-schemas="false" hide-pseudo-columns="false" hide-audit-columns="false">
+        <object-filters hide-empty-schemas="true" hide-pseudo-columns="false" hide-audit-columns="false">
           <object-filters />
           <object-type-filter use-master-settings="true">
             <object-type name="SCHEMA" enabled="true" />
@@ -662,7 +523,9 @@ CREATE TABLE `info` (
         <prompt-execution value="false" />
       </statement-execution>
       <script-execution>
-        <command-line-interfaces />
+        <command-line-interfaces>
+          <value id="c326ca20-5802-4b57-8d88-9810fc5a63de" name="MySQL client" executable-path="C:/Program Files/MySQL/MySQL Server 9.2/bin/mysql.exe" database-type="MYSQL" />
+        </command-line-interfaces>
         <execution-timeout value="300" />
       </script-execution>
       <method-execution>

@@ -11,7 +11,7 @@ final class MemoryTabViewModel extends TabTableViewModel[MemoryModel, MemoryTabl
   val totalMemoryProperty: StringProperty = StringProperty("0 MB")
   data.onChange: (source, change) =>
     totalMemoryProperty.value = source.map: datum =>
-          datum.sizeProperty.get
+      datum.sizeProperty.get
     .sum
     .toString + " MiB"
 

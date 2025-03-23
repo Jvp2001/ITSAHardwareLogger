@@ -4,14 +4,14 @@ import com.augustnagro.magnum.{DbCodec, Id, MySqlDbType, SqlNameMapper, Table}
 
 @Table(MySqlDbType, SqlNameMapper.CamelToSnakeCase)
 final case class Media(
-  @Id id: Long,
-  itsaId: String,
-  descr: String,
-  handle: Option[String]
-) derives DbCodec
+                        @Id id: Long,
+                        itsaId: String,
+                        descr: String,
+                        handle: Option[String]
+                      ) extends HLEntity derives DbCodec
 
 final case class MediaCreator(
-  itsaId: String,
-  descr: String,
-  handle: Option[String] = None
-) derives DbCodec
+                               itsaId: String,
+                               descr: String,
+                               handle: Option[String] = None
+                             ) extends HLEntityCreator derives DbCodec

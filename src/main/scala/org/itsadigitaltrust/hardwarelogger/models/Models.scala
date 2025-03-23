@@ -1,8 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.models
 
 
+import org.itsadigitaltrust.common.Types.DataSize
+
 import scala.annotation.experimental
 
+sealed trait HLModel
 
 //@ScalaSpringBeanComponent
 final case class GeneralInfoModel(
@@ -12,19 +15,19 @@ final case class GeneralInfoModel(
                               vendor: String,
                               serial: String,
                               os: String
-                            )
+                            ) extends HLModel
 
 
 //@ScalaSpringBeanComponent
 final case class HardDriveModel(
                             health: Int,
-                            size: Long,
+                            size: DataSize,
                             model: String,
                             serial: String,
                             `type`: HardDriveType,
                             id: String = "NOT LOGGED",
                             isSSD: Boolean = false
-                          )
+                          ) extends HLModel
 
 //
 //
@@ -33,10 +36,10 @@ enum HardDriveType extends Enum[HardDriveType]:
   case SATA, NVME, PATA
 
 //@ScalaSpringBeanComponent
-final case class MediaModel(description: String, handle: String)
+final case class MediaModel(description: String, handle: String) extends HLModel
 
 //@ScalaSpringBeanComponent
-final case class MemoryModel(size: Long, description: String)
+final case class MemoryModel(size: DataSize, description: String) extends HLModel
 
 //@ScalaSpringBeanComponent
 final case class ProcessorModel(
@@ -47,7 +50,7 @@ final case class ProcessorModel(
                             serial: String,
                             width: Int = 0,
                             cores: Int = 0
-                          )
+                          ) extends HLModel
 
 
 type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel

@@ -1,6 +1,12 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
-object backend:
-  export org.itsadigitaltrust.hardwarelogger.backend.entities.{Memory, MemoryCreator, Media, MediaCreator, HddCreator, Hdd, InfoCreator, Info}
-  export org.itsadigitaltrust.hardwarelogger.backend.repos.given
+import com.augustnagro.magnum.Frag
 
+object backend:
+  export entities.entities.*
+  export repos.given
+  export repos.*
+  export tables.given
+  export tables.*
+  export org.itsadigitaltrust.hardwarelogger.backend.{HLDatabase, DataStoreLoader}
+  type Fragment = Frag
