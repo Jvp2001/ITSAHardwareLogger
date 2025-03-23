@@ -8,8 +8,8 @@ import org.itsadigitaltrust.hardwarelogger.mvvm.ModelWrapper
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 
 final class MemoryTableRowViewModel(model: MemoryModel) extends TableRowViewModel[MemoryModel](model):
-  def sizeProperty: LongProperty =
-    wrapper.field[Long, LongProperty, LongProperty]("size", _.size, 0)(LongProperty.apply)
+  def sizeProperty: DoubleProperty =
+    wrapper.field[Double, DoubleProperty, DoubleProperty]("size", _.size.toLong, 0)(DoubleProperty.apply)
 
 
   def descriptionProperty: StringProperty =

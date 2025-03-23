@@ -5,24 +5,30 @@ import org.itsadigitaltrust.hardwarelogger.services.NotificationCentre
 
 import scala.collection.mutable
 
-type NotificationCallback = (key: String, args: Seq[Any]) => Unit
+type NotificationCallback[ME] = (key: ME, args: Seq[Any]) => Unit
 
-trait NotificationCentre:
-
+trait NotificationCentre[ME]:
+  
   import org.itsadigitaltrust.common.Operators.notIn
 
-  private val notifications: mutable.Map[String, Vector[NotificationCallback]] = mutable.Map()
+  private val notifications: mutable.Map[ME, Vector[NotificationCallback[ME]]] = mutable.Map()
 
-  def subscribe(key: String)(callback: NotificationCallback): Unit =
+  def subscribe(key: ME)(callback: NotificationCallback[ME]): Unit =
     if key notIn notifications then
       notifications(key) = Vector()
 
     notifications(key) = notifications(key) :+ callback
 
 
-  def publish(key: String, args: Any*): Unit =
+  def publish(key: ME, args: Any*): Unit =
     notifications(key).foreach: callback =>
       callback(key, args)
 
-object SimpleNotificationCentre extends NotificationCentre
+enum NotificationChannel:
+  case Reload
+  case Save // This channel is used to push all the loaded data to the database.
+  case DBError(msg: String)
+  case DBSuccess
+  
+object SimpleNotificationCentre extends NotificationCentre[NotificationChannel]
 

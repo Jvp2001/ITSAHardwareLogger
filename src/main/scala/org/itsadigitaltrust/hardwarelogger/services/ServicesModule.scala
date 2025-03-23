@@ -6,6 +6,6 @@ trait ServicesModule:
 
   given hardwareIDValidationService: HardwareIDValidationService = new SimpleHardwareIDValidationService
 
-  given notificationCentre: NotificationCentre = SimpleNotificationCentre
+  given notificationCentre: NotificationCentre[NotificationChannel] = SimpleNotificationCentre
 
-
+  given databaseService: HLDatabaseService = SimpleHLDatabaseService

@@ -24,7 +24,7 @@ final case class Info(
                        os: String,
                        cpuCores: Option[String],
                        lastUpdated: OffsetDateTime
-                     )derives DbCodec
+                     ) extends HLEntity derives DbCodec
 
 final case class InfoCreator(
                               genId: String,
@@ -42,4 +42,4 @@ final case class InfoCreator(
                               cpuWidth: Option[String],
                               os: String,
                               cpuCores: Option[String]
-                            )derives DbCodec
+                            ) extends HLEntityCreator derives DbCodec

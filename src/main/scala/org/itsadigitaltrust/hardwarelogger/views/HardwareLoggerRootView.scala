@@ -4,6 +4,7 @@ package org.itsadigitaltrust.hardwarelogger.views
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewModel
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{HardDrivesTabView, MemoryTabView}
+import scalafx.application.Platform
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
 
@@ -20,7 +21,8 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
   prefWidth = 600.0
   prefHeight = 400.0
 
-
+  Platform.runLater:
+    viewModel.reload()
 
   private val idLabel = new Label:
     text = "ID"
@@ -38,6 +40,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
         viewModel.validateID()
     onAction = _ =>
       viewModel.save()
+
 
 
 
@@ -71,7 +74,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     alignmentInParent = Pos.Center
     vgrow = Always
     tabs ++= Seq(
-      createTab("MemoryModel", new MemoryTabView),
+      createTab("Memory", new MemoryTabView),
       createTab("HDD", new HardDrivesTabView)
     )
 
@@ -86,7 +89,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
 
   private val saveButton = new Button:
     text = "Save"
-    onAction = _ => viewModel.reload()
+    onAction = _ => viewModel.save()
     alignment = Center
     margin = Insets(0, 10.0, 0, 0)
 

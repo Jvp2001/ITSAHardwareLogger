@@ -1,10 +1,15 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
+import org.itsadigitaltrust.common
+import org.itsadigitaltrust.common.Success
+import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
+import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{DBSuccess, Reload, Save}
 import scalafx.beans.property.*
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, ServicesModule}
 import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.control.Alert.AlertType
+import scalafx.scene.control.Alert.AlertType.Information
 
 
 final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
@@ -19,22 +24,24 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
 
-  validIDProperty.bind(idErrorStringProperty.isNotEmpty)
+  validIDProperty <== idErrorStringProperty.isNotEmpty
 
   idStringProperty.onChange: (observable, oldValue, newValue) =>
     if newValue.isEmpty || newValue == null then
       idErrorStringProperty.value = "ID must not be empty!"
+    else
+      validateID()
+
+  notificationCentre.subscribe(DBSuccess): (key, _) =>
+    new Alert(Information, "Data has been saved!", ButtonType.OK)
 
 
   def save(): Unit =
-    println("Validating...")
-
-
     validateID(true)
 
-    if validIDProperty.get() then
-      println("Saving...")
-
+    if idErrorStringProperty.isEmpty.get then
+      databaseService.setItsaId(idStringProperty.get())
+      notificationCentre.publish(Save)
 
   def validateID(showAlert: Boolean = false): Unit =
 
@@ -56,6 +63,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
                 case _ => idFieldFocusProperty.value = true
       case Right(value) =>
         idErrorStringProperty.setValue("")
+  end validateID
+
 
   def reload(): Unit =
-    notificationCentre.publish("RELOAD")
+    notificationCentre.publish(Reload)
