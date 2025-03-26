@@ -1,12 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
+
 import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.Success
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
 import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{DBSuccess, Reload, Save}
 import scalafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, ServicesModule}
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, NotificationChannel, ServicesModule}
 import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Alert.AlertType.Information
@@ -32,8 +33,11 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
     else
       validateID()
 
+  notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
+    new Alert(Information, "Loaded!").showAndWait()
+
   notificationCentre.subscribe(DBSuccess): (key, _) =>
-    new Alert(Information, "Data has been saved!", ButtonType.OK)
+    new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
 
 
   def save(): Unit =
@@ -67,4 +71,4 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
 
 
   def reload(): Unit =
-    notificationCentre.publish(Reload)
+    hardwareGrabberService.load()

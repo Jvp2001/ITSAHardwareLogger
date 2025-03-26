@@ -12,6 +12,7 @@ object Types:
     def toLong: Long = value
 
   object DataSize:
+    inline
     def apply(value: Long, unit: DataSizeUnit): DataSize =
       (value, unit)
 

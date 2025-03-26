@@ -21,7 +21,7 @@ lazy val root = (project in file("."))
         .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier "win").map(_.withJavadoc() withSources())
     },
 
-    libraryDependencies += "com.github.oshi" % "oshi-core" % "6.7.1",
+    libraryDependencies += "com.github.oshi" % "oshi-core" % "6.8.0",
     libraryDependencies ++= commonDependencies
 
   ).dependsOn(common, macros, backend)
@@ -37,7 +37,8 @@ lazy val common = (project in file("Common"))
 
 lazy val commonDependencies = Seq(
   "com.augustnagro" %% "magnum" % "1.3.1" withJavadoc() withSources(),
-  "com.mysql" % "mysql-connector-j" % "9.2.0" withSources() withJavadoc()
+  "com.mysql" % "mysql-connector-j" % "9.2.0" withSources() withJavadoc(),
+  "com.softwaremill.ox" %% "core" % "0.5.13" withSources() withJavadoc()
 )
 
 lazy val uiDependencies = Seq("org.scalafx" %% "scalafx" % "23.0.1-R34") ++:

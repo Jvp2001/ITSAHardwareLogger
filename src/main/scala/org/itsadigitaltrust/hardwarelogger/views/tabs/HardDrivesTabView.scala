@@ -5,7 +5,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import scalafx.scene.control.cell.CheckBoxTableCell
 
-private given viewModel: TabTableViewModel[HardDriveModel,HardDriveTableRowViewModel] = new TabTableViewModel(HardDriveTableRowViewModel.apply, _.getHardDrives)
+private given viewModel: TabTableViewModel[HardDriveModel,HardDriveTableRowViewModel] = new TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives)
 
 class HardDrivesTabView extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
 

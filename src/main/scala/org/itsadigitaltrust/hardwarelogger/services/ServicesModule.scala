@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 
 trait ServicesModule:
-  given hardwareGrabberService: HardwareGrabberService = new OshiHardwareGrabberService
+  given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberService
 
   given hardwareIDValidationService: HardwareIDValidationService = new SimpleHardwareIDValidationService
 
