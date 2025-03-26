@@ -2,34 +2,46 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
 import org.itsadigitaltrust.hardwarelogger.models.*
-
 import oshi.SystemInfo
+import ox.{supervised, fork}
 
 import scala.jdk.CollectionConverters.*
 
 
-class OshiHardwareGrabberService extends HardwareGrabberService:
+object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule:
   import org.itsadigitaltrust.hardwarelogger.models.HardDriveType.*
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
-  override def getGeneralInfo: GeneralInfoModel =
+
+  override def load(): Unit =
+    supervised:
+      fork(loadGeneralInfo())
+      fork(loadHardDrives())
+      fork(loadMemory())
+      fork(loadProcessors())
+      fork(loadMedia())
+    .join()
+    notificationCentre.publish(NotificationChannel.Reload)
+
+  override def loadGeneralInfo(): Unit =
     val serialNumber = hal.getComputerSystem.getSerialNumber
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
-    GeneralInfoModel("Need to add", "Need to add", model, vendor, serialNumber, os)
+    generalInfo = GeneralInfoModel("Need to add", "Need to add", model, vendor, serialNumber, os)
 
   //TODO: Implement
-  override def getHardDrives: List[HardDriveModel] =
-    hal.getDiskStores.asScala.map: disk =>
+  override def loadHardDrives(): Unit =
+    hardDrives = hal.getDiskStores.asScala.map: disk =>
       val name = disk.getName
       val size = disk.getSize
       val model = disk.getModel
       HardDriveModel(100, size.GiB, model, disk.getSerial, NVME, isSSD = true)
     .toList
 
-  override def getMemory: List[MemoryModel] =
-    hal.getMemory.getPhysicalMemory.asScala.map: memory =>
+
+  override def loadMemory(): Unit =
+    memory = hal.getMemory.getPhysicalMemory.asScala.map: memory =>
       val size = memory.getCapacity.MiB
       val description = memory.getManufacturer
       MemoryModel(size, description)
@@ -37,7 +49,7 @@ class OshiHardwareGrabberService extends HardwareGrabberService:
 
 
 
-  override def getProcessors: List[ProcessorModel] =
+  override def loadProcessors(): Unit =
 
     val pi = hal.getProcessor.getProcessorIdentifier
     val name = pi.getName
@@ -46,12 +58,12 @@ class OshiHardwareGrabberService extends HardwareGrabberService:
     val longDesc = pi.getVendor
     val cores = hal.getProcessor.getPhysicalProcessorCount
     val freq = hal.getProcessor.getCurrentFreq
-    List(ProcessorModel(hal.getProcessor.getProcessorIdentifier.getModel, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
+    processors = List(ProcessorModel(hal.getProcessor.getProcessorIdentifier.getModel, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
 
 
 
 
 
-  override def getMedia: List[MediaModel] =
-    List()
+  override def loadMedia(): Unit =
+    ()
   
