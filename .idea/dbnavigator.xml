@@ -38,8 +38,7 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
-      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select * from itsahw.memory order by id Desc limit 4;
-select * from itsahw.disks order by id Desc limit 4;]]></console>
+      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[DELETE FROM itsahw.memory;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
@@ -47,6 +46,7 @@ select * from itsahw.disks order by id Desc limit 4;]]></console>
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
     <open-files>
+      <object connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" object-ref="schemas/itsahw/tables/media" />
       <object connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" object-ref="consoles/itsahw" />
     </open-files>
   </component>
@@ -55,6 +55,7 @@ select * from itsahw.disks order by id Desc limit 4;]]></console>
   </component>
   <component name="DBNavigator.Project.DatasetFilterManager">
     <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.memory" active-filter-id="" />
+    <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.media" active-filter-id="EMPTY_FILTER" />
     <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.disks" active-filter-id="">
       <filter id="0654033b-49af-4fbc-8e62-4563263f07e9" name="Filter" temporary="false" custom-name="false" type="basic" join-type="AND">
         <condition column="id" operator="=" value="" active="true" />
@@ -66,7 +67,10 @@ select * from itsahw.disks order by id Desc limit 4;]]></console>
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
@@ -86,7 +90,7 @@ select * from itsahw.disks order by id Desc limit 4;]]></console>
   </component>
   <component name="DBNavigator.Project.ScriptExecutionManager" clear-outputs="true">
     <recently-used-interfaces>
-      <mapping database-type="MYSQL" interface-id="c326ca20-5802-4b57-8d88-9810fc5a63de" />
+      <mapping database-type="MYSQL" interface-id="DEFAULT" />
     </recently-used-interfaces>
   </component>
   <component name="DBNavigator.Project.Settings">
@@ -115,7 +119,7 @@ select * from itsahw.disks order by id Desc limit 4;]]></console>
           <session-user value="root@localhost" />
         </database>
         <properties>
-          <auto-commit value="false" />
+          <auto-commit value="true" />
         </properties>
         <ssh-settings>
           <active value="false" />

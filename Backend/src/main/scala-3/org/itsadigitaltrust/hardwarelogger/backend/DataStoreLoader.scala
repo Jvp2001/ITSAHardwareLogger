@@ -71,6 +71,8 @@ object DataStoreLoader:
       ).foreach: prop =>
         if !props.containsKey(prop._1) then
           Result.error(Error.PropertyNotFound(prop._1))
+        else
+          prop._2(dataSource, props.getProperty(prop._1))
 
       Result.success(dataSource)
 

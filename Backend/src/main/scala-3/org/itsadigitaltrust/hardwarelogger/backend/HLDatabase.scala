@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.backend
 
 import javax.sql.DataSource
 import com.augustnagro.magnum
-import com.augustnagro.magnum.{BatchUpdateResult, DbCodec, Repo, SqlException, TableInfo, Transactor, sql}
+import com.augustnagro.magnum.{BatchUpdateResult, DbCodec, Repo, SqlException, TableInfo, Transactor, connect, sql, transact}
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.{Result, optional}
@@ -42,13 +42,17 @@ class HLDatabase private(val dataSource: DataSource):
 
     result.asInstanceOf[HLRepo[EC, E]]
 
+  
+  
 
   def insertOrUpdate[EC <: HLEntityCreator](creator: EC): Unit =
     val repo = getRepo(creator)
     val table: TableInfo[EC, ? <: HLEntity, Long] = getTableInfo(creator)
     val transaction = Transactor(connection)
-    magnum.transact(transaction):
-      sql"""insert into $table ${table.insertColumns} values ($creator) on duplicate key update ($creator)"""
+    connect(dataSource):
+      repo.insert(creator)
+
+
 //  def insertOrUpdate[EC <: HLEntityCreator, E <: HLEntity](creator: EC)(using repo: HLRepo[EC, E])(using TableInfo[EC, E, Long]): Unit =
 //    magnum.transact(connection):
 //      repo.insertOrUpdate(creator)
