@@ -44,7 +44,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
     validateID(true)
 
     if idErrorStringProperty.isEmpty.get then
-      databaseService.setItsaId(idStringProperty.get())
+      databaseService.setitsaid(idStringProperty.get())
       notificationCentre.publish(Save)
 
   def validateID(showAlert: Boolean = false): Unit =

@@ -6,7 +6,7 @@ import entities.given
 
 object repos:
   class HLRepo[EC, E](using defualt: RepoDefaults[EC, E, Long]) extends Repo[EC, E, Long]:
-    def insertOrUpdate(creator: EC)(using DbTx)(using table: TableInfo[EC, E, Long]): Unit =
+    def insertOrUpdate(creator: EC)(using DbCon)(using table: TableInfo[EC, E, Long]): Unit =
       sql"""insert into $table ${table.insertColumns} values ($creator) on duplicate key update ($creator)""".update.run()
   given DiskRepo: HLRepo[DiskCreator, Disk] = HLRepo[DiskCreator, Disk]
 

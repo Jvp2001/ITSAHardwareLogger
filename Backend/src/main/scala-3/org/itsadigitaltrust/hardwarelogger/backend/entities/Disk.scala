@@ -5,7 +5,7 @@ import com.augustnagro.magnum.*
 @Table(MySqlDbType, SqlNameMapper.CamelToSnakeCase)
 final case class Disk(
                        @Id id: Long,
-                       itsaId: String,
+                       itsaid: String,
                        model: String,
                        capacity: String,
                        `type`: String,
@@ -13,7 +13,7 @@ final case class Disk(
                      ) extends HLEntity derives DbCodec
 
 final case class DiskCreator(
-                              itsaId: String,
+                              itsaid: String,
                               model: String,
                               capacity: String,
                               `type`: String,

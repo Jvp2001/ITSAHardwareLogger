@@ -17,7 +17,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 //import scala.util.{Failure, Success, boundary}
 //
 //trait HLDatabaseService:
-//  def setItsaId(value: String = ""): Unit
+//  def setitsaid(value: String = ""): Unit
 //
 //  def connect(klazz: Class[?], dbPropsFilePath: String): Option[String]
 //
@@ -49,13 +49,13 @@ package org.itsadigitaltrust.hardwarelogger.services
 //
 //  private var db: Option[HLDatabase] = None
 //  @volatile
-//  private var itsaId = ""
+//  private var itsaid = ""
 ////
 ////  private val transactionsWatcherThread = new Thread("Promises Queue Watcher"):
 ////    @tailrec
 ////    private def loop(): Unit =
 //////      blocking:
-////      val hasId = itsaId != "" || itsaId != null
+////      val hasId = itsaid != "" || itsaid != null
 ////
 ////      val bool = hasId && transactionQueue.size() >= processTransactionsGroupSize && db.isDefined
 ////      print(bool)
@@ -76,8 +76,8 @@ package org.itsadigitaltrust.hardwarelogger.services
 ////  end transactionsWatcherThread
 ////
 //
-//  override def setItsaId(value: String = ""): Unit =
-//    itsaId = value
+//  override def setitsaid(value: String = ""): Unit =
+//    itsaid = value
 //
 //  override def connect(klazz: Class[?], dbPropsFilePath: String): Option[String] =
 //    boundary:
@@ -109,11 +109,11 @@ package org.itsadigitaltrust.hardwarelogger.services
 //    override def apply(x: T): Option[T] = Some(x)
 //
 //  private def createMemory(memoryModel: MemoryModel): MemoryCreator =
-//    MemoryCreator(memoryModel.size.toString, itsaId, memoryModel.description)
+//    MemoryCreator(memoryModel.size.toString, itsaid, memoryModel.description)
 //
 //  private def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
 //    // TODO: Check if this is the correct description, if not, where should I get it from?
-//    DiskCreator(itsaId, hardDriveModel.model, hardDriveModel.size.toString, hardDriveModel.`type`.toString, "ATA Disk")
+//    DiskCreator(itsaid, hardDriveModel.model, hardDriveModel.size.toString, hardDriveModel.`type`.toString, "ATA Disk")
 //
 //  private def createInfo(infoModel: GeneralInfoModel): InfoCreator =
 //    val totalMemory = hardwareGrabberService.getMemory.map: m =>
@@ -121,12 +121,12 @@ package org.itsadigitaltrust.hardwarelogger.services
 //    .sum.GiB
 //    val processor = hardwareGrabberService.getProcessors.head
 //    InfoCreator("itsa-hwlogger", "TODO", infoModel.description, infoModel.vendor,
-//      itsaId, infoModel.serial, s"$totalMemory GiB",
+//      itsaid, infoModel.serial, s"$totalMemory GiB",
 //      "CPU", processor.speed.toString, processor.longDescription, processor.chipType, processor.serial,
 //      processor.width.toString, infoModel.os, processor.cores.toString)
 //
 //  private def createMedia(media: MediaModel): MediaCreator =
-//    MediaCreator(itsaId, media.description, media.handle)
+//    MediaCreator(itsaid, media.description, media.handle)
 //
 //
 //  def +=[M <: HLModel](model: M): Unit =
@@ -174,12 +174,13 @@ import ox.flow.Flow
 import ox.scheduling.Schedule.Fixed
 import ox.scheduling.{RepeatConfig, ScheduledConfig, SleepMode}
 
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.DurationInt
 
 trait HLDatabaseService:
-  def setItsaId(value: String = ""): Unit
+  def setitsaid(value: String = ""): Unit
 
   def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String]
 
@@ -187,39 +188,48 @@ trait HLDatabaseService:
 
   def stop(): Unit
 
-  def executeTransaction(operations: Seq[HLEntityCreator]): Future[Unit]
-
 object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
   private given ec: ExecutionContext = ExecutionContext.global
 
   private var db: Option[HLDatabase] = None
-  @volatile private var itsaId = ""
+  @volatile private var itsaid = ""
   private val transactionQueue: BlockingQueue[HLEntityCreator] = new LinkedBlockingQueue[HLEntityCreator]()
+  private val channel = Channel.rendezvous[HLEntityCreator]
   private val minQueueSize = 2
 
   // Start a thread to monitor the queue size
-//  private val thread = flow.Flow.usingEmit:
-//    forever:
-//      if transactionQueue.size >= minQueueSize then
-//          val buffer = new ArrayBuffer[HLEntityCreator]()
-//          transactionQueue.drainTo(buffer.asJavaCollection)
-//          supervised:
-//            buffer.foreachPar(buffer.size): creator =>
-//              db.get.insertOrUpdate(creator)
+  //  private val thread = flow.Flow.usingEmit:
+  //    forever:
+  //      if transactionQueue.size >= minQueueSize then
+  //          val buffer = new ArrayBuffer[HLEntityCreator]()
+  //          transactionQueue.drainTo(buffer.asJavaCollection)
+  //          supervised:
+  //            buffer.foreachPar(buffer.size): creator =>
+  //              db.get.insertOrUpdate(creator)
 
-//  fork:
-//    forever:
-//      if transactionQueue.size >= minQueueSize then
-//        val buffer = new ArrayBuffer[HLEntityCreator]()
-//        transactionQueue.drainTo(buffer.asJavaCollection)
-//        supervised:
-//          buffer.foreachPar(buffer.size): creator =>
-//            db.get.insertOrUpdate(creator)
-//        notificationCentre.publish(NotificationChannel.DBSuccess)
+  private def thread() =
+    forever:
+      val operations = new mutable.ArrayBuffer[HLEntityCreator]()
+      transactionQueue.drainTo(operations.asJavaCollection)
+      if itsaid.nonEmpty && itsaid != null && operations.size >= minQueueSize then
+        supervised:
+          operations.foreachPar(operations.size): creator =>
+            db.get.insertOrUpdate(creator)
+      showAlertBox()
+
+  //  fork:
+  //    forever:
+  //      if transactionQueue.size >= minQueueSize then
+  //        val buffer = new ArrayBuffer[HLEntityCreator]()
+  //        transactionQueue.drainTo(buffer.asJavaCollection)
+  //        supervised:
+  //          buffer.foreachPar(buffer.size): creator =>
+  //            db.get.insertOrUpdate(creator)
+  //        notificationCentre.publish(NotificationChannel.DBSuccess)
 
 
-  override def setItsaId(value: String = ""): Unit =
-    itsaId = value
+  override def setitsaid(value: String = ""): Unit =
+    itsaid = value
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
     Result:
@@ -228,34 +238,33 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
           case common.Success(value) =>
             db = Some(value)
             println("Connected to database.")
-            Flow.repeat(RepeatConfig.fixedRateForever(80.millis))
-
             Result.success(())
           case common.Error(reason) =>
             Result.error(reason.toString)
       catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
-      if db.isDefined then
-        forever:
-          if transactionQueue.size >= minQueueSize then
-            println("Inserting data...")
-            val buffer = new ArrayBuffer[HLEntityCreator]()
-            transactionQueue.drainTo(buffer.asJavaCollection)
-            supervised:
-              buffer.foreachPar(buffer.size): creator =>
-                db.get.insertOrUpdate(creator)
-            notificationCentre.publish(NotificationChannel.DBSuccess)
 
 
   override def +=[M <: HLModel](model: M): Unit =
     val creator = createEC(model)
     transactionQueue.put(creator)
+    if transactionQueue.size >= minQueueSize then
+      val buffer = new ArrayBuffer[HLEntityCreator]()
+      supervised:
+        fork:
+          while !transactionQueue.isEmpty do
+            val item = transactionQueue.remove()
+
+            buffer.foreachPar(buffer.size): creator =>
+              db.get.insertOrUpdate(item)
+        .join()
+
+        // TODO: then update the insertionDate.
+      showAlertBox()
+    println("Updated database.")
+
 
   override def stop(): Unit = ()
 
-  override def executeTransaction(operations: Seq[HLEntityCreator]): Future[Unit] =
-    Future.sequence(operations.map(creator => Future:
-      db.foreach(_.insertOrUpdate(creator))
-    )).map(_ => showAlertBox())
 
   private def createEC[M](model: M): HLEntityCreator =
     model match
@@ -272,19 +281,19 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
     override def apply(x: T): Option[T] = Some(x)
 
   private def createMemory(memoryModel: MemoryModel): MemoryCreator =
-    MemoryCreator(memoryModel.size.toString, itsaId, memoryModel.description)
+    MemoryCreator(memoryModel.size.toString, itsaid, memoryModel.description)
 
   private def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
     println(s"Size: ${hardDriveModel.size}")
-    DiskCreator(itsaId, hardDriveModel.model, hardDriveModel.size.toString, hardDriveModel.`type`.toString, "ATA Disk")
+    DiskCreator(itsaid, hardDriveModel.model, hardDriveModel.size.toString, hardDriveModel.`type`.toString, "ATA Disk")
 
   private def createInfo(infoModel: GeneralInfoModel): InfoCreator =
     val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum
     val processor = hardwareGrabberService.processors.head
     InfoCreator("itsa-hwlogger", "TODO", infoModel.description, infoModel.vendor,
-      itsaId, infoModel.serial, s"$totalMemory GiB",
+      itsaid, infoModel.serial, s"$totalMemory GiB",
       "CPU", processor.speed.toString, processor.longDescription, processor.chipType, processor.serial,
       processor.width.toString, infoModel.os, processor.cores.toString)
 
   private def createMedia(media: MediaModel): MediaCreator =
-    MediaCreator(itsaId, media.description, media.handle)
+    MediaCreator(itsaid, media.description, media.handle)
