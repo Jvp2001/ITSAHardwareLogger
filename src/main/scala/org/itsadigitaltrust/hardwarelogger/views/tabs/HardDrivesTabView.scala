@@ -1,8 +1,9 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
+import scalafx.beans.property.{BooleanProperty, ObjectProperty}
 import scalafx.scene.control.cell.CheckBoxTableCell
 
 private given viewModel: TabTableViewModel[HardDriveModel,HardDriveTableRowViewModel] = new TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives)
@@ -29,15 +30,18 @@ class HardDrivesTabView extends TabTableView[HardDriveModel, HardDriveTableRowVi
   private val idColumn = createAndAddColumn("ID"): cellValue =>
     cellValue.idProperty
 
-  private val isSSDColumn = createAndAddColumn("Is SSD"): cellValue =>
+  private val isSSDColumn = createAndAddColumn[Boolean]("Is SSD"): cellValue =>
     cellValue.isSSDProperty
 
+  isSSDColumn.setCellFactory: column =>
+    new CheckBoxTableCell[HardDriveTableRowViewModel, Boolean]():
+      editable = false
 
-//  private val isSSDColumn: TableTabColumn[Boolean] = new TableTabColumn[Boolean]:
-//    cellValueFactory =  cellValue =>
-//      cellValue.isSSDProperty
-//    cellFactory = CheckBoxTableCell.forTableColumn(this)
-//
+
+
+
+
+
 
 
 

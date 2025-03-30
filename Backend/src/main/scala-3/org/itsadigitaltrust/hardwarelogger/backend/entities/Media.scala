@@ -8,10 +8,10 @@ final case class Media(
                         @SqlName("itsaid") itsaid: String,
                         descr: String,
                         handle: Option[String]
-                      ) extends HLEntity derives DbCodec
+                      ) extends HLEntityWithItsaID derives DbCodec
 
 final case class MediaCreator(
                                itsaid: String,
                                descr: String,
                                handle: Option[String] = None
-                             ) extends HLEntityCreator derives DbCodec
+                             ) extends HLEntityCreatorWithItsaID derives DbCodec

@@ -2,8 +2,9 @@ package org.itsadigitaltrust.hardwarelogger.views
 
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewModel
-import org.itsadigitaltrust.hardwarelogger.views.tabs.{HardDrivesTabView, MemoryTabView}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TableRowViewModel, ViewModel}
+import org.itsadigitaltrust.hardwarelogger.views.tabs.{HardDrivesTabView, MemoryTabView, TabTableView}
+import org.itsadigitaltrust.macros.*
 import scalafx.application.Platform
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
@@ -21,8 +22,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
   prefWidth = 600.0
   prefHeight = 400.0
 
-  Platform.runLater:
-    viewModel.reload()
+
 
   private val idLabel = new Label:
     text = "ID"
@@ -74,10 +74,12 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     alignmentInParent = Pos.Center
     vgrow = Always
     tabs ++= Seq(
+      createTab("General", new GeneralInfoTabView),
       createTab("Memory", new MemoryTabView),
-      createTab("HDD", new HardDrivesTabView)
+      createTab("Processor", new ProcessorTabView),
+      createTab("HDD", new HardDrivesTabView),
+      createTab("Media", new MediaTabView),
     )
-
 
 
   private val reloadButton = new Button:
@@ -110,6 +112,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
   center = new VBox:
     BorderPane.setAlignment(this, Center)
     children ++= Seq(tabPane, centerButtonsContainer)
+
 
   private def createTab[N <: Node](title: String, rootContent: N): Tab =
     new Tab:

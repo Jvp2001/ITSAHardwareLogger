@@ -7,13 +7,13 @@ import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.{Result, optional}
 import org.itsadigitaltrust.hardwarelogger.backend.backend.Fragment
-import org.itsadigitaltrust.hardwarelogger.backend.entities.{Disk, DiskCreator, HLEntity, HLEntityCreator, InfoCreator, MediaCreator, Memory, MemoryCreator}
-import org.itsadigitaltrust.hardwarelogger.backend.repos.HLRepo
+import org.itsadigitaltrust.hardwarelogger.backend.entities.entities.*
+import org.itsadigitaltrust.hardwarelogger.backend.repos.{HLRepo, ItsaIDRepo, findAllByItsaId}
 import org.itsadigitaltrust.hardwarelogger.backend.tables.HLTableInfo
 
 import java.net.URL
-import java.sql.SQLException
-import scala.compiletime.uninitialized
+import java.sql.{PreparedStatement, ResultSet, SQLException}
+import scala.compiletime.{summonInline, uninitialized}
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try, boundary}
 
@@ -25,7 +25,7 @@ class HLDatabase private(val dataSource: DataSource):
   private var connection: MysqlDataSource = uninitialized
 
 
-  def getTableInfo[EC <: HLEntityCreator, E <: HLEntity](ec: EC): HLTableInfo[EC, E] =
+  def getTableInfo[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](ec: EC): HLTableInfo[EC, E] =
     val result = ec.getClass match
       case c if c == classOf[MemoryCreator] => tables.MemoryTable
       case c if c == classOf[MediaCreator] => tables.MediaTable
@@ -33,7 +33,7 @@ class HLDatabase private(val dataSource: DataSource):
       case c if c == classOf[InfoCreator] => tables.InfoTable
     result.asInstanceOf[HLTableInfo[EC, E]]
 
-  def getRepo[EC <: HLEntityCreator, E <: HLEntity](ec: EC): HLRepo[EC, E] =
+  def getRepo[EC <: ItsaIDRepo, E <: HLEntityWithItsaID](ec: EC): HLRepo[EC, E] =
     val result = ec.getClass match
       case c if c == classOf[MemoryCreator] => repos.MemoryRepo
       case c if c == classOf[MediaCreator] => repos.MediaRepo
@@ -42,27 +42,77 @@ class HLDatabase private(val dataSource: DataSource):
 
     result.asInstanceOf[HLRepo[EC, E]]
 
-  
+
+  given DbCodec[Memory] = DbCodec.derived
+
+  given DbCodec[Info] = DbCodec.derived
+
+  given DbCodec[Disk] = DbCodec.derived
+
+  given DbCodec[Media] = DbCodec.derived
+
+
+  type EntityDbCodec[EC <: HLEntityCreatorWithItsaID] = EC match
+    case MemoryCreator => DbCodec[Memory]
+    case InfoCreator => DbCodec[Info]
+    case DiskCreator => DbCodec[Disk]
+    case MediaCreator => DbCodec[Media]
+
+  //  type DbCodecFromTuple[T : Tuple] =
+  //    T match
+  //      case t *: u *: EmptyTuple => t
+
+  def getCreatorDbCodec[EC <: HLEntityCreatorWithItsaID](creator: EC): DbCodec[MemoryCreator] | DbCodec[InfoCreator] | DbCodec[DiskCreator] | DbCodec[MediaCreator] =
+    creator match
+      case _: MemoryCreator => summon[DbCodec[MemoryCreator]]
+      case _: InfoCreator => summon[DbCodec[InfoCreator]]
+      case _: DiskCreator => summon[DbCodec[DiskCreator]]
+      case _: MediaCreator => summon[DbCodec[MediaCreator]]
+
+
+  def getDbCodec[EC <: HLEntityCreatorWithItsaID](creator: EC): DbCodec[Memory] | DbCodec[Info] | DbCodec[Disk] | DbCodec[Media] =
+    creator match
+      case _: MemoryCreator => summon[DbCodec[Memory]]
+      case _: InfoCreator => summon[DbCodec[Info]]
+      case _: DiskCreator => summon[DbCodec[Disk]]
+      case _: MediaCreator => summon[DbCodec[Media]]
   
 
-  def insertOrUpdate[EC <: HLEntityCreator](creator: EC): Unit =
+  def insertOrUpdate[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](creator: EC): Unit =
     val repo = getRepo(creator)
-    val table: TableInfo[EC, ? <: HLEntity, Long] = getTableInfo(creator)
+
+    given table: TableInfo[EC, ?, Long] = getTableInfo(creator)
+
     val transaction = Transactor(connection)
-    connect(dataSource):
-      repo.insert(creator)
+
+    given DbCodec[E] = getDbCodec(creator).asInstanceOf[DbCodec[E]]
 
 
-//  def insertOrUpdate[EC <: HLEntityCreator, E <: HLEntity](creator: EC)(using repo: HLRepo[EC, E])(using TableInfo[EC, E, Long]): Unit =
-//    magnum.transact(connection):
-//      repo.insertOrUpdate(creator)
-//
-//  def insertOrUpdate(creator: DiskCreator): Unit =
-//    insertOrUpdate[DiskCreator, Disk](creator)
-//
-//  def insertOrUpdate(creator: MemoryCreator): Unit =
-//    insertOrUpdate[MemoryCreator, Memory](creator)
+    transact(dataSource):
+//      sql"select * from $table where ${table.selectDynamic("itsaid")} = ${creator.itsaid}".query[E].run() match
+//        case Nil =>
+//          repo.insert(creator)
+//        case _ =>
+//          ()
+      repo.insertOrUpdate(creator)
+//      println(s"Creator: $creator")
+//      val frag = sql"insert ignore into $table (${table.insertColumns}) values ($creator)"
+//      println(s"Frag: ${frag.sqlString}")
+//      frag.update.run()
 
+
+
+
+
+  //  def insertOrUpdate[EC <: HLEntityCreator, E <: HLEntity](creator: EC)(using repo: HLRepo[EC, E])(using TableInfo[EC, E, Long]): Unit =
+  //    magnum.transact(connection):
+  //      repo.insertOrUpdate(creator)
+  //
+  //  def insertOrUpdate(creator: DiskCreator): Unit =
+  //    insertOrUpdate[DiskCreator, Disk](creator)
+  //
+  //  def insertOrUpdate(creator: MemoryCreator): Unit =
+  //    insertOrUpdate[MemoryCreator, Memory](creator)
 
 
   private def error(e: Error)(using label: boundary.Label[Error]): Nothing =

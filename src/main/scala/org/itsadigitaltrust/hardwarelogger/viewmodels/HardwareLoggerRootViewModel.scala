@@ -39,12 +39,14 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
 
+  override def setup(): Unit =
+    reload()
 
   def save(): Unit =
     validateID(true)
 
     if idErrorStringProperty.isEmpty.get then
-      databaseService.setitsaid(idStringProperty.get())
+      databaseService.itsaid = idStringProperty.get()
       notificationCentre.publish(Save)
 
   def validateID(showAlert: Boolean = false): Unit =
@@ -68,6 +70,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
       case Right(value) =>
         idErrorStringProperty.setValue("")
   end validateID
+
+
 
 
   def reload(): Unit =
