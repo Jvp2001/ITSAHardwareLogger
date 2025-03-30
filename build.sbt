@@ -50,6 +50,12 @@ lazy val macros = (project in file("Macros"))
     libraryDependencies ++= uiDependencies
   ).dependsOn(common)
 
+lazy val hdsentinal =(project in file("HDSentinelReader"))
+  .settings(
+    name := "HDSentinelReader",
+    libraryDependencies += "org.scalaxb" %% "scalaxb" % "1.12.2" withSources() withJavadoc()
+
+  )
 
 lazy val backend = (project in file("Backend"))
   .settings(
