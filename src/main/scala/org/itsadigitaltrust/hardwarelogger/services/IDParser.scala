@@ -5,87 +5,6 @@ import scala.annotation.tailrec
 import scala.compiletime.uninitialized
 import scala.util.boundary
 
-
-//  private def idScanner(input: String): ScannerResult = 
-//         import ParsedResultError.*
-
-
-//         val iterator = input.toCharArray()
-//         val validPrefixes = Seq("H", "L", "K")
-//         val validSuffixes = Seq("A")
-
-//         @tailrec
-//         def readNumber(number: Option[String], index: Int): ScannerResult = 
-//             val currentChar = iterator(index)
-//             if index >= iterator.size || !currentChar.isDigit then
-//                 println(s"End: $number")
-//                 return End(number)
-//             else 
-//                 val result = number match 
-//                     case Some(value) => Some(s"$value$currentChar")
-//                     case None => Some(s"$currentChar")
-//                 println(s"Read number: $result")
-
-
-//                 readNumber(Some(s"${result.get}"), index + 1)
-//         end readNumber
-
-
-//         @tailrec
-//         def loop(iter: Array[Char], result: ParsedResult, index: Int = 0): ScannerResult = 
-//             if index < iter.size then 
-//                 val currentChar = iter(index)
-
-//                 if result.prefix.isEmpty && index == 0 then
-//                     if currentChar in validPrefixes then
-//                         return loop(iter, ParsedResult(Some(s"$currentChar")), index + 1)
-//                 if result.number.isEmpty then
-//                     readNumber(n)
-
-//                 if result.number.nonEmpty then 
-//                     if currentChar == '.' then 
-//                         val numResult = readNumber(None, index + 1)
-//                         numResult match
-//                             case Left(value) =>  ()
-//                             case Right(value) => 
-//                                 value match
-//                                     case error: InvalidCharacter => return error
-//                                     case error: ValidationError => return error
-//                                     case e: End => 
-//                                         e.string match
-//                                             case Some(value) =>
-//                                                 if value.size > 1 then return TooLongCheckDigit
-//                                                 return ParsedResult(result.prefix, result.number, Some("."), Some(value))  
-//                     end if
-
-
-//                 if currentChar.isLetter then
-//                     if index == 0 then
-//                         return loop(iter, ParsedResult(Some(s"$currentChar"), None, None, None), index + 1)
-//                     else
-//                         return InvalidCharacter("number", currentChar)
-//                 else if currentChar.isDigit then
-//                     val numResult = readNumber(None,index)
-//                     numResult match
-//                         case Left(value) => ()
-//                         case Right(value) => 
-//                             value match
-//                                 case End(string) =>                    
-//                                     string match
-//                                         case Some(value) =>                             
-//                                             return loop(iter, ParsedResult(result.prefix, Some(value), None, None), index + value.size)
-//                                 case error: InvalidCharacter => return error 
-//                                 case error: ValidationError => return error
-
-
-//             return Left(result)
-//         end loop
-
-//     loop(iterator, ParsedResult(None, None, None, None), 0)
-
-// end idScanner
-
-
 private type Location = Int
 
 private class Chars(val input: String):
@@ -256,7 +175,7 @@ class IDParser:
 object IDParser:
   final case class ParsedResult(prefix: Option[String] = None, number: Option[String] = None, decimal: Option[String] = None, checkDigit: Option[String] = None, suffix: Option[String] = None)
 
-  type ParserResult = Either[ParserError, ParsedResult]
+  private type ParserResult = Either[ParserError, ParsedResult]
 
   enum ParserError:
     case TooManyLetters

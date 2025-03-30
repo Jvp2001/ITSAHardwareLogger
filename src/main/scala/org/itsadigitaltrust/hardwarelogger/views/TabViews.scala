@@ -4,7 +4,7 @@ import tabs.TabTableView
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.*
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
-import org.itsadigitaltrust.macros.HelperMacros
+
 
 import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 private given[T]: Conversion[T, Seq[T]] with
