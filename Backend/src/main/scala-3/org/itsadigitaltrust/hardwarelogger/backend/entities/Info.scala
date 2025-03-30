@@ -1,45 +1,49 @@
 package org.itsadigitaltrust.hardwarelogger.backend.entities
 
-import com.augustnagro.magnum.{DbCodec, Id, MySqlDbType, SqlNameMapper, Table}
+import com.augustnagro.magnum.{DbCodec, Id, MySqlDbType, SqlName, SqlNameMapper, Table}
 
-import java.time.OffsetDateTime
+import java.sql.Timestamp
+import java.time.{Instant, OffsetDateTime}
 
-@Table(MySqlDbType, SqlNameMapper.CamelToSnakeCase)
+@Table(MySqlDbType, SqlNameMapper.SameCase)
+@SqlName("info")
 final case class Info(
-                       id: Int,
-                       genId: String,
-                       genDesc: String,
-                       genProduct: String,
-                       genVendor: Option[String],
+                       @Id id: Long,
+                       @SqlName("cpucores") cpuCores: Option[String],
+                       @SqlName("cpudescription") cpuDescription: String,
+                       @SqlName("cpuproduct") cpuProduct: Option[String],
+                       @SqlName("cpuserial") cpuSerial: Option[String],
+                       @SqlName("cpuspeed") cpuSpeed: String,
+                       @SqlName("cpuvendor") cpuVendor: Option[String],
+                       @SqlName("cpuwidth") cpuWidth: Option[String],
+                       @SqlName("gendesc") genDesc: String,
+                       @SqlName("genid") genId: String,
+                       @SqlName("genproduct") genProduct: String,
+                       @SqlName("genserial") genSerial: Option[String],
+                       @SqlName("genvendor") genVendor: Option[String],
+                       @SqlName("insertiondate") insertionDate: Timestamp,
                        itsaid: String,
-                       genSerial: Option[String],
-                       totalMemory: Option[String],
-                       cpuDescription: String,
-                       cpuSpeed: String,
-                       cpuProduct: Option[String],
-                       cpuVendor: Option[String],
-                       cpuSerial: Option[String],
-                       cpuWidth: Option[String],
-                       insertionDate: OffsetDateTime,
-                       os: String,
-                       cpuCores: Option[String],
-                       lastUpdated: OffsetDateTime
-                     ) extends HLEntity derives DbCodec
+                       @SqlName("lastupdated") lastUpdated: Timestamp,
+                       @SqlName("OS") os: Option[String],
+                       @SqlName("totalmemory") totalMemory: Option[String]
+                     ) extends HLEntityWithItsaID derives DbCodec
 
 final case class InfoCreator(
-                              genId: String,
-                              genDesc: String,
-                              genProduct: String,
-                              genVendor: Option[String],
+                              @SqlName("cpucores") cpuCores: Option[String],
+                              @SqlName("cpudescription") cpuDescription: String,
+                              @SqlName("cpuproduct") cpuProduct: Option[String],
+                              @SqlName("cpuserial") cpuSerial: Option[String],
+                              @SqlName("cpuspeed") cpuSpeed: String,
+                              @SqlName("cpuvendor") cpuVendor: Option[String],
+                              @SqlName("cpuwidth") cpuWidth: Option[String],
+                              @SqlName("gendesc") genDesc: String,
+                              @SqlName("genid") genId: String,
+                              @SqlName("genproduct") genProduct: String,
+                              @SqlName("genserial") genSerial: Option[String],
+                              @SqlName("genvendor") genVendor: Option[String],
+                              @SqlName("insertiondate") insertionDate: Timestamp,
                               itsaid: String,
-                              genSerial: Option[String],
-                              totalMemory: Option[String],
-                              cpuDescription: String,
-                              cpuSpeed: String,
-                              cpuProduct: Option[String],
-                              cpuVendor: Option[String],
-                              cpuSerial: Option[String],
-                              cpuWidth: Option[String],
-                              os: String,
-                              cpuCores: Option[String]
-                            ) extends HLEntityCreator derives DbCodec
+                              @SqlName("lastupdated") lastUpdated: Timestamp,
+                              @SqlName("OS") os: Option[String],
+                              @SqlName("totalmemory") totalMemory: Option[String]
+                            ) extends HLEntityCreatorWithItsaID derives DbCodec

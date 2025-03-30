@@ -6,7 +6,8 @@ import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.Save
 import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
 
 
-trait ViewModel
+trait ViewModel:
+  def setup(): Unit = ()
 
 
 trait TableRowViewModel[M](model: M) extends ViewModel with ServicesModule:
@@ -19,8 +20,7 @@ trait TableRowViewModel[M](model: M) extends ViewModel with ServicesModule:
     val model =  wrapper.model match
       case Some(value) => value
       case _ => return
-
-      databaseService += model.asInstanceOf[HLModel]
+    databaseService += model.asInstanceOf[HLModel]
 
 
 

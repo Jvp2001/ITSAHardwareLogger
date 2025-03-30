@@ -43,13 +43,13 @@ final case class MemoryModel(size: DataSize, description: String) extends HLMode
 
 //@ScalaSpringBeanComponent
 final case class ProcessorModel(
-                            chipType: String,
-                            speed: Long,
-                            shortDescription: String,
-                            longDescription: String,
-                            serial: String,
-                            width: Int = 0,
-                            cores: Int = 0
+                                 name: String,
+                                 speed: Long,
+                                 shortDescription: String,
+                                 longDescription: String,
+                                 serial: String,
+                                 width: Int = 0,
+                                 cores: Int = 0
                           ) extends HLModel
 
 

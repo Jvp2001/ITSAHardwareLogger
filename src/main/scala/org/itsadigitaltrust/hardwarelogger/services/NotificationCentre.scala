@@ -21,6 +21,9 @@ trait NotificationCentre[ME]:
 
 
   def publish(key: ME, args: Any*): Unit =
+    if key notIn notifications then
+      notifications(key) = Vector()
+
     notifications(key).foreach: callback =>
       callback(key, args)
 

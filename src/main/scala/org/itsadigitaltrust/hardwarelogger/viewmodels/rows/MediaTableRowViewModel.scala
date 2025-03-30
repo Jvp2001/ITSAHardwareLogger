@@ -25,3 +25,17 @@
 //
 //  def handleProperty: StringProperty =
 //    wrapper.field("handle", _.handle, (m, v) => m.handle = v, "")(() => new SimpleStringProperty())
+
+
+package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
+
+import org.itsadigitaltrust.hardwarelogger.models.MediaModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+import scalafx.beans.property.*
+
+final class MediaTableRowViewModel(model: MediaModel) extends TableRowViewModel[MediaModel](model):
+  def descriptionProperty: StringProperty =
+    wrapper.field("description", _.description, "")(StringProperty.apply)
+
+  def handleProperty: StringProperty =
+    wrapper.field("handle", _.handle, "")(StringProperty.apply)

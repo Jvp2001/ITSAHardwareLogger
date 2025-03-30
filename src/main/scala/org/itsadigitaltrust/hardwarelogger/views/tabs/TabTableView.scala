@@ -1,23 +1,25 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.viewmodels.{TabTableViewModel, TableRowViewModel}
-import scalafx.beans.property.{ObjectProperty, Property, StringProperty}
+
+import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import scalafx.beans.value.ObservableValue
+import scalafx.Includes.{given, *}
 import scalafx.scene.control.{TableColumn, TableView}
 
 
 
-
-
-class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
-  import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+class TabTableView[M, T <: AnyRef & TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
 
   vgrow = Always
   items = viewModel.data
+  tableMenuButtonVisible = true
+  
   class TableTabColumn[P] extends TableColumn[T, P] // Placeholder for your custom TableTabColumn class
 
-  def createAndAddColumn[P, J](
+
+  def createAndAddColumn[P](
                              name: String,
                              minWidth: Int = 50)
                            (
@@ -28,7 +30,7 @@ class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewMo
     column
 
 
-  def createColumn[P, J](
+  def createColumn[P](
                        name: String,
                        minWidth: Int = 50)
                      (
@@ -41,7 +43,7 @@ class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewMo
   end createColumn
 
 
-  def setupColumn[P, J](
+  def setupColumn[P](
                       column: TableTabColumn[P],
                       name: String,
                       minWidth: Int = 50,
@@ -55,7 +57,8 @@ class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewMo
 
     column.cellValueFactory = p =>
       cellValueFactory(p.getValue)
-
-
   end setupColumn
+
+  
+
 end TabTableView

@@ -4,14 +4,14 @@ import com.augustnagro.magnum.{DbCodec, Id, MySqlDbType, SqlNameMapper, Table}
 
 @Table(MySqlDbType)
 final case class Memory(
-                         id: Int,
+                         @Id id: Long,
                          size: String,
                          itsaid: String,
                          descr: Option[String]
-                       ) extends HLEntity derives DbCodec
+                       ) extends HLEntityWithItsaID derives DbCodec
 
 final case class MemoryCreator(
                                 size: String,
                                 itsaid: String,
                                 descr: Option[String] = None
-                              ) extends HLEntityCreator derives DbCodec
+                              ) extends HLEntityCreatorWithItsaID derives DbCodec

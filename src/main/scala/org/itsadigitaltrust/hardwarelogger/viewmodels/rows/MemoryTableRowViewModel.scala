@@ -1,11 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
-import javafx.beans.property.SimpleStringProperty
-import scalafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
-import org.itsadigitaltrust.hardwarelogger.mvvm.ModelWrapper
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+import scalafx.beans.property.*
 
 final class MemoryTableRowViewModel(model: MemoryModel) extends TableRowViewModel[MemoryModel](model):
   def sizeProperty: DoubleProperty =

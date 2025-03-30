@@ -58,7 +58,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     val longDesc = pi.getVendor
     val cores = hal.getProcessor.getPhysicalProcessorCount
     val freq = hal.getProcessor.getCurrentFreq
-    processors = List(ProcessorModel(hal.getProcessor.getProcessorIdentifier.getModel, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
+    processors = List(ProcessorModel(name, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
 
 
 
