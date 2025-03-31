@@ -4,14 +4,12 @@ import sbt.Keys.libraryDependencies
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "3.6.4"
-ThisBuild / assemblyMergeStrategy :=
-  {
-    case PathList("META-INF", _*) => MergeStrategy.discard
-    case _ => MergeStrategy.first
-  }
+ThisBuild / assemblyMergeStrategy := {
+  case PathList("META-INF", _*) => MergeStrategy.discard
+  case _ => MergeStrategy.first
+}
 
-lazy val uiDependencies = Seq("win", "mac", "linux").flatMap
-{ osName =>
+lazy val uiDependencies = Seq("win", "mac", "linux").flatMap { osName =>
   Seq("base", "controls", "fxml", "graphics", "media", "swing", "web")
     .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier "win").map(_.withJavadoc() withSources())
 } :+ ("org.scalafx" %% "scalafx" % "23.0.1-R34" withJavadoc() withSources())
@@ -26,7 +24,7 @@ lazy val root = (project in file("."))
     libraryDependencies += "com.github.oshi" % "oshi-core" % "6.8.0",
     libraryDependencies ++= commonDependencies
 
-  ).dependsOn(common, macros, backend)
+  ).dependsOn(common, macros, backend, hdsentinel)
 
 
 lazy val common = (project in file("Common"))
@@ -50,10 +48,14 @@ lazy val macros = (project in file("Macros"))
     libraryDependencies ++= uiDependencies
   ).dependsOn(common)
 
-lazy val hdsentinal =(project in file("HDSentinelReader"))
+lazy val hdsentinel = (project in file("HDSentinelReader"))
   .settings(
     name := "HDSentinelReader",
-    libraryDependencies += "org.scalaxb" %% "scalaxb" % "1.12.2" withSources() withJavadoc()
+    libraryDependencies ++= Seq(
+      "org.scalaxb" %% "scalaxb" % "1.12.2" withSources() withJavadoc(),
+      "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
+
+    )
 
   )
 
@@ -67,25 +69,25 @@ lazy val backend = (project in file("Backend"))
 
 
 
-    //libraryDependencies ++= {
-    //  // Determine an OS version of JavaFX binaries
-    //  lazy val osName = System.getProperty("os.name") match {
-    //    case n if n.startsWith("Linux") => "linux"
-    //    case n if n.startsWith("Mac") => "mac"
-    //    case n if n.startsWith("Windows") => "win"
-    //    case _ => throw new Exception("Unknown platform!")
-    //  }
-    //  lazy val classifiers =Seq("win", "linux", "mac")
-    //    classifiers.map { osName =>
-    //
-    //        Seq("base", "controls", "fxml", "graphics", "media", "swing", "web")
-    //          .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier osName).map(_.withJavadoc() withSources())
-    //    }
-    //}
+//libraryDependencies ++= {
+//  // Determine an OS version of JavaFX binaries
+//  lazy val osName = System.getProperty("os.name") match {
+//    case n if n.startsWith("Linux") => "linux"
+//    case n if n.startsWith("Mac") => "mac"
+//    case n if n.startsWith("Windows") => "win"
+//    case _ => throw new Exception("Unknown platform!")
+//  }
+//  lazy val classifiers =Seq("win", "linux", "mac")
+//    classifiers.map { osName =>
+//
+//        Seq("base", "controls", "fxml", "graphics", "media", "swing", "web")
+//          .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier osName).map(_.withJavadoc() withSources())
+//    }
+//}
 
 
-   
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
 
 ThisProject / scalacOptions ++= Seq(
   "-groups",
