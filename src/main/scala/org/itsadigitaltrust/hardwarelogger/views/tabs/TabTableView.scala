@@ -1,22 +1,53 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-
+import org.itsadigitaltrust.hardwarelogger.delegates.TableRowDelegate
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import scalafx.beans.value.ObservableValue
-import scalafx.Includes.{given, *}
-import scalafx.scene.control.{TableColumn, TableView}
+import scalafx.Includes.{*, given}
+import scalafx.scene.control.{TableColumn, TableRow, TableView}
+
+import javafx.scene.{control => jfxsc}
 
 
+class TabTableView[M, T <: AnyRef & TableRowViewModel[M] | AnyRef & TableRowViewModel[M] & TableRowDelegate[TableRowViewModel[M]]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
 
-class TabTableView[M, T <: AnyRef & TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
+  var rowDelegate: Option[TableRowDelegate[T]] = None
+  
+  
+  class TableTabRow[R](
+                        var rowDelegate: Option[TableRowDelegate[R]]
+                      ) extends jfxsc.TableRow[R]:
+
+    override def updateItem(item: R, empty: Boolean): Unit =
+      super.updateItem(item, empty)
+      if empty || item == null then
+        setGraphic(null)
+      else if rowDelegate.isDefined then
+        rowDelegate.get.onUpdateItem(item)
+    end updateItem
+
+    setOnMouseClicked: event =>
+      if event.getClickCount == 1 then
+        if rowDelegate.isDefined then
+          rowDelegate.get.onSelected(getItem)
+
+    override def updateSelected(b: Boolean): Unit = 
+      super.updateSelected(b)
+      if rowDelegate.isDefined then
+        rowDelegate.get.onSelected(getItem)
+    end updateSelected
+  end TableTabRow
+
+
+  class TableTabColumn[P] extends TableColumn[T, P] // Placeholder for your custom TableTabColumn class
+
+  rowFactory = _ => new TableTabRow[T](rowDelegate)
 
   vgrow = Always
   items = viewModel.data
   tableMenuButtonVisible = true
-  
-  class TableTabColumn[P] extends TableColumn[T, P] // Placeholder for your custom TableTabColumn class
 
 
   def createAndAddColumn[P](
@@ -59,6 +90,5 @@ class TabTableView[M, T <: AnyRef & TableRowViewModel[M]](using viewModel: TabTa
       cellValueFactory(p.getValue)
   end setupColumn
 
-  
 
 end TabTableView

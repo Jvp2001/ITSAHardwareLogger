@@ -4,7 +4,6 @@ package org.itsadigitaltrust.hardwarelogger.views
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TableRowViewModel, ViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{HardDrivesTabView, MemoryTabView, TabTableView}
-import org.itsadigitaltrust.macros.*
 import scalafx.application.Platform
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode

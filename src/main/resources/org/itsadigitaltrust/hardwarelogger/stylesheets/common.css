@@ -20,3 +20,18 @@
     -fx-font-size: 12px;
     -fx-start-margin: 10px;
 }
+
+.hdsentinel-background
+{
+    -fx-background-color: #befdbe
+}
+
+.hdsentinel-text
+{
+    -fx-font-size: 16px;
+}
+
+.value-label
+{
+    -fx-font-weight: bold;
+}

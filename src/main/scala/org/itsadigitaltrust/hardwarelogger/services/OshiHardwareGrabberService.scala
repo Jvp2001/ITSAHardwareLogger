@@ -1,9 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
+import org.itsadigitaltrust.common.Types.percent
 import org.itsadigitaltrust.hardwarelogger.models.*
 import oshi.SystemInfo
-import ox.{supervised, fork}
+import ox.{fork, supervised}
 
 import scala.jdk.CollectionConverters.*
 
@@ -36,7 +37,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
       val name = disk.getName
       val size = disk.getSize
       val model = disk.getModel
-      HardDriveModel(100, size.GiB, model, disk.getSerial, NVME, isSSD = true)
+      HardDriveModel(99.percent, 100.percent, size.GiB, model, disk.getSerial, NVME, isSSD = true)
     .toList
 
 

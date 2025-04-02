@@ -21,6 +21,8 @@ trait TableRowViewModel[M](model: M) extends ViewModel with ServicesModule:
       case Some(value) => value
       case _ => return
     databaseService += model.asInstanceOf[HLModel]
+    
+    
 
 
 

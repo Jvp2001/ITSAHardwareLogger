@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.models
 
 
-import org.itsadigitaltrust.common.Types.DataSize
+import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
 
 import scala.annotation.experimental
 
@@ -20,7 +20,8 @@ final case class GeneralInfoModel(
 
 //@ScalaSpringBeanComponent
 final case class HardDriveModel(
-                            health: Int,
+                            health: Percentage,
+                            performance: Percentage,
                             size: DataSize,
                             model: String,
                             serial: String,
@@ -33,7 +34,7 @@ final case class HardDriveModel(
 //
 //@Bean
 enum HardDriveType extends Enum[HardDriveType]:
-  case SATA, NVME, PATA
+  case SATA, NVME, PATA, SCSI, SAS, UNKNOWN
 
 //@ScalaSpringBeanComponent
 final case class MediaModel(description: String, handle: String) extends HLModel

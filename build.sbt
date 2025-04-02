@@ -1,5 +1,5 @@
-import _root_.scala.collection.mutable.ArrayBuffer
 import sbt.Keys.libraryDependencies
+
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
@@ -24,7 +24,7 @@ lazy val root = (project in file("."))
     libraryDependencies += "com.github.oshi" % "oshi-core" % "6.8.0",
     libraryDependencies ++= commonDependencies
 
-  ).dependsOn(common, macros, backend, hdsentinel)
+  ).dependsOn(common, backend, hdsentinelreader)
 
 
 lazy val common = (project in file("Common"))
@@ -42,21 +42,43 @@ lazy val commonDependencies = Seq(
   "co.blocke" %% "scala-reflection" % "2.0.11"
 ).map(_ withJavadoc() withSources())
 
-lazy val macros = (project in file("Macros"))
-  .settings(
-    name := "Macros",
-    libraryDependencies ++= uiDependencies
-  ).dependsOn(common)
+//lazy val macros = (project in file("Macros"))
+//  .settings(
+//    name := "Macros",
+//    libraryDependencies ++= uiDependencies
+//  ).dependsOn(common)
 
-lazy val hdsentinel = (project in file("HDSentinelReader"))
-  .settings(
+//lazy val hdsentinel = (project in file("HDSentinelReader"))
+//  .enablePlugins(ScalaxbPlugin)
+//  .settings(
+//    name := "HDSentinelReader",
+//    libraryDependencies ++= Seq(
+//      "org.scalaxb" %% "scalaxb" % "1.12.2", //withSources() withJavadoc(),
+//      "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
+//
+//    )
+//
+//  )
+
+//import sbtscalaxb.ScalaxbKeys.*
+//
+//lazy val OIH = config("org.itsadigitaltrust.hdsentinelreader").extend(Compile)
+//
+
+lazy val dispatchVersion = "2.0.0"
+lazy val dispatch = "org.dispatchhttp" %% "dispatch-core" % dispatchVersion
+lazy val jaxbApi = "javax.xml.bind" % "jaxb-api" % "2.3.1"
+lazy val scalaXml = "org.scala-lang.modules" %% "scala-xml" % "2.3.0"
+lazy val scalaParser = "org.scala-lang.modules" %% "scala-parser-combinators" % "2.4.0"
+
+lazy val hdsentinelreader = (project in file("HDSentinelReader")).
+  enablePlugins(ScalaxbPlugin).
+  settings(
     name := "HDSentinelReader",
-    libraryDependencies ++= Seq(
-      "org.scalaxb" %% "scalaxb" % "1.12.2" withSources() withJavadoc(),
-      "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
-
-    )
-
+    // Compile / scalaxb / scalaxbAutoPackages := true,
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.module/jackson-module-scala
+    libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.18.3",
+      libraryDependencies += "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.18.3",
   )
 
 lazy val backend = (project in file("Backend"))

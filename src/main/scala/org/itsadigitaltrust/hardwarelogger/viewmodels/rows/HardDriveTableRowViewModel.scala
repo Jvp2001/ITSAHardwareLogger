@@ -1,19 +1,24 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
+import org.itsadigitaltrust.common.Types.Percentage
 import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveType}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
+import org.itsadigitaltrust.common.percent
 
 import java.lang
 
 
 final case class HardDriveTableRowViewModel(model: HardDriveModel) extends TableRowViewModel[HardDriveModel](model):
 
-  def healthProperty: LongProperty =
-    wrapper.field[Long, LongProperty, LongProperty]("Health", _.health, 100L)(LongProperty.apply)
+  def healthProperty: ObjectProperty[Percentage] =
+    wrapper.field("Health", _.health, 100.percent)(ObjectProperty.apply)
 
-  def sizeProperty: LongProperty =
-    wrapper.field[Long, LongProperty, LongProperty]("Size", _.size.toLong, 0L)(LongProperty.apply)
+  def performanceProperty: ObjectProperty[Percentage] =
+    wrapper.field("Performance", _.health, 100.percent)(ObjectProperty.apply)
+    
+  def sizeProperty: StringProperty =
+    wrapper.field("Size", _.size.dbString, "0 GB")(StringProperty.apply)
     
   def modelProperty: StringProperty =
     wrapper.field("model", _.model, "")(StringProperty.apply)

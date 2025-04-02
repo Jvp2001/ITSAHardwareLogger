@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="ISO-8859-2"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="Hard_Disk_Sentinel">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="General_Information">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Application_Information">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Installed_version" type="xs:string"/>
+                                        <xs:element name="Current_Date_And_Time" type="xs:string"/>
+                                        <xs:element name="Report_Creation_Time" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Computer_Information">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Computer_Name" type="xs:string"/>
+                                        <xs:element name="MAC_Address" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="System_Information">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="OS_Version" type="xs:string"/>
+                                        <xs:element name="Process_ID" type="xs:int"/>
+                                        <xs:element name="Uptime" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Physical_Disk_Information_Disk_0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Hard_Disk_Summary">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Hard_Disk_Number" type="xs:int"/>
+                                        <xs:element name="Hard_Disk_Device" type="xs:string"/>
+                                        <xs:element name="Interface" type="xs:string"/>
+                                        <xs:element name="Hard_Disk_Model_ID" type="xs:string"/>
+                                        <xs:element name="Firmware_Revision" type="xs:string"/>
+                                        <xs:element name="Hard_Disk_Serial_Number" type="xs:string"/>
+                                        <xs:element name="Total_Size" type="xs:string"/>
+                                        <xs:element name="Current_Temperature" type="xs:string" minOccurs="0"/>
+                                        <xs:element name="Maximum_temperature_during_entire_lifespan" type="xs:string" minOccurs="0"/>
+                                        <xs:element name="Health" type="xs:string" minOccurs="0"/>
+                                        <xs:element name="Performance" type="xs:string" minOccurs="0"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="Properties">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Vendor_Information" type="xs:string" minOccurs="0"/>
+                                        <xs:element name="Status" type="xs:string"/>
+                                        <xs:element name="Version" type="xs:int"/>
+                                        <xs:element name="Device_Type" type="xs:string"/>
+                                        <xs:element name="ASC" type="xs:int"/>
+                                        <xs:element name="ASCQ" type="xs:int"/>
+                                        <xs:element name="Bytes_Per_Sector" type="xs:int"/>
+                                        <xs:element name="Total_Sectors" type="xs:long"/>
+                                        <xs:element name="Unformatted_Capacity" type="xs:long"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="SCSI_Information">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Removable" type="xs:string"/>
+                                        <xs:element name="Failure_Prediction" type="xs:string" maxOccurs="unbounded"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Partition_Information">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Partition" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Drive" type="xs:string"/>
+                                        <xs:element name="Total_Space" type="xs:string"/>
+                                        <xs:element name="Free_Space" type="xs:string"/>
+                                        <xs:element name="Free_Space_Percent" type="xs:string"/>
+                                        <xs:element name="Disk" type="xs:string"/>
+                                        <xs:element name="BlockSize" type="xs:int"/>
+                                        <xs:element name="Files" type="xs:int"/>
+                                        <xs:element name="FileSystem" type="xs:int"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

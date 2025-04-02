@@ -1,22 +1,37 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
+import javafx.scene.control.cell
+import org.itsadigitaltrust.hardwarelogger.delegates.TableRowDelegate
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
-import scalafx.beans.property.{BooleanProperty, ObjectProperty}
-import scalafx.scene.control.cell.CheckBoxTableCell
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, TabTableViewModel}
+import scalafx.beans.property.{BooleanProperty, DoubleProperty, ObjectProperty, StringProperty}
+import scalafx.scene.control.{Label, ProgressBar, TableCell, TableColumn}
+import scalafx.scene.control.cell.{CheckBoxTableCell, ProgressBarTableCell}
+import scalafx.scene.layout.Priority.Always
+import scalafx.scene.layout.{Background, GridPane, StackPane, VBox}
+import scalafx.scene.paint.Paint
+import scalafx.scene.{Group, shape}
 
-private given viewModel: TabTableViewModel[HardDriveModel,HardDriveTableRowViewModel] = new TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives)
 
-class HardDrivesTabView extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
+private given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
+class HardDriveTableView extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
+  rowDelegate = Some(viewModel)
+  requestFocus()
 
   import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 
-  private val healthColumn = createAndAddColumn("Health"): cellValue =>
-    cellValue.healthProperty
+  private val healthColumn = createAndAddColumn[String]("Health"): cellValue =>
+    StringProperty(cellValue.healthProperty.get.toString)
 
-  private val sizeColumn = createAndAddColumn("Size"): cellValue =>
+  private val performanceColumn = createAndAddColumn[String]("Performance"): cellValue =>
+    StringProperty(cellValue.performanceProperty.get.toString)
+
+
+
+  private val sizeColumn = createAndAddColumn[String]("Size"): cellValue =>
     cellValue.sizeProperty
+
 
   private val modelColumn = createAndAddColumn("Model"): cellValue =>
     cellValue.modelProperty
@@ -36,10 +51,52 @@ class HardDrivesTabView extends TabTableView[HardDriveModel, HardDriveTableRowVi
   isSSDColumn.setCellFactory: column =>
     new CheckBoxTableCell[HardDriveTableRowViewModel, Boolean]():
       editable = false
+end HardDriveTableView
+
+
+class HardDrivesTabView extends VBox:
+
+  children += new HardDriveTableView()
+  children += new VBox():
+    children += new StackPane()
+      styleClass ++= List("hdsentinel-background")
+      private val text = new Label("HDSentinel text here"):
+        styleClass ++= List("hdsentinel-text")
+      children += text
+      children += new VBox(10):
+        children += text
+        children += new Label("No actions needed."):
+          styleClass ++= List("hdsentinel-text")
+      vgrow = Always
+
+  private val infoBox = new GridPane(10, 10):
+    private val powerOnTimeNameLabel = new Label("Power On Time:"):
+      styleClass ++= List("name-label", "hdsentinel-text")
+    private val powerOnTimeValueLabel = new Label:
+      text <== viewModel.powerOnTime
+      styleClass ++= List("value-label", "hdsentinel-text")
+    private val estimatedLifeTimeLabel = new Label("Estimated reaming lifetime:"):
+      styleClass ++= List("name-label", "hdsentinel-text")
+    private val estimatedLifeTimeValueLabel = new Label:
+      text <== viewModel.estimatedLifeTime
+      styleClass ++= List("value-label", "hdsentinel-text")
+
+    addRow(0, powerOnTimeNameLabel, powerOnTimeValueLabel)
+    addRow(1, estimatedLifeTimeLabel, estimatedLifeTimeValueLabel)
+  end infoBox
+  children += infoBox
+
+end HardDrivesTabView
 
 
 
 
+
+
+
+
+
+// add the green text form the Linux hd sentinel into program. Update the text when a row is clicked.
 
 
 

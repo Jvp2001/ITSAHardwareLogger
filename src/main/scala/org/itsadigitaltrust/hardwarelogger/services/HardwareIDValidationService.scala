@@ -6,7 +6,6 @@ import java.util.regex.Pattern
 
 
 import scala.annotation.tailrec
-import org.itsadigitaltrust.macros.NoArgConstructor
 
 import scala.util.boundary
 

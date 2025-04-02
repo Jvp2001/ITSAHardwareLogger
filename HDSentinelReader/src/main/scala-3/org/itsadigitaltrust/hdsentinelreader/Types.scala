@@ -4,8 +4,13 @@ object Types:
   opaque type XMLFile = String
 
   object XMLFile:
+    import scala.compiletime.*
+    import scala.compiletime.ops.string.*
     inline def apply(file: String): XMLFile =
-      if !file.endsWith(".xml") then
+      inline if constValue[Matches[file.type, ".*\\.xml$"]] then
+        file
+      else
         scala.compiletime.error("Must end with .xml!")
-      file
+
+
 export Types.*
