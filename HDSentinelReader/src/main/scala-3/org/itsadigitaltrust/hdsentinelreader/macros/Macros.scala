@@ -3,7 +3,29 @@ package org.itsadigitaltrust.hdsentinelreader.macros
 import scala.quoted.*
 import scala.annotation.Annotation
 import org.itsadigitaltrust.hdsentinelreader.macros.MacroUtils.getFields
+/**
+  *   def createPersonAST(using Quotes): Expr[Person] =
+    import quotes.reflect.*
 
+    // Get the type symbol for Person
+    val personType = TypeRepr.of[Person]
+    val personSymbol = personType.typeSymbol
+
+    // Ensure the type has a primary constructor
+    val primaryConstructor = personSymbol.primaryConstructor
+    if primaryConstructor == Symbol.noSymbol then
+      report.errorAndAbort(s"Type ${personSymbol.name} does not have a primary constructor")
+
+    // Create named arguments for the constructor
+    val nameArg = NamedArg("name", Expr("John Doe").asTerm) // name = "John Doe"
+    val ageArg = NamedArg("age", Expr(20).asTerm)          // age = 20
+
+    // Create the Apply node for the constructor call
+    val constructorCall = Apply(
+      Select(New(TypeTree.of[Person]), primaryConstructor),
+      List(nameArg, ageArg)
+    )
+*/
 final case class ParameterInfo(name: String, `type`: String, value: Any)
 extension(params: Seq[ParameterInfo])
   def get[T](name: String): T =
