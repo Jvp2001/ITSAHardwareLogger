@@ -11,6 +11,6 @@ object Types:
         file
       else
         scala.compiletime.error("Must end with .xml!")
-
+    def from(file: String): XMLFile = file
 
 export Types.*

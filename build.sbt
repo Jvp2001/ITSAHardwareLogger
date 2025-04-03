@@ -22,12 +22,13 @@ lazy val root = (project in file("."))
 
     libraryDependencies ++= uiDependencies,
     libraryDependencies += "com.github.oshi" % "oshi-core" % "6.8.0",
-    libraryDependencies ++= commonDependencies
+    libraryDependencies ++= commonDependencies,
+    scalacOptions += "-experimental"
 
-  ).dependsOn(common, backend, hdsentinelreader)
+  ).dependsOn(common, macros, backend, hdsentinelreader)
 
 
-lazy val common = (project in file("Common"))
+lazy val common: Project = (project in file("Common"))
   .settings(
     name := "Common",
     libraryDependencies ++= commonDependencies
@@ -39,14 +40,13 @@ lazy val commonDependencies = Seq(
   "com.augustnagro" %% "magnum" % "1.3.1",
   "com.mysql" % "mysql-connector-j" % "9.2.0",
   "com.softwaremill.ox" %% "core" % "0.5.13",
-  "co.blocke" %% "scala-reflection" % "2.0.11"
 ).map(_ withJavadoc() withSources())
 
-//lazy val macros = (project in file("Macros"))
-//  .settings(
-//    name := "Macros",
-//    libraryDependencies ++= uiDependencies
-//  ).dependsOn(common)
+lazy val macros = (project in file("Macros"))
+  .settings(
+    name := "Macros",
+    libraryDependencies ++= uiDependencies
+  ).dependsOn(common)
 
 //lazy val hdsentinel = (project in file("HDSentinelReader"))
 //  .enablePlugins(ScalaxbPlugin)
@@ -65,21 +65,23 @@ lazy val commonDependencies = Seq(
 //lazy val OIH = config("org.itsadigitaltrust.hdsentinelreader").extend(Compile)
 //
 
-lazy val dispatchVersion = "2.0.0"
-lazy val dispatch = "org.dispatchhttp" %% "dispatch-core" % dispatchVersion
-lazy val jaxbApi = "javax.xml.bind" % "jaxb-api" % "2.3.1"
-lazy val scalaXml = "org.scala-lang.modules" %% "scala-xml" % "2.3.0"
-lazy val scalaParser = "org.scala-lang.modules" %% "scala-parser-combinators" % "2.4.0"
-
 lazy val hdsentinelreader = (project in file("HDSentinelReader")).
   enablePlugins(ScalaxbPlugin).
   settings(
     name := "HDSentinelReader",
     // Compile / scalaxb / scalaxbAutoPackages := true,
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.module/jackson-module-scala
-    libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.18.3",
-      libraryDependencies += "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.18.3",
-  )
+      libraryDependencies ++= Seq(//"com.fasterxml.jackson.module" % "jackson-module-scala" % "",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.18.3",
+      "com.fasterxml.jackson.module" % "jackson-module-jaxb-annotations" % "2.18.3",
+      "javax.xml.bind" % "jaxb-api" % "2.3.1",
+        "org.projectlombok" % "lombok" % "1.18.38" % Compile,
+        //scala xml
+        "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
+
+      ),
+    scalacOptions += "-experimental"
+  ).dependsOn(macros)
 
 lazy val backend = (project in file("Backend"))
   .settings(

@@ -4,11 +4,17 @@
     <option name="implicitConversions" value="true" />
     <option name="macros" value="true" />
     <option name="experimental" value="true" />
-    <profile name="sbt 1" modules="ITSAHardwareLogger.AutoTable,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.Macros,ITSAHardwareLogger.autoTable,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.test" />
+    <profile name="sbt 1" modules="ITSAHardwareLogger.AutoTable,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.Macros,ITSAHardwareLogger.autoTable,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.test" />
     <profile name="sbt 2" modules="ITSAHardwareLogger">
       <parameters>
+        <parameter value="-experimental" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+      </parameters>
+    </profile>
+    <profile name="sbt 3" modules="ITSAHardwareLogger.HDSentinelReader">
+      <parameters>
         <parameter value="-experimental" />
       </parameters>
     </profile>
