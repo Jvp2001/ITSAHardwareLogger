@@ -119,7 +119,9 @@ UNLOCK TABLES;
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files />
+    <open-files>
+      <object connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" object-ref="consoles/itsahw" />
+    </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />
@@ -138,11 +140,11 @@ UNLOCK TABLES;
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />
