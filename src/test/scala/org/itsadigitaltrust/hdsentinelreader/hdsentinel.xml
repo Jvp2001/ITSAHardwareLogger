@@ -13,116 +13,117 @@
     </System_Information>
     <PCI_Device_Information>
       <PCI_bus_0_device_0_function_0>Xeon(R) processor</PCI_bus_0_device_0_function_0>
-  <Errors>
-  NumOfDrives: 5 //
-    0: NONE RS:T DE:0 IS:0 T: 8 ms, Time:  ATAID:4 AE ENABLE_SMART:0 SMART_THRESHOLDS:2 SMART_VALUES:1 //
-    1: NONE RS:T DE:0 IS:0 T: 10 ms, Time:  ATAID:3 AE ENABLE_SMART:0 SMART_THRESHOLDS:4 SMART_VALUES:3 //
-    2: NONE RS:T DE:0 IS:0 T: 38 ms, Time:  ATAID:5 AE ENABLE_SMART:0 SMART_THRESHOLDS:4 SMART_VALUES:28 //
-    3: NONE RS:T DE:0 IS:0 T: 37 ms, Time:  ATAID:4 AE ENABLE_SMART:0 SMART_THRESHOLDS:14 SMART_VALUES:17 //
-    4: NONE RS:T DE:0 IS:0 T: 48 ms, Time:  ATAID:15 AE ENABLE_SMART:0 SMART_THRESHOLDS:15 SMART_VALUES:17 //
-    100: , Time: //
-    101: , Time: //
-    102: , Time: //
-    103: , Time: //
-    104: , Time: //
-    105: , Time: //
-    106: , Time: //
-    107: , Time: //
-    108: , Time: //
-    109: , Time: //
-    110: , Time: //
-    111: , Time: //
-    112: , Time: //
-    113: , Time: //
-    114: , Time: //
-    115: , Time: //
-    116: , Time: //
-    117: , Time: //
-    118: , Time: //
-    119: , Time: //
-    120: , Time: //
-    121: , Time: //
-    122: , Time: //
-    123: , Time: //
-    124: , Time: //
-    125: , Time: //
-    126: , Time: //
-    127: , Time: //
-    128: , Time: //
-    129: , Time: //
-    130: , Time: //
-    131: , Time: //
-    132: , Time: //
-    133: , Time: //
-    134: , Time: //
-    135: , Time: //
-    136: , Time: //
-    137: , Time: //
-    138: , Time: //
-    139: , Time: //
-    140: , Time: //
-    141: , Time: //
-    142: , Time: //
-    143: , Time: //
-    144: , Time: //
-    145: , Time: //
-    146: , Time: //
-    147: , Time: //
-    148: , Time: //
-    149: , Time: //
-    150: , Time: //
-    151: , Time: //
-    152: , Time: //
-    153: , Time: //
-    154: , Time: //
-    155: , Time: //
-    156: , Time: //
-    157: , Time: //
-    158: , Time: //
-    159: , Time: //
-    160: , Time: //
-    161: , Time: //
-    162: , Time: //
-    163: , Time: //
-    164: , Time: //
-    165: , Time: //
-    166: , Time: //
-    167: , Time: //
-    168: , Time: //
-    169: , Time: //
-    170: , Time: //
-    171: , Time: //
-    172: , Time: //
-    173: , Time: //
-    174: , Time: //
-    175: , Time: //
-    176: , Time: //
-    177: , Time: //
-    178: , Time: //
-    179: , Time: //
-    180: , Time: //
-    181: , Time: //
-    182: , Time: //
-    183: , Time: //
-    184: , Time: //
-    185: , Time: //
-    186: , Time: //
-    187: , Time: //
-    188: , Time: //
-    189: , Time: //
-    190: , Time: //
-    191: , Time: //
-    192: , Time: //
-    193: , Time: //
-    194: , Time: //
-    195: , Time: //
-    196: , Time: //
-    197: , Time: //
-    198: , Time: //
-  </Errors>
+      <Errors>
+        NumOfDrives: 5 //
+        0: NONE RS:T DE:0 IS:0 T: 8 ms, Time:  ATAID:4 AE ENABLE_SMART:0 SMART_THRESHOLDS:2 SMART_VALUES:1 //
+        1: NONE RS:T DE:0 IS:0 T: 10 ms, Time:  ATAID:3 AE ENABLE_SMART:0 SMART_THRESHOLDS:4 SMART_VALUES:3 //
+        2: NONE RS:T DE:0 IS:0 T: 38 ms, Time:  ATAID:5 AE ENABLE_SMART:0 SMART_THRESHOLDS:4 SMART_VALUES:28 //
+        3: NONE RS:T DE:0 IS:0 T: 37 ms, Time:  ATAID:4 AE ENABLE_SMART:0 SMART_THRESHOLDS:14 SMART_VALUES:17 //
+        4: NONE RS:T DE:0 IS:0 T: 48 ms, Time:  ATAID:15 AE ENABLE_SMART:0 SMART_THRESHOLDS:15 SMART_VALUES:17 //
+        100: , Time: //
+        101: , Time: //
+        102: , Time: //
+        103: , Time: //
+        104: , Time: //
+        105: , Time: //
+        106: , Time: //
+        107: , Time: //
+        108: , Time: //
+        109: , Time: //
+        110: , Time: //
+        111: , Time: //
+        112: , Time: //
+        113: , Time: //
+        114: , Time: //
+        115: , Time: //
+        116: , Time: //
+        117: , Time: //
+        118: , Time: //
+        119: , Time: //
+        120: , Time: //
+        121: , Time: //
+        122: , Time: //
+        123: , Time: //
+        124: , Time: //
+        125: , Time: //
+        126: , Time: //
+        127: , Time: //
+        128: , Time: //
+        129: , Time: //
+        130: , Time: //
+        131: , Time: //
+        132: , Time: //
+        133: , Time: //
+        134: , Time: //
+        135: , Time: //
+        136: , Time: //
+        137: , Time: //
+        138: , Time: //
+        139: , Time: //
+        140: , Time: //
+        141: , Time: //
+        142: , Time: //
+        143: , Time: //
+        144: , Time: //
+        145: , Time: //
+        146: , Time: //
+        147: , Time: //
+        148: , Time: //
+        149: , Time: //
+        150: , Time: //
+        151: , Time: //
+        152: , Time: //
+        153: , Time: //
+        154: , Time: //
+        155: , Time: //
+        156: , Time: //
+        157: , Time: //
+        158: , Time: //
+        159: , Time: //
+        160: , Time: //
+        161: , Time: //
+        162: , Time: //
+        163: , Time: //
+        164: , Time: //
+        165: , Time: //
+        166: , Time: //
+        167: , Time: //
+        168: , Time: //
+        169: , Time: //
+        170: , Time: //
+        171: , Time: //
+        172: , Time: //
+        173: , Time: //
+        174: , Time: //
+        175: , Time: //
+        176: , Time: //
+        177: , Time: //
+        178: , Time: //
+        179: , Time: //
+        180: , Time: //
+        181: , Time: //
+        182: , Time: //
+        183: , Time: //
+        184: , Time: //
+        185: , Time: //
+        186: , Time: //
+        187: , Time: //
+        188: , Time: //
+        189: , Time: //
+        190: , Time: //
+        191: , Time: //
+        192: , Time: //
+        193: , Time: //
+        194: , Time: //
+        195: , Time: //
+        196: , Time: //
+        197: , Time: //
+        198: , Time: //
+      </Errors>
     </PCI_Device_Information>
   </General_Information>
   <Physical_Disk_Information_Disk_0>
+    <Hard_Disk_Summary>
       <Hard_Disk_Number>0</Hard_Disk_Number>
       <Interface>S-ATA Gen3, 6 Gbps</Interface>
       <Disk_Controller>����������� ���������� Disk controller</Disk_Controller>
@@ -264,6 +265,7 @@
       <Queue_Length>32</Queue_Length>
     </Serial_ATA_Features>
     <Disk_Information>
+      <Disk_Information></Disk_Information>
       <Form_Factor>2.5"</Form_Factor>
       <Capacity>123 GB (123 x 1�000�000 bytes)</Capacity>
       <Disk_Interface>Serial-ATA/600</Disk_Interface>

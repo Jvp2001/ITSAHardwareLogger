@@ -1,10 +1,34 @@
 package org.itsadigitaltrust.hdsentinelreader.data
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper
 
-import javax.xml.bind.annotation.XmlElement
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
 
-//
+final case class HardDiskSummary(
+                            @JacksonXmlProperty(localName = "Hard_Disk_Number") hardDiskNumber: Int,
+                            @JacksonXmlProperty(localName = "Interface") interfaceType: String,
+                            @JacksonXmlProperty(localName = "Disk_Controller") diskController: String,
+                            @JacksonXmlProperty(localName = "Disk_Location") diskLocation: String,
+                            @JacksonXmlProperty(localName = "Hard_Disk_Model_ID") hardDiskModelId: String,
+                            @JacksonXmlProperty(localName = "Firmware_Revision") firmwareRevision: String,
+                            @JacksonXmlProperty(localName = "Hard_Disk_Serial_Number") hardDiskSerialNumber: String,
+                            @JacksonXmlProperty(localName = "SSD_Controller") ssdController: String,
+                            @JacksonXmlProperty(localName = "Total_Size") totalSize: String,
+                            @JacksonXmlProperty(localName = "Power_State") powerState: String,
+                            @JacksonXmlProperty(localName = "Logical_Drive_s") logicalDrives: String,
+                            @JacksonXmlProperty(localName = "Current_Temperature") currentTemperature: String,
+                            @JacksonXmlProperty(localName = "Maximum_Temperature_ever_measured") maximumTemperatureEverMeasured: String,
+                            @JacksonXmlProperty(localName = "Minimum_Temperature_ever_measured") minimumTemperatureEverMeasured: String,
+                            @JacksonXmlProperty(localName = "Daily_Average") dailyAverage: String,
+                            @JacksonXmlProperty(localName = "Daily_Maximum") dailyMaximum: String,
+                            @JacksonXmlProperty(localName = "Power_on_time") powerOnTime: String,
+                            @JacksonXmlProperty(localName = "Estimated_remaining_lifetime") estimatedRemainingLifetime: String,
+                            @JacksonXmlProperty(localName = "Health") health: String,
+                            @JacksonXmlProperty(localName = "Performance") performance: String,
+                            @JacksonXmlProperty(localName = "Description") description: String,
+                            @JacksonXmlProperty(localName = "Tip") tip: String
+                          )
+object HardDiskSummary: 
+  given Class[HardDiskSummary] = classOf[HardDiskSummary]
 //import com.fasterxml.jackson.annotation.JsonCreator
 //import com.fasterxml.jackson.dataformat.xml.annotation.{JacksonXmlElementWrapper, JacksonXmlProperty}
 //
@@ -136,30 +160,6 @@ import javax.xml.bind.annotation.XmlElement
 //
 ////@NoArgConstructor
 ////@experimental
-case class HardDiskSummary(
-                           @JacksonXmlElementWrapper @XmlElement(name = "Hard_Disk_Number") hardDiskNumber: Int,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Interface") interface: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Disk_Controller") diskController: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Disk_Location") diskLocation: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Hard_Disk_Model_ID") hardDiskModelId: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Firmware_Revision") firmwareRevision: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Hard_Disk_Serial_Number") hardDiskSerialNumber: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "SSD_Controller") ssdController: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Total_Size") totalSize: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Power_State") powerState: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Logical_Drive_s") logicalDrives: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Current_Temperature") currentTemperature: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Maximum_Temperature_ever_measured") maximumTemperatureEverMeasured: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Minimum_Temperature_ever_measured") minimumTemperatureEverMeasured: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Daily_Average") dailyAverage: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Daily_Maximum") dailyMaximum: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Power_on_time") powerOnTime: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Estimated_remaining_lifetime") estimatedRemainingLifetime: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Health") health: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Performance") performance: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Description") description: String,
-                           @JacksonXmlElementWrapper @XmlElement(name = "Tip") tip: String
-                          )
 
 ////@NoArgConstructor
 ////@experimental

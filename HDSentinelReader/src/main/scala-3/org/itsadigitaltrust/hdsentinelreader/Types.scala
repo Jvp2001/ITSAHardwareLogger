@@ -7,9 +7,10 @@ object Types:
   opaque type XMLFile = String
 
   extension (x: XMLFile)
-    def toURI: URI = URI.create(this.toString)
-    def toURL: URL = toURI.toURL
-    def toFile: File = new File(toURI)
+    inline def toURI: URI = URI.create(this.toString)
+    inline def toURL: URL = toURI.toURL
+    inline def toFile: File = new File(toURI)
+    inline def exists: Boolean = toFile.exists
 
   object XMLFile:
     import scala.compiletime.*
@@ -21,5 +22,6 @@ object Types:
         scala.compiletime.error("Must end with .xml!")
     def from(file: String): XMLFile = file
 
+    
 
 export Types.*

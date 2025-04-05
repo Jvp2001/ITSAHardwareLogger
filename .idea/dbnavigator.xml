@@ -119,9 +119,7 @@ UNLOCK TABLES;
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files>
-      <object connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" object-ref="consoles/itsahw" />
-    </open-files>
+    <open-files />
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />

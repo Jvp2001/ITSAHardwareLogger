@@ -3,77 +3,33 @@ package org.itsadigitaltrust.hdsentinelreader
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.`type`.TypeFactory
 import com.fasterxml.jackson.dataformat.xml.{JacksonXmlModule, XmlMapper}
-import com.fasterxml.jackson.module.jaxb.{JaxbAnnotationIntrospector, JaxbAnnotationModule}
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.itsadigitaltrust.hdsentinelreader
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 
 import java.io.File
 import scala.io.Source
 import scala.util.Using
-import scala.xml.Document
+import scala.xml.{Document, Elem}
+import org.itsadigitaltrust.hdsentinelreader.xml.XMLParser
 
 
-object HDSentinelReader:
+class HDSentinelReader:
 
   import scala.compiletime.constValue
 
 
+  private val xmlParser = new XMLParser
+
+  inline def read(xml: XMLFile | String | Elem): Unit =
+    xmlParser.read(xml)
+
+  inline def read[T](name: String, klazz: Class[T]): T =
+    \(name)(using klazz)
+  inline def \[T](name: String)(using Class[T]): T =
+    xmlParser \ name
 
 
-
-  private lazy val xmlMapper: XmlMapper =
-    val mapper = new XmlMapper()
-    mapper.registerModules(new JacksonXmlModule(), new JaxbAnnotationModule(new JaxbAnnotationIntrospector(TypeFactory.defaultInstance())))
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
-    mapper
-
-  inline def apply(sudoPassword: String, inline outputFileName: XMLFile): Any =
-    if System.getProperty("os.name").toLowerCase.contains("linux") then
-      decode(ProcessRunner(sudoPassword, outputFileName))
-    else
-      //      Using(Source.fromFile(new File(outputFileName.toString))): source =>
-      //
-      //        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(source.getLines.mkString)
-      //        document.getDocumentElement.normalize()
-      //        println(document)
-      //        val xmlMapper = createMapper
-      //        val physicalDiskInformationDisk = xmlMapper.readValue(document.getElementById("Physical_Disk_Information_Disk_0").toString, classOf[PhysicalDiskInformationDisk0])
-      //        println(physicalDiskInformationDisk)
-      //        physicalDiskInformationDisk
-
-
-      val xml = <HDSentinel>
-        <Hard_Disk_Summary>
-          <Hard_Disk_Number>0</Hard_Disk_Number>
-          <Interface>S-ATA Gen3, 6 Gbps</Interface>
-          <Disk_Controller>����������� ���������� Disk controller</Disk_Controller>
-          <Disk_Location>Channel 1, Target 0, Lun 0, Device: 0</Disk_Location>
-          <Hard_Disk_Model_ID>SSD Model</Hard_Disk_Model_ID>
-          <Firmware_Revision>1234567890</Firmware_Revision>
-          <Hard_Disk_Serial_Number>1234567890</Hard_Disk_Serial_Number>
-          <SSD_Controller>SSD Controller</SSD_Controller>
-          <Total_Size>12345 MB</Total_Size>
-          <Power_State>Active</Power_State>
-          <Logical_Drive_s>C: [VOLUME1] D: [VOLUME2]</Logical_Drive_s>
-          <Current_Temperature>38 �C</Current_Temperature>
-          <Maximum_Temperature_ever_measured>49 �C, 17.07.1970 22:28:37</Maximum_Temperature_ever_measured>
-          <Minimum_Temperature_ever_measured>16 �C, 17.11.1970 14:42:12</Minimum_Temperature_ever_measured>
-          <Daily_Average>38.80 �C</Daily_Average>
-          <Daily_Maximum>40 �C</Daily_Maximum>
-          <Power_on_time>1593 days, 6 hours</Power_on_time>
-          <Estimated_remaining_lifetime>200 days</Estimated_remaining_lifetime>
-          <Health>93 %</Health>
-          <Performance>100 %</Performance>
-          <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found. The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s): #177 Wear Leveling Count</Description>
-          <Tip>No actions needed.</Tip>
-        </Hard_Disk_Summary>
-      </HDSentinel>
-      val document: Document = Document()
-      val xmlString = Using(Source.fromFile(new File(outputFileName.toString)))(_.getLines.mkString).get
-
-      val hardDiskSummaryElem = xml \ "Hard_Disk_Summary"
-      val hardDiskSummary = xmlMapper.readValue(hardDiskSummaryElem.toString, classOf[HardDiskSummary])
-      println(hardDiskSummary)
 
 
   def decode(xmlData: String): Any =
@@ -166,3 +122,16 @@ object HDSentinelReader:
 
 
 
+object HDSentinelReader:
+  inline def apply(sudoPassword: String, inline outputFileName: XMLFile): HDSentinelReader =
+    val reader = new HDSentinelReader
+    if System.getProperty("os.name").toLowerCase.contains("linux") then
+      reader.read(ProcessRunner(sudoPassword, outputFileName))
+    else
+      reader.read(outputFileName)
+    reader
+
+  inline def apply(elem: Elem): HDSentinelReader =
+    val reader = new HDSentinelReader
+    reader.xmlParser.read(elem)
+    reader

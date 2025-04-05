@@ -230,7 +230,6 @@ class ModelWrapper[M](
         for field <- allFields do
           if field.isDifferent(wrappedModelInstance) then
             diffFlag.set(true)
-            return
       case None => ()
   end calculateDifferenceFlag
 

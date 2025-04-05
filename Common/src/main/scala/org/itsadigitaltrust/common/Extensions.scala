@@ -44,3 +44,4 @@ object Maths:
     def MB: DataSize = DataSize(long / (1000 ** 2), "MB")
     def GB: DataSize = DataSize(long / (1000 ** 3), "GB")
     def TB: DataSize = DataSize(long / (1000 ** 4), "TB")
+export Maths.*

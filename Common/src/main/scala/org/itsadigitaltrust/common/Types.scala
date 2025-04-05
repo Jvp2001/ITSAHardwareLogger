@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.common
 
+import scala.annotation.targetName
+
 object Types:
   type DataSizeUnit = "KB" | "MB" | "GB" | "TB" | "KiB" | "MiB" | "GiB" | "TiB"
   opaque type DataSize = (Long, DataSizeUnit)
@@ -31,5 +33,21 @@ object Types:
   extension (i: Int)
     inline def percent: Percentage = Percentage(i)
 
+  import scala.compiletime.ops.string.*
+  extension (s: String)
 
-export Types.{percent, *}
+    inline def percent: Percentage =
+      inline if constValue[Matches[s.type, ".*%$"]] then
+        s
+      else
+        scala.compiletime.error("String must end with %")
+
+
+    def asPercentage: Percentage =
+      if s.endsWith("%") then
+        s
+      else
+        scala.sys.error("String must end with %")
+
+
+export Types.{percent, asPercentage,  *}
