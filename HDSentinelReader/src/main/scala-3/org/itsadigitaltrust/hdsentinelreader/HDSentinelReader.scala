@@ -125,8 +125,11 @@ class HDSentinelReader:
 object HDSentinelReader:
   inline def apply(sudoPassword: String, inline outputFileName: XMLFile): HDSentinelReader =
     val reader = new HDSentinelReader
-    if System.getProperty("os.name").toLowerCase.contains("linux") then
-      reader.read(ProcessRunner(sudoPassword, outputFileName))
+    if System.getProperty("os.name").toLowerCase.contains("linux") then {
+      val xml = ProcessRunner(sudoPassword, outputFileName)
+      println(s"XML: $xml")
+      reader.read(xml)
+    }
     else
       reader.read(outputFileName)
     reader

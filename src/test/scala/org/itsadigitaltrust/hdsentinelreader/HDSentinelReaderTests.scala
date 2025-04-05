@@ -38,7 +38,7 @@ class HDSentinelReaderTests extends AnyFunSuite:
   </HDSentinel>
   test("Get XML output"):
 
-    val reader = HDSentinelReader(xml)
+    val reader = HDSentinelReader("password", XMLFile("report.xml"))
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
     println(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
     val driveModel = new HardDriveModel(

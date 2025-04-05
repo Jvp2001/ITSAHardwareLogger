@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hdsentinelreader.data
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
 
 final case class HardDiskSummary(
@@ -17,6 +18,7 @@ final case class HardDiskSummary(
                             @JacksonXmlProperty(localName = "Logical_Drive_s") logicalDrives: String,
                             @JacksonXmlProperty(localName = "Current_Temperature") currentTemperature: String,
                             @JacksonXmlProperty(localName = "Maximum_Temperature_ever_measured") maximumTemperatureEverMeasured: String,
+                            @JacksonXmlProperty(localName = "Maximum_temperature_during_entire_lifespan") @JsonIgnore maximumTemperatureDuringEntireLifeSpan: String = "",
                             @JacksonXmlProperty(localName = "Minimum_Temperature_ever_measured") minimumTemperatureEverMeasured: String,
                             @JacksonXmlProperty(localName = "Daily_Average") dailyAverage: String,
                             @JacksonXmlProperty(localName = "Daily_Maximum") dailyMaximum: String,
@@ -25,7 +27,8 @@ final case class HardDiskSummary(
                             @JacksonXmlProperty(localName = "Health") health: String,
                             @JacksonXmlProperty(localName = "Performance") performance: String,
                             @JacksonXmlProperty(localName = "Description") description: String,
-                            @JacksonXmlProperty(localName = "Tip") tip: String
+                            @JacksonXmlProperty(localName = "Tip") tip: String,
+                            @JacksonXmlProperty(localName = "Hard_Disk_Device") @JsonIgnore hardDiskDevice: String = ""
                           )
 object HardDiskSummary: 
   given Class[HardDiskSummary] = classOf[HardDiskSummary]

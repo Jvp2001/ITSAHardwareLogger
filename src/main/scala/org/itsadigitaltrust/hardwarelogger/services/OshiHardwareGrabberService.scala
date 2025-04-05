@@ -4,6 +4,7 @@ import org.itsadigitaltrust.common.Maths.*
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hdsentinelreader.HDSentinelReader
+import org.itsadigitaltrust.hdsentinelreader.Types.XMLFile
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import oshi.SystemInfo
 import ox.{fork, supervised}
@@ -12,7 +13,9 @@ import scala.jdk.CollectionConverters.*
 
 
 object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule:
+
   import org.itsadigitaltrust.hardwarelogger.models.HardDriveType.*
+
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
   private val xml = <Hard_Disk_Summary>
@@ -26,7 +29,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     <SSD_Controller>SSD Controller</SSD_Controller>
     <Total_Size>12345 MB</Total_Size>
     <Power_State>Active</Power_State>
-    <Logical_Drive_s>C: [VOLUME1] D: [VOLUME2] </Logical_Drive_s>
+    <Logical_Drive_s>C: [VOLUME1] D: [VOLUME2]</Logical_Drive_s>
     <Current_Temperature>38 �C</Current_Temperature>
     <Maximum_Temperature_ever_measured>49 �C, 17.07.1970 22:28:37</Maximum_Temperature_ever_measured>
     <Minimum_Temperature_ever_measured>16 �C, 17.11.1970 14:42:12</Minimum_Temperature_ever_measured>
@@ -36,10 +39,16 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     <Estimated_remaining_lifetime>200 days</Estimated_remaining_lifetime>
     <Health>93 %</Health>
     <Performance>100 %</Performance>
-    <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found.  The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s):  #177 Wear Leveling Count</Description>
+    <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found. The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s): #177 Wear Leveling Count</Description>
     <Tip>No actions needed.</Tip>
   </Hard_Disk_Summary>
-  private val hdSentinelReader = HDSentinelReader(xml)
+  private lazy val hdSentinelReader =       HDSentinelReader("password", XMLFile("report.xml"))
+
+//  if System.getProperty("os.name").toLowerCase.contains("linux") then
+//      HDSentinelReader("password", XMLFile("report.xml"))
+//    else
+//      HDSentinelReader(xml)
+
   override def load(): Unit =
     supervised:
       fork(loadGeneralInfo())
@@ -59,7 +68,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
 
   //TODO: Implement
   override def loadHardDrives(): Unit =
-    val hardDiskSummary: HardDiskSummary =  hdSentinelReader \ "Hard_Disk_Summary"
+    val hardDiskSummary: HardDiskSummary = hdSentinelReader \ "Hard_Disk_Summary"
     println(s"Hard disk summary: $hardDiskSummary")
     val drive = HardDriveModel(hardDiskSummary.health.asPercentage,
       hardDiskSummary.performance.asPercentage,
@@ -72,12 +81,12 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     println(s"Hard drive: $drive")
     hardDrives = List(drive)
 
-//    hardDrives = hal.getDiskStores.asScala.map: disk =>
-//      val name = disk.getName
-//      val size = disk.getSize
-//      val model = disk.getModel
-//      HardDriveModel(99.percent, 100.percent, size.GiB, model, disk.getSerial, NVME, isSSD = true)
-//    .toList
+  //    hardDrives = hal.getDiskStores.asScala.map: disk =>
+  //      val name = disk.getName
+  //      val size = disk.getSize
+  //      val model = disk.getModel
+  //      HardDriveModel(99.percent, 100.percent, size.GiB, model, disk.getSerial, NVME, isSSD = true)
+  //    .toList
 
 
   override def loadMemory(): Unit =
@@ -86,7 +95,6 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
       val description = memory.getManufacturer
       MemoryModel(size, description)
     .toList
-
 
 
   override def loadProcessors(): Unit =
@@ -99,9 +107,6 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     val cores = hal.getProcessor.getPhysicalProcessorCount
     val freq = hal.getProcessor.getCurrentFreq
     processors = List(ProcessorModel(name, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
-
-
-
 
 
   override def loadMedia(): Unit =
