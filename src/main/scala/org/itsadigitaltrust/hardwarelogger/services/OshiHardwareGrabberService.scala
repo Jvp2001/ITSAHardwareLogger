@@ -42,7 +42,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found. The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s): #177 Wear Leveling Count</Description>
     <Tip>No actions needed.</Tip>
   </Hard_Disk_Summary>
-  private lazy val hdSentinelReader =       HDSentinelReader("password", XMLFile("report.xml"))
+
 
 //  if System.getProperty("os.name").toLowerCase.contains("linux") then
 //      HDSentinelReader("password", XMLFile("report.xml"))
@@ -68,18 +68,27 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
 
   //TODO: Implement
   override def loadHardDrives(): Unit =
-    val hardDiskSummary: HardDiskSummary = hdSentinelReader \ "Hard_Disk_Summary"
-    println(s"Hard disk summary: $hardDiskSummary")
-    val drive = HardDriveModel(hardDiskSummary.health.asPercentage,
-      hardDiskSummary.performance.asPercentage,
-      hardDiskSummary.totalSize.replace(" MB", "").toInt.GiB,
-      hardDiskSummary.hardDiskModelId,
-      hardDiskSummary.hardDiskSerialNumber,
-      SATA,
-      isSSD = true
-    )
-    println(s"Hard drive: $drive")
-    hardDrives = List(drive)
+    val hdSentinelReader = HDSentinelReader("password", XMLFile("report.xml"))
+    val hardDiskSummaries: Seq[HardDiskSummary] = hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+    hardDrives = hardDiskSummaries.map: hardDiskSummary =>
+      println(s"Hard disk summary: $hardDiskSummary")
+
+      val drive = HardDriveModel(
+        hardDiskSummary.health.asPercentage,
+        hardDiskSummary.performance.asPercentage,
+        hardDiskSummary.totalSize.replace(" MB", "").toInt.GiB,
+        hardDiskSummary.hardDiskModelId,
+        hardDiskSummary.hardDiskSerialNumber,
+        SATA,
+        isSSD = true,
+        actions = hardDiskSummary.tip,
+        description = hardDiskSummary.description,
+        powerOnTime = hardDiskSummary.powerOnTime,
+        estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
+      )
+      println(s"Hard drive: $drive")
+      drive
+
 
   //    hardDrives = hal.getDiskStores.asScala.map: disk =>
   //      val name = disk.getName

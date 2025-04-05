@@ -32,6 +32,7 @@ final case class HardDiskSummary(
                           )
 object HardDiskSummary: 
   given Class[HardDiskSummary] = classOf[HardDiskSummary]
+  given Class[List[HardDiskSummary]] = classOf[List[HardDiskSummary]]
 //import com.fasterxml.jackson.annotation.JsonCreator
 //import com.fasterxml.jackson.dataformat.xml.annotation.{JacksonXmlElementWrapper, JacksonXmlProperty}
 //

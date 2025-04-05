@@ -1,42 +1,44 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.delegates.TableRowDelegate
+import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import scalafx.beans.value.ObservableValue
 import scalafx.Includes.{*, given}
 import scalafx.scene.control.{TableColumn, TableRow, TableView}
+import javafx.scene.control as jfxsc
 
-import javafx.scene.{control => jfxsc}
 
-
-class TabTableView[M, T <: AnyRef & TableRowViewModel[M] | AnyRef & TableRowViewModel[M] & TableRowDelegate[TableRowViewModel[M]]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
+class TabTableView[M, T <: AnyRef & TableRowViewModel[M] | AnyRef & TableRowViewModel[M] & TableRowDelegate[TableRowViewModel[M]]](using viewModel: TabTableViewModel[M, T]) extends TableView[T] with TabDelegate:
 
   var rowDelegate: Option[TableRowDelegate[T]] = None
   
   
-  class TableTabRow[R](
-                        var rowDelegate: Option[TableRowDelegate[R]]
-                      ) extends jfxsc.TableRow[R]:
+  private class TableTabRow[R](
+                        var rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
 
     override def updateItem(item: R, empty: Boolean): Unit =
       super.updateItem(item, empty)
       if empty || item == null then
         setGraphic(null)
       else if rowDelegate.isDefined then
-        rowDelegate.get.onUpdateItem(item)
+
+        rowDelegate.get.onUpdateItem(Option(item))
     end updateItem
 
     setOnMouseClicked: event =>
       if event.getClickCount == 1 then
         if rowDelegate.isDefined then
-          rowDelegate.get.onSelected(getItem)
+          rowDelegate.get.onSelected(Option(getItem))
+
 
     override def updateSelected(b: Boolean): Unit = 
       super.updateSelected(b)
       if rowDelegate.isDefined then
-        rowDelegate.get.onSelected(getItem)
+        val item = Option(getItem)
+        rowDelegate.get.onSelected(item)
+
     end updateSelected
   end TableTabRow
 

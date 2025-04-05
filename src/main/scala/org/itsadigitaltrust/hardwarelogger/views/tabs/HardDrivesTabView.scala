@@ -1,18 +1,14 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import javafx.scene.control.cell
-import org.itsadigitaltrust.hardwarelogger.delegates.TableRowDelegate
+import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, TabTableViewModel}
 import scalafx.beans.property.{BooleanProperty, DoubleProperty, ObjectProperty, StringProperty}
-import scalafx.scene.control.{Label, ProgressBar, TableCell, TableColumn}
-import scalafx.scene.control.cell.{CheckBoxTableCell, ProgressBarTableCell}
-import scalafx.scene.layout.Priority.Always
-import scalafx.scene.layout.{Background, GridPane, StackPane, VBox}
-import scalafx.scene.paint.Paint
-import scalafx.scene.{Group, shape}
-
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.application.Platform
+import scalafx.scene.control.cell.CheckBoxTableCell
 
 private given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
 class HardDriveTableView extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
@@ -54,18 +50,21 @@ class HardDriveTableView extends TabTableView[HardDriveModel, HardDriveTableRowV
 end HardDriveTableView
 
 
-class HardDrivesTabView extends VBox:
+class HardDrivesTabView extends VBox with TabDelegate:
 
-  children += new HardDriveTableView()
+  private val tableView = new HardDriveTableView()
+  children += tableView
   children += new VBox():
     children += new StackPane()
       styleClass ++= List("hdsentinel-background")
       private val text = new Label("HDSentinel text here"):
+        this.text <== viewModel.description
         styleClass ++= List("hdsentinel-text")
       children += text
       children += new VBox(10):
         children += text
         children += new Label("No actions needed."):
+          this.text <== viewModel.actionsText
           styleClass ++= List("hdsentinel-text")
       vgrow = Always
 
@@ -86,6 +85,11 @@ class HardDrivesTabView extends VBox:
   end infoBox
   children += infoBox
 
+  def selectRow(index: Int = 0): Unit =
+    tableView.getSelectionModel.select(index)
+
+  override def onSelected(tab: Tab): Unit =
+    selectRow()
 end HardDrivesTabView
 
 

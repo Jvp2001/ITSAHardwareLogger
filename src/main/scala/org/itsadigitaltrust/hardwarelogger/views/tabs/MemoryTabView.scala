@@ -3,13 +3,14 @@ package org.itsadigitaltrust.hardwarelogger.views.tabs
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.delegates.TabDelegate
 import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
 import scalafx.Includes.*
 import scalafx.beans.property.IntegerProperty
 
 
-final class MemoryTabView extends VBox:
+final class MemoryTabView extends VBox with TabDelegate:
   given viewModel: MemoryTabViewModel = new MemoryTabViewModel
 
   private val totalMemLabel = new Label:

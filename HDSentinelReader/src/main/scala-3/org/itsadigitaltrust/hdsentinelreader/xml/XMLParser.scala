@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hdsentinelreader.xml
 import com.fasterxml.jackson.dataformat.xml.{JacksonXmlModule, XmlMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
-import scala.xml.{Elem, XML}
+import scala.xml.{Elem, Node, NodeSeq, XML, XMLReader}
 import org.itsadigitaltrust.hdsentinelreader.Types.XMLFile
 
 import scala.compiletime.{summonInline, uninitialized}
@@ -16,7 +16,7 @@ private[hdsentinelreader] final class XMLParser:
 
   var xml: Elem = uninitialized
 
-  private lazy val xmlMapper: XmlMapper =
+  private[hdsentinelreader] given xmlMapper: XmlMapper =
     XmlMapper.builder()
       .addModules(DefaultScalaModule, new JacksonXmlModule())
       .build()
@@ -35,17 +35,28 @@ private[hdsentinelreader] final class XMLParser:
       case file: org.itsadigitaltrust.hdsentinelreader.Types.XMLFile =>
         XML.load(file.toURL)
 
- 
-  inline def \[T](name: String)(using Class[T]): T =
-    val node = s"${xml \\ name}"
-    xmlMapper.readValue[T](node, summonInline[Class[T]])
+
+  def getAllNodesStartingWith(name: String): NodeSeq =
+    xml.child.filter(_.label.startsWith(name))
+
+  def \[T](name: String)(using Class[T]): T =
+    xml \\> name
 
 object XMLParser:
   def apply(file: XMLFile): XMLParser =
     val parser = new XMLParser()
     parser.read(file)
     parser
+  given Conversion[XMLParser, XmlMapper]:
+    override def apply(x: XMLParser): XmlMapper = x.xmlMapper
 
+export XMLParser.given
+
+extension(elem: Elem | Node)
+  def \\>[T](name: String)(using xmlMapper: XmlMapper)(using Class[T]): T =
+    val node = s"${elem \\ name}"
+    println(node.length)
+    xmlMapper.readValue[T](node, summon[Class[T]])
 
   
   

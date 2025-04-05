@@ -1,12 +1,10 @@
-package org.itsadigitaltrust.hardwarelogger.views
-
-import tabs.TabTableView
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.*
-import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
+package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 
 import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+import org.itsadigitaltrust.hardwarelogger.models.*
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.*
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 private given[T]: Conversion[T, Seq[T]] with
   override def apply(x: T): Seq[T] = Seq(x)
 

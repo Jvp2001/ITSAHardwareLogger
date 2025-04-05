@@ -27,7 +27,11 @@ final case class HardDriveModel(
                             serial: String,
                             `type`: HardDriveType,
                             id: String = "NOT LOGGED",
-                            isSSD: Boolean = false
+                            isSSD: Boolean = false,
+                            description: String = "",
+                            actions: String = "No actions needed.",
+                            powerOnTime: String = "",
+                            estimatedRemainingLifetime: String = ""
                           ) extends HLModel
 
 //

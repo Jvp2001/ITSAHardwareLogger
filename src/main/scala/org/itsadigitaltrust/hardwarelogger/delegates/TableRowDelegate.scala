@@ -1,5 +1,5 @@
 package org.itsadigitaltrust.hardwarelogger.delegates
 
 trait TableRowDelegate[R]:
-  def onSelected(row: R): Unit = ()
-  def onUpdateItem(row: R): Unit = ()
+  def onSelected(row: Option[R]): Unit = ()
+  def onUpdateItem(row: Option[R]): Unit = ()
