@@ -5,6 +5,7 @@ import java.util.regex.Pattern
 import scala.annotation.tailrec
 import scala.util.boundary
 import org.itsadigitaltrust.common.*
+import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.services.IDParser.ParsedResult
 
 
@@ -41,11 +42,13 @@ class SimpleHardwareIDValidationService extends HardwareIDValidationService:
 
   type ![T] = Result.Continuation[ParsedResult, ValidationError] ?=> T
 
-  final val multiplier = 3
+  private final val multiplier = 3
+
+
 
   override def validate(input: String): ValidationResult =
     Result:
-      IDParser(input) match
+      IDParser(input, ProgramMode.isInHardDriveMode) match
 
         case Error(value) =>
           error(ParserError(value))

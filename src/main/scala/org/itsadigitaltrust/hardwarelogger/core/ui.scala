@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.core
 
 
+
 object ui:
   export scalafx.Includes.*
   export scalafx.Includes.given
@@ -12,6 +13,10 @@ object ui:
   export scalafx.scene.text.TextAlignment
   export scalafx.scene.text.Font
 
+  export scalafx.scene.input.{KeyCode, KeyEvent}
+  export scalafx.beans.property.{StringProperty, IntegerProperty, DoubleProperty, BooleanProperty, ObjectProperty}
+  export scalafx.collections.ObservableBuffer
+ 
   export scalafx.geometry.Insets
   export scalafx.geometry.Pos
   export Pos.{Center, CenterLeft, TopLeft, TopCenter, TopRight, CenterRight}

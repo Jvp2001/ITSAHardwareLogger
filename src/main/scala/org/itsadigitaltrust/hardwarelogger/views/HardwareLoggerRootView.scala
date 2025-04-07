@@ -27,7 +27,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
   prefHeight = 400.0
 
 
-  private val menuBar = new MenuBar:
+  protected val menuBar = new MenuBar:
     menus += new Menu("_View"):
       // Changes the program's mode
       items ++= Seq(

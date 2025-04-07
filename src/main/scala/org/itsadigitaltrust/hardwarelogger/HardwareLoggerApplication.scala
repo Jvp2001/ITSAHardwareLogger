@@ -10,32 +10,28 @@ import delegates.{ProgramMode, ProgramModeChangedDelegate}
 import services.NotificationChannel.ProgramModeChanged
 import services.{NotificationCentre, NotificationChannel, ServicesModule}
 import views.HardwareLoggerRootView
-import oshi.SystemInfo
 import scalafx.application.JFXApp3.PrimaryStage
 import scalafx.application.{JFXApp3, Platform}
 import scalafx.scene.Scene
-import scalafx.scene.input.{KeyCode, KeyEvent}
-import scalafx.Includes.*
 
 import scala.compiletime.uninitialized
 
 
-object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeChangedDelegate:
+object HardwareLoggerApplication extends JFXApp3, ServicesModule:
 
+
+  private val titleProperty: StringProperty = StringProperty("Hardware Logger")
 
   def setProgramMode(): Unit =
     ProgramMode.mode =
       if parameters.raw.map(_.toLowerCase).contains("--harddrive") then "HardDrive"
       else "Normal"
+    titleProperty.value = ProgramMode.mode match
+
+      case "HardDrive" => "Hard Drive"
+      case "Normal" => "Hardware Logger"
 
   end setProgramMode
-
-
-  override def onProgramModeChanged(mode: ProgramMode): Unit =
-    Platform.runLater:
-      stage.title.value = if mode == "HardDrive" then "Hard Drive Logger" else "Hardware Logger"
-      stage.title.value = if stage.title.value == "" then "Hardware Logger" else stage.title.value
-
 
   override def start(): Unit =
     setProgramMode()
@@ -51,8 +47,10 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
         minWidth = 600
         minHeight = 800
         maximized = true
+        title <==> titleProperty
         scene = new Scene(1020, 720):
-          root = new HardwareLoggerRootView
+          root = new HardwareLoggerRootView:
+            menuBar.useSystemMenuBar =  true
           onKeyPressed = (event: KeyEvent) =>
             val code = event.code
             if code == KeyCode.F5 then

@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.common.Maths.*
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
+import org.itsadigitaltrust.common.processes.Dmidecode
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.tasks.{HLTaskRunner, HardwareGrabberTask}
@@ -12,6 +13,7 @@ import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import oshi.SystemInfo
 import ox.{fork, supervised}
 
+import java.util.Base64
 import scala.jdk.CollectionConverters.*
 
 
@@ -21,6 +23,11 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
 
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
+
+  private val dmidecode =
+    val password = Base64.getDecoder.decode("TWlycm9yc0VkZ2UxOTA2MDE=")
+    Dmidecode(password.toString)
+    
   private val xml = <Hard_Disk_Summary>
     <Hard_Disk_Number>0</Hard_Disk_Number>
     <Interface>S-ATA Gen3, 6 Gbps</Interface>
@@ -57,14 +64,14 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
-    generalInfo = GeneralInfoModel("Need to add", "Need to add", model, vendor, serialNumber, os)
+    generalInfo = GeneralInfoModel("itsa-hwlogger", dmidecode.getKeywordValue("chassis-type"), model, vendor, serialNumber, os)
 
 
   override def loadHardDrives(): Unit =
+    Thread.sleep(3000)
     val hdSentinelReader =
       if OSUtils.onLinux then
         HDSentinelReader("password")
-        
       else
         HDSentinelReader(xml)
     val hardDiskSummaries: Seq[HardDiskSummary] =
@@ -74,8 +81,6 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
         import HardDiskSummary.given
         Seq(hdSentinelReader \ "Hard_Disk_Summary")
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
-      println(s"Hard disk summary: $hardDiskSummary")
-
       val drive = HardDriveModel(
         hardDiskSummary.health.asPercentage,
         hardDiskSummary.performance.asPercentage,
@@ -89,8 +94,8 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
         powerOnTime = hardDiskSummary.powerOnTime,
         estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
       )
-      println(s"Hard drive: $drive")
       drive
+
 
 
   //    hardDrives = hal.getDiskStores.asScala.map: disk =>

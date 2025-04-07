@@ -36,11 +36,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       validateID()
 
 
-
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
-
-
 
   notificationCentre.subscribe(ShowDuplicateDriveWarning): (key, args: Seq[Any]) =>
     val  serial = args.head.asInstanceOf[String]
@@ -89,3 +86,4 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
   notificationCentre.publish(Reload)
+  hardwareIDValidationService.validate(idStringProperty.get)

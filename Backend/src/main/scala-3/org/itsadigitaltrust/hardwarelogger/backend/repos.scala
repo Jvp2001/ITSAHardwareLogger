@@ -27,7 +27,7 @@ object repos:
           println(infoCreator.itsaid)
           sql"select itsaid from info where itsaid = ${infoCreator.itsaid}".query[String].run().headOption match
             case Some(info) =>
-              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${creator.asInstanceOf[InfoCreator].itsaid}".update.run()
+//              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${creator.asInstanceOf[InfoCreator].itsaid}".update.run()
             case None =>
               insert(creator)
         case c: HLEntityCreatorWithItsaID =>

@@ -31,6 +31,7 @@ object ProgramMode extends ServicesModule:
     isHardDriveMode.value  = newValue == "HardDrive"
 
   def isInNormalMode: Boolean = isModeNormal.get
+  def isInHardDriveMode: Boolean = isHardDriveMode.get
   def mode_=(mode: ProgramMode): Unit =
     currentProgramMode.value = mode
 
