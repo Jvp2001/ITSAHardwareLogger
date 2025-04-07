@@ -7,6 +7,8 @@ import org.itsadigitaltrust.hardwarelogger.backend.{DataStoreLoader, HLDatabase}
 import org.itsadigitaltrust.hardwarelogger.models.*
 import ox.*
 
+import scala.jdk.CollectionConverters.*
+
 import java.sql.Timestamp
 import java.time.OffsetDateTime
 import java.util.concurrent.ArrayBlockingQueue
@@ -24,8 +26,11 @@ trait HLDatabaseService:
 object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
 
   private var db: Option[HLDatabase] = None
-  private val minQueueSize = 8
+  private val minQueueSize = 4
   private val transactionQueue = new ArrayBlockingQueue[HLEntityCreatorWithItsaID](minQueueSize)
+
+  notificationCentre.subscribe(NotificationChannel.ContinueWithDuplicateDrive): (key, _) =>
+    save()
 
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
@@ -46,20 +51,52 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
     transactionQueue.add(creator)
 
 
+    def checkForDuplicateDrives(): Iterable[String] =
+      transactionQueue.asScala
+        .filter(c => c.isInstanceOf[DiskCreator])
+        .map(_.asInstanceOf[DiskCreator])
+        .map: drive =>
+          if db.isDefined then
+            if db.get.doesDriveExists(drive) then
+              drive.serial
+            else 
+              ""
+          else
+            ""
+
+
+    end checkForDuplicateDrives
+
     if transactionQueue.size() >= minQueueSize then
-      supervised:
-        fork:
-          while transactionQueue.size() > 0 do
-            val c = transactionQueue.remove()
-            db.get.insertOrUpdate(c)
-        .join()
+      val duplicateDrives = checkForDuplicateDrives()
+        if duplicateDrives.headOption.getOrElse("") ne "" then
+          sendDuplicateDriveNotification(duplicateDrives.head)
+        else if duplicateDrives.isEmpty then
+          save()
+
+
+
+
+  private def save[M <: HLModel](): Unit =
+    supervised:
+      fork:
+        while transactionQueue.size() > 0 do
+          val c = transactionQueue.remove()
+          db.get.insertOrUpdate(c)
+      .join()
 
     if transactionQueue.size() < 1 then
-      showAlertBox()
-      println("Updated database.")
+      sendDBSuccessNotification()
+    println("Updated database.")
 
 
   override def stop(): Unit = ()
+
+  private def sendDBSuccessNotification(): Unit =
+    notificationCentre.publish(NotificationChannel.DBSuccess)
+
+  private def sendDuplicateDriveNotification(serial: String): Unit =
+    notificationCentre.publish(NotificationChannel.ShowDuplicateDriveWarning, serial)
 
   private var processor: Option[ProcessorModel] = None
 
@@ -77,15 +114,12 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
         createInfo(hardwareGrabberService.generalInfo)
       case _ => scala.sys.error("Unknown Type!")
 
-  private def showAlertBox(): Unit =
-    notificationCentre.publish(NotificationChannel.DBSuccess)
-
 
   private def createMemory(memoryModel: MemoryModel): MemoryCreator =
     MemoryCreator(memoryModel.size.dbString, itsaid, memoryModel.description)
 
   private def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
-    DiskCreator(itsaid, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.`type`.toString, "ATA Disk")
+    DiskCreator(itsaid, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.connectionType.toString, "ATA Disk")
 
   private def createInfo(infoModel: GeneralInfoModel): InfoCreator =
     val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum

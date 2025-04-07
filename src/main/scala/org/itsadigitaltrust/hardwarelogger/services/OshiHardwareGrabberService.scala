@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
 
 object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule:
 
-  import org.itsadigitaltrust.hardwarelogger.models.HardDriveType.*
+  import org.itsadigitaltrust.hardwarelogger.models.HardDriveConnectionType.*
 
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
@@ -25,7 +25,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     <Disk_Location>Channel 1, Target 0, Lun 0, Device: 0</Disk_Location>
     <Hard_Disk_Model_ID>SSD Model</Hard_Disk_Model_ID>
     <Firmware_Revision>1234567890</Firmware_Revision>
-    <Hard_Disk_Serial_Number>1234567890</Hard_Disk_Serial_Number>
+    <Hard_Disk_Serial_Number>S1CTNSAG440003</Hard_Disk_Serial_Number>
     <SSD_Controller>SSD Controller</SSD_Controller>
     <Total_Size>12345 MB</Total_Size>
     <Power_State>Active</Power_State>
@@ -68,8 +68,19 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
 
   //TODO: Implement
   override def loadHardDrives(): Unit =
-    val hdSentinelReader = HDSentinelReader("password", XMLFile("report.xml"))
-    val hardDiskSummaries: Seq[HardDiskSummary] = hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+
+    val onLinux = System.getProperty("os.name").toLowerCase.contains("linux")
+    val hdSentinelReader =
+      if onLinux then
+        HDSentinelReader("password", XMLFile("report.xml"))
+      else
+        HDSentinelReader(xml)
+    val hardDiskSummaries: Seq[HardDiskSummary] =
+      if onLinux then
+        hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+      else
+        import HardDiskSummary.given
+        Seq(hdSentinelReader \ "Hard_Disk_Summary")
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
       println(s"Hard disk summary: $hardDiskSummary")
 
@@ -80,7 +91,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
         hardDiskSummary.hardDiskModelId,
         hardDiskSummary.hardDiskSerialNumber,
         SATA,
-        isSSD = true,
+        `type` = "SSD",
         actions = hardDiskSummary.tip,
         description = hardDiskSummary.description,
         powerOnTime = hardDiskSummary.powerOnTime,

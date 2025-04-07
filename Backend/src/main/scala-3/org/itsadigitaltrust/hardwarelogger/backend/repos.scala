@@ -57,10 +57,14 @@ object repos:
       case MemoryCreator => Memory
       case DiskCreator => Disk
       case HLEntityCreatorWithItsaID => EC
-
+  
+  extension(repo: HLRepo[DiskCreator, Disk])
+    def sameDriveWithSerialNumber(serial: String)(using DbCon)(using table: TableInfo[DiskCreator, Disk, Long]): Seq[Disk] =
+      val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
+      frag.query[Disk].run()
   extension [EC <: ItsaIDRepo](r: EC)
     def findAllByItsaId(id: String)(using DbCon)(using table: TableInfo[EC, ItsaEntityType[EC], Long])(using reader: DbCodec[ItsaEntityType[EC]]): Seq[ItsaEntityType[EC]] =
-      val frag = sql"select * from $table where ${table.selectDynamic("itsaid")} IS $id"
+      val frag = sql"select * from $table where ${table.selectDynamic("itsaid")} = $id"
       frag.query[ItsaEntityType[EC]].run()
 //
 //  extension(r: HLRepo[MemoryCreator, Memory])

@@ -14,11 +14,12 @@ import scalafx.scene.input.KeyCode
 class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel]:
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
 
-  stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
-  minWidth = Double.NegativeInfinity
-  minHeight = Double.NegativeInfinity
-  maxWidth = Double.NegativeInfinity
-  maxHeight = Double.NegativeInfinity
+  stylesheets +=  "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
+  Seq(minWidth,minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
+//  minWidth = Double.NegativeInfinity
+//  minHeight = Double.NegativeInfinity
+//  maxWidth = Double.NegativeInfinity
+//  maxHeight = Double.NegativeInfinity
   prefWidth = 600.0
   prefHeight = 400.0
 
@@ -113,15 +114,16 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     children ++= Seq(tabPane, centerButtonsContainer)
 
 
-  private def createTab[N <: Node & TabDelegate](title: String, rootContent: N): Tab =
+  private def createTab(title: String, rootContent: Node): Tab =
     val tab: Tab = new Tab:
-      val tabDelegate: Option[TabDelegate] = Option(rootContent.asInstanceOf[TabDelegate])
+
       text = title
       closable = false
       content = rootContent
       onSelectionChanged = _ =>
-        if tabDelegate.isDefined then
-          tabDelegate.get.onSelected(this)
+        rootContent match
+          case tabDelegate: TabDelegate => tabDelegate.onSelected(this)
+          case _ => ()
     tab
   end createTab
   viewModel.idFieldFocusProperty.onChange: (_, oldValue, newValue) =>

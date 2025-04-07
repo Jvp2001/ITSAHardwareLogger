@@ -11,7 +11,7 @@ final class HardDrivesTabViewModel extends TabTableViewModel[HardDriveModel, Har
   val powerOnTime: StringProperty = StringProperty("0")
   val estimatedLifeTime: StringProperty = StringProperty("0")
   val description: StringProperty = StringProperty("")
-  val actionsText: StringProperty = StringProperty("")
+  val actionsText: StringProperty = StringProperty("No actions needed.")
   override def onSelected(selectedRow: Option[HardDriveTableRowViewModel]): Unit =
       selectedRow.foreach: row =>
         powerOnTime.value = row.model.powerOnTime

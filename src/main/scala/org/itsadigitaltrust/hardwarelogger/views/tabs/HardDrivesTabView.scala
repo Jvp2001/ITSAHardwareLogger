@@ -41,12 +41,8 @@ class HardDriveTableView extends TabTableView[HardDriveModel, HardDriveTableRowV
   private val idColumn = createAndAddColumn("ID"): cellValue =>
     cellValue.idProperty
 
-  private val isSSDColumn = createAndAddColumn[Boolean]("Is SSD"): cellValue =>
-    cellValue.isSSDProperty
-
-  isSSDColumn.setCellFactory: column =>
-    new CheckBoxTableCell[HardDriveTableRowViewModel, Boolean]():
-      editable = false
+  private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
+    cellValue.driveTypeProperty
 end HardDriveTableView
 
 

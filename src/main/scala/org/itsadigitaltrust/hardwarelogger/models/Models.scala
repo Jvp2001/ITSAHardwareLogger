@@ -7,46 +7,39 @@ import scala.annotation.experimental
 
 sealed trait HLModel
 
-//@ScalaSpringBeanComponent
+
 final case class GeneralInfoModel(
-                              computerID: String,
-                              description: String,
-                              model: String,
-                              vendor: String,
-                              serial: String,
-                              os: String
-                            ) extends HLModel
+                                   computerID: String,
+                                   description: String,
+                                   model: String,
+                                   vendor: String,
+                                   serial: String,
+                                   os: String
+                                 ) extends HLModel
 
 
-//@ScalaSpringBeanComponent
 final case class HardDriveModel(
-                            health: Percentage,
-                            performance: Percentage,
-                            size: DataSize,
-                            model: String,
-                            serial: String,
-                            `type`: HardDriveType,
-                            id: String = "NOT LOGGED",
-                            isSSD: Boolean = false,
-                            description: String = "",
-                            actions: String = "No actions needed.",
-                            powerOnTime: String = "",
-                            estimatedRemainingLifetime: String = ""
-                          ) extends HLModel
+                                 health: Percentage,
+                                 performance: Percentage,
+                                 size: DataSize,
+                                 model: String,
+                                 serial: String,
+                                 connectionType: HardDriveConnectionType,
+                                 id: String = "NOT LOGGED",
+                                 `type`: "SSD" | "HHD" | "HDD" = "SSD",
+                                 description: String = "",
+                                 actions: String = "No actions needed.",
+                                 powerOnTime: String = "",
+                                 estimatedRemainingLifetime: String = ""
+                               ) extends HLModel
 
-//
-//
-//@Bean
-enum HardDriveType extends Enum[HardDriveType]:
+enum HardDriveConnectionType extends Enum[HardDriveConnectionType]:
   case SATA, NVME, PATA, SCSI, SAS, UNKNOWN
 
-//@ScalaSpringBeanComponent
 final case class MediaModel(description: String, handle: String) extends HLModel
 
-//@ScalaSpringBeanComponent
 final case class MemoryModel(size: DataSize, description: String) extends HLModel
 
-//@ScalaSpringBeanComponent
 final case class ProcessorModel(
                                  name: String,
                                  speed: Long,
@@ -55,7 +48,7 @@ final case class ProcessorModel(
                                  serial: String,
                                  width: Int = 0,
                                  cores: Int = 0
-                          ) extends HLModel
+                               ) extends HLModel
 
 
 type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel

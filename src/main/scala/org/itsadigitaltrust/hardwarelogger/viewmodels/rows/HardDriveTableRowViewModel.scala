@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.common.Types.Percentage
-import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveType}
+import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveConnectionType}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 import org.itsadigitaltrust.common.percent
@@ -26,14 +26,14 @@ final case class HardDriveTableRowViewModel(model: HardDriveModel) extends Table
   def serialProperty: StringProperty =
     wrapper.field("serial", _.serial, "")(StringProperty.apply)
 
-  def typeProperty: ObjectProperty[HardDriveType] =
-    wrapper.field("type", _.`type`, HardDriveType.SATA)(ObjectProperty.apply)
+  def typeProperty: ObjectProperty[HardDriveConnectionType] =
+    wrapper.field("type", _.connectionType, HardDriveConnectionType.SATA)(ObjectProperty.apply)
 
   def idProperty: StringProperty =
     wrapper.field("id", _.id, "NOT LOGGED")(StringProperty.apply)
 
-  def isSSDProperty: BooleanProperty =
-    wrapper.field[Boolean, lang.Boolean,BooleanProperty, BooleanProperty]("isSSD", _.isSSD, false)(BooleanProperty.apply)
+  def driveTypeProperty: StringProperty =
+    wrapper.field("isSSD", _.`type`, "SSD")(StringProperty.apply)
     
     
   

@@ -1,6 +1,6 @@
 package org.itsadigitaltrust.hdsentinelreader
 
-import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveType}
+import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveConnectionType}
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import org.scalatest.funsuite.AnyFunSuite
 import org.itsadigitaltrust.common.*
@@ -37,8 +37,10 @@ class HDSentinelReaderTests extends AnyFunSuite:
     </Hard_Disk_Summary>
   </HDSentinel>
   test("Get XML output"):
-
-    val reader = HDSentinelReader("password", XMLFile("report.xml"))
+    val reader = if System.getProperty("os.name").toLowerCase.contains("linux") then
+      HDSentinelReader("password", XMLFile("report.xml"))
+    else
+      HDSentinelReader(xml)
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
     println(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
     val driveModel = new HardDriveModel(
@@ -48,10 +50,10 @@ class HDSentinelReaderTests extends AnyFunSuite:
       hardDiskSummary.hardDiskModelId,
       hardDiskSummary.hardDiskSerialNumber,
       if hardDiskSummary.interfaceType.startsWith("S-ATA") then
-        HardDriveType.SATA
+        HardDriveConnectionType.SATA
       else
-        HardDriveType.NVME,
-      isSSD = true
+        HardDriveConnectionType.NVME,
+      `type` = true
     )
     assert(driveModel ne null)
 

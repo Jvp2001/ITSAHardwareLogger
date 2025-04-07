@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.backend
 
 import javax.sql.DataSource
 import com.augustnagro.magnum
-import com.augustnagro.magnum.{BatchUpdateResult, DbCodec, Repo, SqlException, TableInfo, Transactor, connect, sql, transact}
+import com.augustnagro.magnum.{BatchUpdateResult, DbCodec, DbCon, Repo, SqlException, TableInfo, Transactor, connect, sql, transact}
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.{Result, optional}
@@ -70,51 +70,32 @@ class HLDatabase private(val dataSource: DataSource):
       case _: MediaCreator => summon[DbCodec[MediaCreator]]
 
 
-  def getDbCodec[EC <: HLEntityCreatorWithItsaID](creator: EC): DbCodec[Memory] | DbCodec[Info] | DbCodec[Disk] | DbCodec[Media] =
-    creator match
+  def getDbCodec[EC <: HLEntityCreatorWithItsaID](creator: EC): DbCodec[HLEntity] = //DbCodec[Memory] | DbCodec[Info] | DbCodec[Disk] | DbCodec[Media] =
+    val result = creator match
       case _: MemoryCreator => summon[DbCodec[Memory]]
       case _: InfoCreator => summon[DbCodec[Info]]
       case _: DiskCreator => summon[DbCodec[Disk]]
       case _: MediaCreator => summon[DbCodec[Media]]
-  
+    result.asInstanceOf[DbCodec[HLEntity]]
 
   def insertOrUpdate[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](creator: EC): Unit =
     val repo = getRepo(creator)
 
     given table: TableInfo[EC, ?, Long] = getTableInfo(creator)
 
-    val transaction = Transactor(connection)
-
-    given DbCodec[E] = getDbCodec(creator).asInstanceOf[DbCodec[E]]
+//    val transaction = Transactor(connection)
 
 
     transact(dataSource):
-//      sql"select * from $table where ${table.selectDynamic("itsaid")} = ${creator.itsaid}".query[E].run() match
-//        case Nil =>
-//          repo.insert(creator)
-//        case _ =>
-//          ()
       repo.insertOrUpdate(creator)
-//      println(s"Creator: $creator")
-//      val frag = sql"insert ignore into $table (${table.insertColumns}) values ($creator)"
-//      println(s"Frag: ${frag.sqlString}")
-//      frag.update.run()
 
-
-
-
-
-  //  def insertOrUpdate[EC <: HLEntityCreator, E <: HLEntity](creator: EC)(using repo: HLRepo[EC, E])(using TableInfo[EC, E, Long]): Unit =
-  //    magnum.transact(connection):
-  //      repo.insertOrUpdate(creator)
-  //
-  //  def insertOrUpdate(creator: DiskCreator): Unit =
-  //    insertOrUpdate[DiskCreator, Disk](creator)
-  //
-  //  def insertOrUpdate(creator: MemoryCreator): Unit =
-  //    insertOrUpdate[MemoryCreator, Memory](creator)
-
-
+  def doesDriveExists(creator: DiskCreator): Boolean =
+    val transaction = Transactor(connection)
+    given table: TableInfo[DiskCreator, Disk, Long] = tables.DiskTable
+    transact(dataSource):
+      repos.DiskRepo.sameDriveWithSerialNumber(creator.serial)(using summon[DbCon]) match
+        case Nil => false
+        case _ => true
   private def error(e: Error)(using label: boundary.Label[Error]): Nothing =
     boundary.break(e)
 

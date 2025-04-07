@@ -5,12 +5,12 @@ import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.Success
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
-import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{DBSuccess, Reload, Save}
+import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{ContinueWithDuplicateDrive, DBSuccess, Reload, Save, ShowDuplicateDriveWarning}
 import scalafx.beans.property.*
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, NotificationChannel, ServicesModule}
 import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.control.Alert.AlertType
-import scalafx.scene.control.Alert.AlertType.Information
+import scalafx.scene.control.Alert.AlertType.{Information, Warning}
 
 
 final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
@@ -34,10 +34,24 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
       validateID()
 
   notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
-    new Alert(Information, "Loaded!").showAndWait()
+    new Alert(Information):
+      headerText = "Loaded"
+    .showAndWait()
 
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
+
+  
+
+  notificationCentre.subscribe(ShowDuplicateDriveWarning): (key, args: Seq[Any]) =>
+    val  serial = args.head.asInstanceOf[String]
+    new Alert(Warning, "Duplicate Drive Found!", ButtonType.Yes, ButtonType.No):
+      contentText = s"A drive with the serial number '$serial' already exists. Do you want to continue?"
+    .showAndWait() match
+      case Some(ButtonType.Yes) =>
+        notificationCentre.publish(ContinueWithDuplicateDrive)
+      case _ =>
+        notificationCentre.publish(Reload)
 
   override def setup(): Unit =
     reload()

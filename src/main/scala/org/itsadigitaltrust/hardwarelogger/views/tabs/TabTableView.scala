@@ -10,8 +10,7 @@ import scalafx.scene.control.{TableColumn, TableRow, TableView}
 import javafx.scene.control as jfxsc
 
 
-class TabTableView[M, T <: AnyRef & TableRowViewModel[M] | AnyRef & TableRowViewModel[M] & TableRowDelegate[TableRowViewModel[M]]](using viewModel: TabTableViewModel[M, T]) extends TableView[T] with TabDelegate:
-
+class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
   var rowDelegate: Option[TableRowDelegate[T]] = None
   
   

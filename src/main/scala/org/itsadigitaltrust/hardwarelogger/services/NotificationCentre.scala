@@ -32,6 +32,8 @@ enum NotificationChannel:
   case Save // This channel is used to push all the loaded data to the database.
   case DBError(msg: String)
   case DBSuccess
+  case ShowDuplicateDriveWarning
+  case ContinueWithDuplicateDrive
   
 object SimpleNotificationCentre extends NotificationCentre[NotificationChannel]
 
