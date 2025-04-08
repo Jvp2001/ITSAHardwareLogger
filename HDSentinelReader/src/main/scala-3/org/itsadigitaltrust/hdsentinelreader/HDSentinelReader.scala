@@ -4,14 +4,15 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.`type`.TypeFactory
 import com.fasterxml.jackson.dataformat.xml.{JacksonXmlModule, XmlMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.itsadigitaltrust.hdsentinelreader
-import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 
 import java.io.File
 import scala.io.Source
 import scala.util.Using
 import scala.xml.{Document, Elem}
-import org.itsadigitaltrust.hdsentinelreader.xml.{XMLParser, \\>, given}
+
+import org.itsadigitaltrust.common.*
+import data.HardDiskSummary
+import xml.*
 
 
 class HDSentinelReader:
@@ -41,15 +42,12 @@ class HDSentinelReader:
 
 
 object HDSentinelReader:
-  inline def apply(sudoPassword: String, inline outputFileName: XMLFile): HDSentinelReader =
+  inline def apply(sudoPassword: String): HDSentinelReader =
     val reader = new HDSentinelReader
-    if System.getProperty("os.name").toLowerCase.contains("linux") then {
-      val xml = ProcessRunner(sudoPassword, outputFileName)
+    if OSUtils.onLinux then
+      val xml = ProcessRunner(sudoPassword)
       println(s"XML: $xml")
       reader.read(xml)
-    }
-    else
-      reader.read(outputFileName)
     reader
 
   inline def apply(elem: Elem): HDSentinelReader =

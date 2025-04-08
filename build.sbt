@@ -51,7 +51,7 @@ lazy val hdsentinelreader = (project in file("HDSentinelReader")).
         "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
       ).map(_ withJavadoc() withSources()),
     scalacOptions += "-experimental"
-  )
+  ).dependsOn(common)
 
 lazy val backend = (project in file("Backend"))
   .settings(

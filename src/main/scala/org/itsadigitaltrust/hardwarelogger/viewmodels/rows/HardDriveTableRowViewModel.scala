@@ -1,6 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
-import org.itsadigitaltrust.common.Types.Percentage
+import org.itsadigitaltrust.common.Types.*
 import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveConnectionType}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*

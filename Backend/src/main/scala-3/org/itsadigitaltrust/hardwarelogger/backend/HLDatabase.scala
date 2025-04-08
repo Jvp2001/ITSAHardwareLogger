@@ -5,7 +5,7 @@ import com.augustnagro.magnum
 import com.augustnagro.magnum.{BatchUpdateResult, DbCodec, DbCon, Repo, SqlException, TableInfo, Transactor, connect, sql, transact}
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
-import org.itsadigitaltrust.common.{Result, optional}
+import common.*
 import org.itsadigitaltrust.hardwarelogger.backend.backend.Fragment
 import org.itsadigitaltrust.hardwarelogger.backend.entities.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.repos.{HLRepo, ItsaIDRepo, findAllByItsaId}
@@ -15,7 +15,6 @@ import java.net.URL
 import java.sql.{PreparedStatement, ResultSet, SQLException}
 import scala.compiletime.{summonInline, uninitialized}
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try, boundary}
 
 class HLDatabase private(val dataSource: DataSource):
 
@@ -96,8 +95,7 @@ class HLDatabase private(val dataSource: DataSource):
       repos.DiskRepo.sameDriveWithSerialNumber(creator.serial)(using summon[DbCon]) match
         case Nil => false
         case _ => true
-  private def error(e: Error)(using label: boundary.Label[Error]): Nothing =
-    boundary.break(e)
+
 
 object HLDatabase:
   enum Error:
@@ -110,7 +108,7 @@ object HLDatabase:
   def apply(dbProperties: URL): Result[HLDatabase, DataStoreLoader.Error] =
     Result:
       DataStoreLoader(dbProperties.toURI) match
-        case common.Success(value) =>
+        case Success(value) =>
           Result.success(new HLDatabase(value))
         case common.Error(reason) =>
           Result.error(reason)

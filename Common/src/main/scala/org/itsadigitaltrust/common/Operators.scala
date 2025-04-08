@@ -5,8 +5,6 @@ import scala.collection.mutable
 
 
 
-
-
 object Operators:
   type MapType[K, V] = Map[K, V] | mutable.Map[K, V]
   
@@ -19,4 +17,4 @@ object Operators:
       seq.contains(item)
     infix def notIn[V](seq: MapType[T, V]): Boolean =
       !seq.contains(item)
-  
+

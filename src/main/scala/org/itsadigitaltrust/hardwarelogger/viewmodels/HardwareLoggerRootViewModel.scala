@@ -41,7 +41,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
 
-  
+
 
   notificationCentre.subscribe(ShowDuplicateDriveWarning): (key, args: Seq[Any]) =>
     val  serial = args.head.asInstanceOf[String]
@@ -72,8 +72,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
 
     val result = hardwareIDValidationService.validate(currentID.strip())
     result match
-      case Left(value) =>
-        idErrorStringProperty.setValue(value.toString)
+      case  org.itsadigitaltrust.common.Error(value) =>
+        idErrorStringProperty.value = value.toString
         if showAlert then
           value match
             case ValidationError.ParserError(error) => idErrorStringProperty.value = error.toString
@@ -81,8 +81,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
 
               idErrorAlert.showAndWait() match
                 case _ => idFieldFocusProperty.value = true
-      case Right(value) =>
-        idErrorStringProperty.setValue("")
+      case Success(value) =>
+        idErrorStringProperty.value = ""
   end validateID
 
 

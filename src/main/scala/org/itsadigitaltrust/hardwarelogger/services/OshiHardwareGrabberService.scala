@@ -44,11 +44,6 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
   </Hard_Disk_Summary>
 
 
-//  if System.getProperty("os.name").toLowerCase.contains("linux") then
-//      HDSentinelReader("password", XMLFile("report.xml"))
-//    else
-//      HDSentinelReader(xml)
-
   override def load(): Unit =
     supervised:
       fork(loadGeneralInfo())
@@ -72,7 +67,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     val onLinux = System.getProperty("os.name").toLowerCase.contains("linux")
     val hdSentinelReader =
       if onLinux then
-        HDSentinelReader("password", XMLFile("report.xml"))
+        HDSentinelReader("password")
       else
         HDSentinelReader(xml)
     val hardDiskSummaries: Seq[HardDiskSummary] =

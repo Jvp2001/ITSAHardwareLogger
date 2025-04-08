@@ -2,18 +2,21 @@ package org.itsadigitaltrust.hardwarelogger.views
 
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.delegates.TabDelegate
+import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate, TabDelegate}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TableRowViewModel, ViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{GeneralInfoTabView, HardDrivesTabView, MediaTabView, MemoryTabView, ProcessorTabView, TabTableView}
 import scalafx.application.Platform
+import scalafx.collections.ObservableBuffer
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
 
 
 
-class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel]:
+class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with ProgramModeChangedDelegate:
+  root =>
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
 
+  private val tabs = ObservableBuffer[Tab]()
   stylesheets +=  "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
   Seq(minWidth,minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
 //  minWidth = Double.NegativeInfinity
@@ -74,13 +77,8 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     tabClosingPolicy = Unavailable
     alignmentInParent = Pos.Center
     vgrow = Always
-    tabs ++= Seq(
-      createTab("General", new GeneralInfoTabView),
-      createTab("Memory", new MemoryTabView),
-      createTab("Processor", new ProcessorTabView),
-      createTab("HDD", new HardDrivesTabView),
-      createTab("Media", new MediaTabView),
-    )
+    
+
 
   private val reloadButton = new Button:
     text = "Reload"
@@ -131,7 +129,23 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
       idTextField.requestFocus()
 
   idTextField.requestFocus()
+  
+  onProgramModeChanged(ProgramMode.mode)
 
+  override def onProgramModeChanged(mode: ProgramMode): Unit =
+    mode match
+      case "HardDrive" =>
+        tabPane.tabs +=
+          createTab("HDD", new HardDrivesTabView)
+
+      case "Normal" =>
+        tabPane.tabs ++= Seq(
+          createTab("General", new GeneralInfoTabView),
+          createTab("Memory", new MemoryTabView),
+          createTab("Processor", new ProcessorTabView),
+          createTab("HDD", new HardDrivesTabView),
+          createTab("Media", new MediaTabView)
+        )
 
 
 

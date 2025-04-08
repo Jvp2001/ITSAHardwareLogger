@@ -34,6 +34,7 @@ enum NotificationChannel:
   case DBSuccess
   case ShowDuplicateDriveWarning
   case ContinueWithDuplicateDrive
+  case ProgramModeChanged
   
 object SimpleNotificationCentre extends NotificationCentre[NotificationChannel]
 

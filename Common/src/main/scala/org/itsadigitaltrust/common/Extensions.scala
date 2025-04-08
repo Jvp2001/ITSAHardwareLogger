@@ -21,15 +21,10 @@ extension [T](coll: IndexedSeq[T])
       index % 2 != 0
 end extension
 
-extension [T, E](option: Option[T])(using boundary.Label[E])
-  def getOrError(error: E): T =
-    option match
-      case Some(value) => value
-      case None => boundary.break(error)
-
-end extension
 
 object Maths:
+
+  import scala.compiletime.ops.int.*
 
   extension (long: Long)
     @targetName("pow")
