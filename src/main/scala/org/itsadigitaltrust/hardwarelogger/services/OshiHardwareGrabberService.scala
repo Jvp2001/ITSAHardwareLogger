@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
+import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hdsentinelreader.HDSentinelReader
 import org.itsadigitaltrust.hdsentinelreader.Types.XMLFile
@@ -51,7 +52,8 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
       fork(loadMemory())
       fork(loadProcessors())
       fork(loadMedia())
-    .join()
+        .join()
+
     notificationCentre.publish(NotificationChannel.Reload)
 
   override def loadGeneralInfo(): Unit =

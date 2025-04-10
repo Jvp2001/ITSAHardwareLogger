@@ -3,20 +3,19 @@ package org.itsadigitaltrust.hardwarelogger
 
 import com.sun.javafx.PlatformUtil
 import org.itsadigitaltrust.common
-import org.itsadigitaltrust.common.{Error, Result, Success}
+import common.{Error, Result, Success}
+import core.ui.*
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.getClass
-import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
-import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.ProgramModeChanged
-import org.itsadigitaltrust.hardwarelogger.services.{NotificationCentre, NotificationChannel, ServicesModule}
-import org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView
+import delegates.{ProgramMode, ProgramModeChangedDelegate}
+import services.NotificationChannel.ProgramModeChanged
+import services.{NotificationCentre, NotificationChannel, ServicesModule}
+import views.HardwareLoggerRootView
 import oshi.SystemInfo
-import scalafx.application.{JFXApp3, Platform}
 import scalafx.application.JFXApp3.PrimaryStage
-import scalafx.Includes.{*, given}
+import scalafx.application.{JFXApp3, Platform}
 import scalafx.scene.Scene
-import scalafx.scene.control.{Alert, ButtonType}
-import scalafx.scene.control.Alert.AlertType
-import scalafx.scene.layout.{BorderPane, Pane}
+import scalafx.scene.input.{KeyCode, KeyEvent}
+import scalafx.Includes.*
 
 import scala.compiletime.uninitialized
 
@@ -52,6 +51,12 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
       maximized = true
       scene = new Scene(1020, 720):
         root = new HardwareLoggerRootView
+        onKeyPressed = (event: KeyEvent) =>
+          val code = event.code
+          if code == KeyCode.F5 then
+            notificationCentre.publish(NotificationChannel.Reload)
+
+
       show()
 
   end start

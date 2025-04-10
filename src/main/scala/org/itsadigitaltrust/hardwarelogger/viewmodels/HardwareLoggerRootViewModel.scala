@@ -4,16 +4,18 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels
 import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.Success
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
+import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
 import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{ContinueWithDuplicateDrive, DBSuccess, Reload, Save, ShowDuplicateDriveWarning}
 import scalafx.beans.property.*
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, NotificationChannel, ServicesModule}
+import scalafx.application.Platform
 import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Alert.AlertType.{Information, Warning}
 
 
-final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
+final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule with ProgramModeChangedDelegate:
 
 
 
@@ -85,8 +87,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule:
         idErrorStringProperty.value = ""
   end validateID
 
-
-
-
   def reload(): Unit =
     hardwareGrabberService.load()
+
+  override def onProgramModeChanged(mode: ProgramMode): Unit =
+  notificationCentre.publish(Reload)

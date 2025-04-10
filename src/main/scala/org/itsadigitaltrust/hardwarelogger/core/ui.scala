@@ -5,12 +5,10 @@ object ui:
   export scalafx.Includes.*
   export scalafx.Includes.given
   export scalafx.scene.{Node, Group}
-  export scalafx.scene.control.{Tab, TableColumn, TableView, TabPane, Button, Label, TextField}
-  export scalafx.scene.layout.{
-    VBox, HBox, BorderPane, Priority, Region, GridPane, StackPane
-  }
+  export scalafx.scene.control.{Tab, TableColumn, TableView, TabPane, Button, Label, TextField, Alert, ButtonType}
+  export Alert.AlertType
+  export scalafx.scene.layout.{VBox, HBox, BorderPane, Priority, Region, GridPane, StackPane}
   export scalafx.scene.layout.Priority.*
-
   export scalafx.scene.text.TextAlignment
   export scalafx.scene.text.Font
 

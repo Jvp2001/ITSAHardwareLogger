@@ -7,9 +7,9 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewMod
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{GeneralInfoTabView, HardDrivesTabView, MediaTabView, MemoryTabView, ProcessorTabView, TabTableView}
 import scalafx.application.Platform
 import scalafx.collections.ObservableBuffer
+import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem}
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
-
 
 
 class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with ProgramModeChangedDelegate:
@@ -17,16 +17,38 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
 
   private val tabs = ObservableBuffer[Tab]()
-  stylesheets +=  "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
-  Seq(minWidth,minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
-//  minWidth = Double.NegativeInfinity
-//  minHeight = Double.NegativeInfinity
-//  maxWidth = Double.NegativeInfinity
-//  maxHeight = Double.NegativeInfinity
+  stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
+  Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
+  //  minWidth = Double.NegativeInfinity
+  //  minHeight = Double.NegativeInfinity
+  //  maxWidth = Double.NegativeInfinity
+  //  maxHeight = Double.NegativeInfinity
   prefWidth = 600.0
   prefHeight = 400.0
 
 
+  private val menuBar = new MenuBar:
+    menus += new Menu("_View"):
+      // Changes the program's mode
+      items ++= Seq(
+        new Menu("Mode"):
+          items ++= Seq(
+            new CheckMenuItem("Normal"):
+              onAction = _ => ProgramMode.mode = "Normal"
+              selected <==>  ProgramMode.isModeNormal
+            ,
+            new CheckMenuItem("HardDrive"):
+              onAction = _ =>
+                ProgramMode.mode = "HardDrive"
+                selected <==> ProgramMode.isHardDriveMode
+            ,
+          )
+
+      )
+
+  top = menuBar
+  private val contentBorderPane = new BorderPane()
+  center = contentBorderPane
 
   private val idLabel = new Label:
     text = "ID"
@@ -46,13 +68,10 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
       viewModel.save()
 
 
-
-
-
   private val idErrorLabel = new Label:
     styleClass += "error"
     padding = Insets(0, 0, 0, 35.0)
-    margin =  Insets(0, 0, 5.0, 0)
+    margin = Insets(0, 0, 5.0, 0)
     text <== viewModel.idErrorStringProperty
 
 
@@ -62,7 +81,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     spacing = 10.0
     children ++= Seq(idLabel, idTextField)
 
-  top = new VBox:
+  contentBorderPane.top = new VBox:
     private val region = new Region:
       maxWidth = 10.0
     alignment = CenterLeft
@@ -77,7 +96,6 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     tabClosingPolicy = Unavailable
     alignmentInParent = Pos.Center
     vgrow = Always
-    
 
 
   private val reloadButton = new Button:
@@ -107,7 +125,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
 
     children ++= Seq(reloadButton, saveButton)
 
-  center = new VBox:
+  contentBorderPane.center = new VBox:
     BorderPane.setAlignment(this, Center)
     children ++= Seq(tabPane, centerButtonsContainer)
 
@@ -129,23 +147,30 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
       idTextField.requestFocus()
 
   idTextField.requestFocus()
-  
+
   onProgramModeChanged(ProgramMode.mode)
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     mode match
       case "HardDrive" =>
-        tabPane.tabs +=
+        tabPane.tabs = Seq(
           createTab("HDD", new HardDrivesTabView)
+        )
+        ProgramMode.isHardDriveMode.value = true
+        ProgramMode.isModeNormal.value = false
+
+
 
       case "Normal" =>
-        tabPane.tabs ++= Seq(
-          createTab("General", new GeneralInfoTabView),
+        tabPane.tabs = Seq(
+          createTab(" General", new GeneralInfoTabView),
           createTab("Memory", new MemoryTabView),
           createTab("Processor", new ProcessorTabView),
           createTab("HDD", new HardDrivesTabView),
           createTab("Media", new MediaTabView)
         )
+        ProgramMode.isHardDriveMode.value = false
+        ProgramMode.isModeNormal.value = true
 
 
 

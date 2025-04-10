@@ -15,7 +15,8 @@ class HardDriveTableView extends TabTableView[HardDriveModel, HardDriveTableRowV
   rowDelegate = Some(viewModel)
   requestFocus()
 
-  import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+
+  showHandCursorOnHover = true
 
   private val healthColumn = createAndAddColumn[String]("Health"): cellValue =>
     StringProperty(cellValue.healthProperty.get.toString)

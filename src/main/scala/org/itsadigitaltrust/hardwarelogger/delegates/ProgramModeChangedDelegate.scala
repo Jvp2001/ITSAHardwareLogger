@@ -1,7 +1,9 @@
 package org.itsadigitaltrust.hardwarelogger.delegates
 
 import org.itsadigitaltrust.hardwarelogger.services.{NotificationCentre, NotificationChannel, ServicesModule}
-import scalafx.beans.property.StringProperty
+import scalafx.beans.property.*
+import scalafx.Includes.{*, given}
+import scalafx.beans.property
 
 type ProgramMode = "Normal" | "HardDrive"
 trait ProgramModeChangedDelegate extends ServicesModule:
@@ -16,6 +18,19 @@ trait ProgramModeChangedDelegate extends ServicesModule:
 object ProgramMode extends ServicesModule:
   private val currentProgramMode = StringProperty("Normal")
 
+
+  val isModeNormal: BooleanProperty = new BooleanProperty()
+  isModeNormal.value = currentProgramMode.value == "Normal"
+
+
+  val isHardDriveMode: BooleanProperty = new BooleanProperty
+  isHardDriveMode.value = currentProgramMode.value == "HardDrive"
+
+  currentProgramMode.onChange: (_, _, newValue) =>
+    isModeNormal.value = newValue == "Normal"
+    isHardDriveMode.value  = newValue == "HardDrive"
+
+  def isInNormalMode: Boolean = isModeNormal.get
   def mode_=(mode: ProgramMode): Unit =
     currentProgramMode.value = mode
 

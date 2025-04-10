@@ -8,14 +8,23 @@ import scalafx.beans.value.ObservableValue
 import scalafx.Includes.{*, given}
 import scalafx.scene.control.{TableColumn, TableRow, TableView}
 import javafx.scene.control as jfxsc
+import scalafx.scene.Cursor
 
 
 class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
   var rowDelegate: Option[TableRowDelegate[T]] = None
-  
+  var showHandCursorOnHover: Boolean = false
   
   private class TableTabRow[R](
                         var rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
+
+    hoverProperty().addListener: (_, _, newValue) =>
+      if showHandCursorOnHover then
+        if newValue then
+          setCursor(Cursor.Hand)
+        else
+          setCursor(Cursor.Default)
+
 
     override def updateItem(item: R, empty: Boolean): Unit =
       super.updateItem(item, empty)
