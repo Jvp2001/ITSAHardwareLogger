@@ -12,12 +12,12 @@ import java.sql.{PreparedStatement, ResultSet, SQLException}
 import scala.compiletime.{summonInline, uninitialized}
 import scala.concurrent.Future
 
-class HLDatabase private(val dataSource: DataSource):
+class HLDatabase private(dataSource: DataSource):
 
   import HLDatabase.Error
   import tables.given
 
-  private var connection: MysqlDataSource = uninitialized
+  private val connection: DataSource = dataSource
 
 
   def getTableInfo[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](ec: EC): HLTableInfo[EC, E] =
@@ -86,8 +86,8 @@ class HLDatabase private(val dataSource: DataSource):
   def doesDriveExists(creator: DiskCreator): Boolean =
     val transaction = Transactor(connection)
     given table: TableInfo[DiskCreator, Disk, Long] = tables.DiskTable
-    transact(transaction):
-      repos.DiskRepo.sameDriveWithSerialNumber(creator.serial)(using summon[DbCon]) match
+    connect(connection):
+      repos.DiskRepo.sameDriveWithSerialNumber(creator.serial) match
         case Nil => false
         case _ => true
 

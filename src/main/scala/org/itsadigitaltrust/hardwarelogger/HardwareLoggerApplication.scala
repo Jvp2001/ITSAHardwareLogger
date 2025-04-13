@@ -34,7 +34,7 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     Platform.runLater:
       stage.title.value = if mode == "HardDrive" then "Hard Drive Logger" else "Hardware Logger"
-
+      stage.title.value = if stage.title.value == "" then "Hardware Logger" else stage.title.value
 
 
   override def start(): Unit =
@@ -45,20 +45,24 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
         case Error(reason) =>
           new Alert(AlertType.Error, reason, ButtonType.OK).showAndWait()
 
-    stage = new PrimaryStage:
-      minWidth = 600
-      minHeight = 800
-      maximized = true
-      scene = new Scene(1020, 720):
-        root = new HardwareLoggerRootView
-        onKeyPressed = (event: KeyEvent) =>
-          val code = event.code
-          if code == KeyCode.F5 then
-            notificationCentre.publish(NotificationChannel.Reload)
+    try
+
+      stage = new PrimaryStage:
+        minWidth = 600
+        minHeight = 800
+        maximized = true
+        scene = new Scene(1020, 720):
+          root = new HardwareLoggerRootView
+          onKeyPressed = (event: KeyEvent) =>
+            val code = event.code
+            if code == KeyCode.F5 then
+              notificationCentre.publish(NotificationChannel.Reload)
 
 
-      show()
-
+        show()
+    catch
+      case e: NumberFormatException =>
+        e.printStackTrace()
   end start
 
   override def stopApp(): Unit =

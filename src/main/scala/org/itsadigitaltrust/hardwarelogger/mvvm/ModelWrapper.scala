@@ -11,7 +11,6 @@ import java.util.function.Supplier
 import scala.collection.mutable
 import scala.compiletime.uninitialized
 
-//TODO: Add model wrapper class based of mvvmfx
 
 /**
  * @constructor Create a new instance of [[ModelWrapper]] that wraps the instance of the Model class wrapped by the property.

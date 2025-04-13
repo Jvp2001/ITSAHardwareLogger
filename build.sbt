@@ -9,10 +9,18 @@ ThisBuild / assemblyMergeStrategy := {
   case _ => MergeStrategy.first
 }
 
-lazy val uiDependencies = Seq("win", "mac", "linux").flatMap { osName =>
-  Seq("base", "controls", "fxml", "graphics", "media", "swing", "web")
-    .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier "win").map(_.withJavadoc() withSources())
-} :+ ("org.scalafx" %% "scalafx" % "23.0.1-R34" withJavadoc() withSources())
+lazy val javaFXDeps = Seq("win", "mac", "linux").flatMap { osName =>
+  Seq("base", "controls")
+    .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier "win")
+}
+
+lazy val scalaFXDeps = Seq(
+  "org.scalafx" %% "scalafx" % "23.0.1-R34",
+  "org.scalafx" %% "scalafx-extras" % "0.11.0",
+)
+
+lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps)
+  .map(_ withJavadoc() withSources())
 
 
 lazy val root = (project in file("."))

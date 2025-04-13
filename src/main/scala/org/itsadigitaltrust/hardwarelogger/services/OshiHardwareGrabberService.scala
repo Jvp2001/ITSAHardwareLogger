@@ -1,9 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
+import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
+import org.itsadigitaltrust.hardwarelogger.tasks.{HLTaskRunner, HardwareGrabberTask}
 import org.itsadigitaltrust.hdsentinelreader.HDSentinelReader
 import org.itsadigitaltrust.hdsentinelreader.Types.XMLFile
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
@@ -46,15 +48,9 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
 
 
   override def load(): Unit =
-    supervised:
-      fork(loadGeneralInfo())
-      fork(loadHardDrives())
-      fork(loadMemory())
-      fork(loadProcessors())
-      fork(loadMedia())
-        .join()
-
-    notificationCentre.publish(NotificationChannel.Reload)
+    HLTaskRunner.run("Getting Hardware Information",
+      loadGeneralInfo, loadMemory, loadHardDrives, loadProcessors, loadMedia)(t => HardwareGrabberTask(t)): () =>
+        notificationCentre.publish(NotificationChannel.Reload)
 
   override def loadGeneralInfo(): Unit =
     val serialNumber = hal.getComputerSystem.getSerialNumber
@@ -63,17 +59,16 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     val os = System.getProperty("os.name")
     generalInfo = GeneralInfoModel("Need to add", "Need to add", model, vendor, serialNumber, os)
 
-  //TODO: Implement
-  override def loadHardDrives(): Unit =
 
-    val onLinux = System.getProperty("os.name").toLowerCase.contains("linux")
+  override def loadHardDrives(): Unit =
     val hdSentinelReader =
-      if onLinux then
+      if OSUtils.onLinux then
         HDSentinelReader("password")
+        
       else
         HDSentinelReader(xml)
     val hardDiskSummaries: Seq[HardDiskSummary] =
-      if onLinux then
+      if OSUtils.onLinux then
         hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
       else
         import HardDiskSummary.given

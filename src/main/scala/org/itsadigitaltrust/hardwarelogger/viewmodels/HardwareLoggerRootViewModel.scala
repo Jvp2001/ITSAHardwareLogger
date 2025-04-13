@@ -35,10 +35,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     else
       validateID()
 
-  notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
-    new Alert(Information):
-      headerText = "Loaded"
-    .showAndWait()
+
 
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()

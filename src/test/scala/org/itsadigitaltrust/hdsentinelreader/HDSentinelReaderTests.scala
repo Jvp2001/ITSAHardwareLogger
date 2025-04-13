@@ -46,7 +46,7 @@ class HDSentinelReaderTests extends AnyFunSuite:
     val driveModel = new HardDriveModel(
       hardDiskSummary.health.asPercentage,
       hardDiskSummary.performance.asPercentage,
-      hardDiskSummary.totalSize.replace(" MB", "").toInt.GiB,
+      hardDiskSummary.totalSize.split(" ").head.toInt.GiB,
       hardDiskSummary.hardDiskModelId,
       hardDiskSummary.hardDiskSerialNumber,
       if hardDiskSummary.interfaceType.startsWith("S-ATA") then
