@@ -4,7 +4,8 @@
     <option name="implicitConversions" value="true" />
     <option name="macros" value="true" />
     <option name="experimental" value="true" />
-    <profile name="sbt 1" modules="ITSAHardwareLogger.AutoTable,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.Macros,ITSAHardwareLogger.autoTable,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.test" />
+    <option name="separateProdTestSources" value="true" />
+    <profile name="sbt 1" modules="ITSAHardwareLogger.AutoTable,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.Macros,ITSAHardwareLogger.autoTable,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.main~1,macros.test,macros.test~1" />
     <profile name="sbt 2" modules="ITSAHardwareLogger">
       <parameters>
         <parameter value="-experimental" />
