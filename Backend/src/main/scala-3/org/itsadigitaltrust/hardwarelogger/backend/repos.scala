@@ -3,7 +3,8 @@ package org.itsadigitaltrust.hardwarelogger.backend
 import com.augustnagro.magnum.*
 import entities.*
 import entities.given
-
+import org.itsadigitaltrust.hardwarelogger.backend.repos.HLRepo
+import scala.languageFeature.{dynamics, reflectiveCalls}
 import java.sql.Timestamp
 import java.time.OffsetDateTime
 
@@ -17,8 +18,6 @@ object repos:
                                 |${c.cpuSerial}, ${c.cpuSpeed}, ${c.cpuVendor}, ${c.cpuWidth}, ${c.genDesc}, ${c.genId}, ${c.genProduct},
                                 | ${c.genSerial}, ${c.genVendor}, ${c.insertionDate}, ${c.itsaid}, ${c.lastUpdated},
                                 | ${c.os}, ${c.totalMemory})""".stripMargin
-
-
     end getValues
 
     def insertOrUpdate(creator: EC)(using DbCon)(using table: TableInfo[EC, ?, Long]): Unit =
@@ -27,7 +26,7 @@ object repos:
           println(infoCreator.itsaid)
           sql"select itsaid from info where itsaid = ${infoCreator.itsaid}".query[String].run().headOption match
             case Some(info) =>
-//              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${creator.asInstanceOf[InfoCreator].itsaid}".update.run()
+            //              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${creator.asInstanceOf[InfoCreator].itsaid}".update.run()
             case None =>
               insert(creator)
         case c: HLEntityCreatorWithItsaID =>
@@ -35,8 +34,10 @@ object repos:
             case Some(info) => ()
             case None =>
               insert(creator)
-  //      val value = sql"insert into ignore $table ${table.insertColumns} values ${getValues(creator)}"
-  //      value.update.run()
+    //      val value = sql"insert into ignore $table ${table.insertColumns} values ${getValues(creator)}"
+    //      value.update.run()
+
+    end insertOrUpdate
 
 
   given DiskRepo: HLRepo[DiskCreator, Disk] = HLRepo[DiskCreator, Disk]
@@ -57,15 +58,25 @@ object repos:
       case MemoryCreator => Memory
       case DiskCreator => Disk
       case HLEntityCreatorWithItsaID => EC
-  
-  extension(repo: HLRepo[DiskCreator, Disk])
+
+  extension (repo: HLRepo[InfoCreator, Info])
+    def findItsaIdBySerialNumber(serial: String)(using DbCon)(using table: TableInfo[InfoCreator, Info, Long]): Option[String] =
+      val frag = sql"select itsaid from $table where ${table.selectDynamic("genSerial")} = $serial"
+      frag.query[String].run().headOption
+  end extension
+
+  extension (repo: HLRepo[DiskCreator, Disk])
     def sameDriveWithSerialNumber(serial: String)(using DbCon)(using table: TableInfo[DiskCreator, Disk, Long]): Seq[Disk] =
       val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
       frag.query[Disk].run()
+
   extension [EC <: ItsaIDRepo](r: EC)
     def findAllByItsaId(id: String)(using DbCon)(using table: TableInfo[EC, ItsaEntityType[EC], Long])(using reader: DbCodec[ItsaEntityType[EC]]): Seq[ItsaEntityType[EC]] =
       val frag = sql"select * from $table where ${table.selectDynamic("itsaid")} = $id"
       frag.query[ItsaEntityType[EC]].run()
+
+end repos
+
 //
 //  extension(r: HLRepo[MemoryCreator, Memory])
 //    def insertOrUpdate(creator: MemoryCreator)(using table: TableInfo[MemoryCreator, Memory, Long]: Unit =

@@ -61,9 +61,6 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     hgrow = Always
     margin = Insets(0, 10.0, 0, 0)
     text <==> viewModel.idStringProperty
-    focused.onChange: (change, oldValue, focused) =>
-      if !focused then
-        viewModel.validateID()
     onAction = _ =>
       viewModel.save()
 

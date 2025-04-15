@@ -35,7 +35,6 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     else
       validateID()
 
-
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
 
@@ -47,7 +46,19 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       case Some(ButtonType.Yes) =>
         notificationCentre.publish(ContinueWithDuplicateDrive)
       case _ =>
-        notificationCentre.publish(Reload)
+        reload()
+
+  notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
+    val pcInfo = Option(hardwareGrabberService.generalInfo)
+    if pcInfo.isEmpty then
+      ()
+    val info = pcInfo.get
+
+    val itsaId = info.itsaId match
+      case Some(value) => value
+      case None => ""
+    idStringProperty.value = itsaId
+     println(s"Itsa ID: $itsaId")
 
   override def setup(): Unit =
     reload()

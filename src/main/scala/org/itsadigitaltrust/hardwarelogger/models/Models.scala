@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.models
 
 
 import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
-
+import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
 import scala.annotation.experimental
 
 sealed trait HLModel
@@ -14,8 +14,12 @@ final case class GeneralInfoModel(
                                    model: String,
                                    vendor: String,
                                    serial: String,
-                                   os: String
-                                 ) extends HLModel
+                                   os: String,
+                                   itsaId: Option[String] = None,
+                                 ) extends HLModel:
+
+
+end GeneralInfoModel
 
 
 final case class HardDriveModel(
@@ -53,3 +57,12 @@ final case class ProcessorModel(
 
 type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel
 
+private object exports:
+  export HardDriveModel.*
+  export HardDriveConnectionType.*
+  export MediaModel.*
+  export MemoryModel.*
+  export ProcessorModel.*
+  export GeneralInfoModel.*
+
+export exports.*

@@ -73,6 +73,12 @@ class HLDatabase private(dataSource: DataSource):
       case _: MediaCreator => summon[DbCodec[Media]]
     result.asInstanceOf[DbCodec[HLEntity]]
 
+  def findItsaIdBySerialNumber(serial: String): Option[String] =
+    val transaction = Transactor(connection)
+    transact(transaction):
+      val result = repos.InfoRepo.findItsaIdBySerialNumber(serial)
+      result
+
   def insertOrUpdate[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](creator: EC): Unit =
     val repo = getRepo(creator)
 
