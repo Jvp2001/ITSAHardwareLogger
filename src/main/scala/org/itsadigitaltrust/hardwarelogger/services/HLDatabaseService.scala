@@ -1,56 +1,82 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-import org.itsadigitaltrust.common
-import org.itsadigitaltrust.common.Result
+import org.itsadigitaltrust.common.*
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.{DataStoreLoader, HLDatabase}
 import org.itsadigitaltrust.hardwarelogger.models.*
-import ox.*
-
-import scala.jdk.CollectionConverters.*
+import org.itsadigitaltrust.hardwarelogger.tasks.{DatabaseTransactionTask, HLTaskRunner}
 
 import java.sql.Timestamp
 import java.time.OffsetDateTime
-import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.ArrayBlockingQueue.*
+import java.util.concurrent.LinkedBlockingQueue
+import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.*
 
+private type HLEntityType[M <: HLModel] = M match
+  case GeneralInfoModel | ProcessorModel => Info
+  case MemoryModel => Memory
+  case HardDriveModel => Disk
+  case MediaModel => Media
 
 trait HLDatabaseService:
   var itsaid: String = ""
 
   def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String]
 
+  def findItsaIdBySerialNumber(serial: String): Option[String]
+  
   def +=[M <: HLModel](model: M): Unit
+
+  def ++=[M <: HLModel](models: Seq[M]): Unit
 
   def stop(): Unit
 
 object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
-
   private var db: Option[HLDatabase] = None
-  private val minQueueSize = 4
-  private val transactionQueue = new ArrayBlockingQueue[HLEntityCreatorWithItsaID](minQueueSize)
+  private val minAmountOfTransactions = 4
+
+  private val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
 
   notificationCentre.subscribe(NotificationChannel.ContinueWithDuplicateDrive): (key, _) =>
     save()
 
+    notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
+      transactionQueue.clear()
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
     Result:
       try
         HLDatabase(klazz.getResource(dbPropsFilePath).toURI.toURL) match
-          case common.Success(value) =>
+          case Success(value) =>
             db = Some(value)
             println("Connected to database.")
             Result.success(())
-          case common.Error(reason) =>
+          case Error(reason) =>
             Result.error(reason.toString)
       catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
 
 
   override def +=[M <: HLModel](model: M): Unit =
     val creator = createEC(model)
+//    if !transactionQueue.contains(creator) then
     transactionQueue.add(creator)
 
 
+    checkAndSave()
+
+  override def ++=[M <: HLModel](models: Seq[M]): Unit =
+    transactionQueue.addAll(models.map(createEC).asJavaCollection)
+    checkAndSave(models.size)
+
+  def findItsaIdBySerialNumber(serial: String): Option[String] =
+    db match
+      case Some(database) =>
+        database.findItsaIdBySerialNumber(serial)
+      case None =>
+        None
+  
+  private def checkAndSave[M <: HLModel](minAmountOfTransactions: Int = minAmountOfTransactions): Unit =
     def checkForDuplicateDrives(): Iterable[String] =
       transactionQueue.asScala
         .filter(c => c.isInstanceOf[DiskCreator])
@@ -59,7 +85,7 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
           if db.isDefined then
             if db.get.doesDriveExists(drive) then
               drive.serial
-            else 
+            else
               ""
           else
             ""
@@ -67,27 +93,28 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
 
     end checkForDuplicateDrives
 
-    if transactionQueue.size() >= minQueueSize then
+    if transactionQueue.size() >= minAmountOfTransactions then
       val duplicateDrives = checkForDuplicateDrives()
-        if duplicateDrives.headOption.getOrElse("") ne "" then
-          sendDuplicateDriveNotification(duplicateDrives.head)
-        else if duplicateDrives.isEmpty then
-          save()
-
-
-
+      if duplicateDrives.headOption.getOrElse("") ne "" then
+        sendDuplicateDriveNotification(duplicateDrives.head)
+      else// if duplicateDrives.contains("") then
+        save()
 
   private def save[M <: HLModel](): Unit =
-    supervised:
-      fork:
-        while transactionQueue.size() > 0 do
-          val c = transactionQueue.remove()
-          db.get.insertOrUpdate(c)
-      .join()
+    @tailrec
+    def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
+      if transactionQueue.size() < 0 then
+        return functions.getOrElse(Seq())
+      val creator = transactionQueue.poll()
+      if creator == null then
+        functions
+      else
+        generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
+    
+    HLTaskRunner("Saving to Database", generateTaskFunctions()*)(t => DatabaseTransactionTask(t)): () =>
+      if transactionQueue.size() < 1 then
+        sendDBSuccessNotification()
 
-    if transactionQueue.size() < 1 then
-      sendDBSuccessNotification()
-    println("Updated database.")
 
 
   override def stop(): Unit = ()

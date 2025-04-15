@@ -1,9 +1,12 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
+import org.itsadigitaltrust.common.Operators.in
+import org.itsadigitaltrust.common.Result
 
 import scala.annotation.tailrec
 import scala.compiletime.uninitialized
 import scala.util.boundary
+
 
 private type Location = Int
 
@@ -29,11 +32,18 @@ private class Chars(val input: String):
 
 end Chars
 
-class IDScanner(input: String):
+class IDScanner(input: String, hdMode: Boolean = false):
 
   import IDScanner.*
 
-  private var chars = Chars(input)
+  private final val pcPrefixLetters = Seq('k', 'l')
+  private final val hdPrefixLetters = pcPrefixLetters :+ 'h'
+  private lazy val prefixLetters = if hdMode then hdPrefixLetters else pcPrefixLetters
+
+
+  type ![T] = boundary.Label[IDScannerResult] ?=> T
+
+  private val chars = Chars(input)
   private var nextToken: IDScannerResult = uninitialized
 
   def peek(): IDScannerResult =
@@ -52,20 +62,26 @@ class IDScanner(input: String):
       if chars.atEnd then
         Token.End
       else chars.peek() match
-        case c: Char if c.isLetter => readLetter(Token.Letter)
+        case c: Char if c.isLetter =>
+          if location == 0 && !prefixLetters.contains(c.toLower) then
+            error(s"Invalid character $c")
+          else
+            readLetter(Token.Letter.apply)
         case c if c.isDigit => readNumber()
         case c if c == '.' => accept('.', Token.DecimalPoint)
         case c => error(s"Unknown character: $c!")
+      end if
+  end readToken
 
 
-  private def readLetter(token: String => Token)(using boundary.Label[IDScannerResult]): Token =
+  private def readLetter(token: String => Token): ![Token] =
     token(s"${readLetter()}")
 
 
-  private def readLetter()(using boundary.Label[IDScannerResult]): Char =
+  private def readLetter(): ![Char] =
     nextCharOrError()
 
-  private def readNumber()(using boundary.Label[IDScannerResult]): Token =
+  private def readNumber(): ![Token] =
     @tailrec
     def loop(number: String): String =
       if !chars.atEnd && chars.peek().isDigit then
@@ -73,21 +89,24 @@ class IDScanner(input: String):
       else
         number
 
+
     Token.Number(loop(""))
   //        acceptUntil(Token.Number.apply)(_.isDigit)
 
 
-  private def accept(char: Char, token: Token)(using boundary.Label[IDScannerResult]): Token =
+  private def location: Location = chars.location
+
+  private def accept(char: Char, token: Token): ![Token] =
     nextCharOrError() match
       case `char` => token
       case next => error(s"Unexpected character: got ${chars.peek()}, but got $next")
 
-  private def nextCharOrError()(using boundary.Label[IDScannerResult]): Char =
+  private def nextCharOrError(): ![Char] =
     if chars.atEnd then error("Unexpected end!")
     else chars.nextChar()
 
 
-  private def error(msg: String)(using boundary.Label[IDScannerResult]): Nothing =
+  private def error(msg: String): ![Nothing] =
     boundary.break(Token.Error(msg, chars.location))
 end IDScanner
 
@@ -104,21 +123,26 @@ object IDScanner:
 end IDScanner
 
 
-class IDParser:
+final class IDParser:
 
   import IDParser.*
-  import IDScanner.*
   import IDScanner.Token.*
+  import IDScanner.*
 
-  def parse(input: String): ParserResult =
-    boundary:
-      val scanner = new IDScanner(input)
+  type ![T] = Result.Continuation[ParsedResult, ParserError] ?=> T
+
+  def parse(input: String, hardDriveMode: Boolean = false): ParserResult =
+    Result:
+      val scanner = new IDScanner(input, hardDriveMode)
       val tokens = readTokens(scanner)
       handleTokens(tokens)
 
 
+  given [T]: Conversion[ParserError, ![Nothing]] with
+    override def apply(x: ParserError): ![Nothing] = error(x)
+
   @tailrec
-  private def handleTokens(tokens: Seq[Token], index: Int = 0, result: ParsedResult = ParsedResult())(using boundary.Label[ParserResult]): ParserResult =
+  private def handleTokens(tokens: Seq[Token], index: Int = 0, result: ParsedResult = ParsedResult()): ![ParsedResult] =
 
     if index == tokens.length then
       return result
@@ -128,15 +152,15 @@ class IDParser:
       token match
         case Token.Letter(value) => handleTokens(tokens, index + 1, ParsedResult(Some(value), result.number, result.decimal, result.checkDigit, result.suffix))
         case Token.Number(value) => handleTokens(tokens, index + 1, ParsedResult(result.prefix, Some(value), result.decimal, result.checkDigit, result.suffix))
-        case Token.DecimalPoint => ParserError.MissingNumber
+        case Token.DecimalPoint => error(ParserError.MissingNumber)
         case Token.End => result
-        case error@Token.Error(msg, at) => Left(error)
+        case error@Token.Error(msg, at) => this.error(error)
     else
       token match
         case Token.Letter(value) if index == tokens.length - 1 =>
           handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number,
             result.decimal, result.checkDigit, Some(value)))
-        case Token.Letter(value) => ParserError.InvalidCharacter("number or a decimal point", value)
+        case Token.Letter(value) => error(ParserError.InvalidCharacter("number or a decimal point", value))
         case Token.Number(value) =>
           if result.number.isEmpty then
             handleTokens(tokens, index + 1, ParsedResult(result.prefix, Some(value), result.decimal, result.checkDigit, result.suffix))
@@ -145,18 +169,18 @@ class IDParser:
 
         case Token.DecimalPoint =>
           if index < 2 && result.number.isEmpty then
-            ParserError.MissingNumber
+            error(ParserError.MissingNumber)
           else if result.decimal.isDefined then
-            ParserError.TooManyDecimalPoints
+            error(ParserError.TooManyDecimalPoints)
           else
             handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number, Some("."), result.checkDigit, result.suffix))
 
         case Token.End => result
-        case error@Token.Error(msg, at) => Left(error)
+        case error@Token.Error(msg, at) => this.error(error)
   end handleTokens
 
 
-  private def readTokens(scanner: IDScanner)(using boundary.Label[ParserResult]): Seq[Token] =
+  private def readTokens(scanner: IDScanner): ![Seq[Token]] =
     @tailrec
     def loop(tokens: Seq[Token] = Seq.empty): Seq[Token] =
       scanner.next() match
@@ -168,14 +192,14 @@ class IDParser:
     loop()
   end readTokens
 
-  private def error(error: ParserError)(using boundary.Label[ParserResult]): Nothing =
-    boundary.break(Left(error))
+  private def error(error: ParserError): ![Nothing] =
+    Result.error(error)
 
 
 object IDParser:
   final case class ParsedResult(prefix: Option[String] = None, number: Option[String] = None, decimal: Option[String] = None, checkDigit: Option[String] = None, suffix: Option[String] = None)
 
-  private type ParserResult = Either[ParserError, ParsedResult]
+  type ParserResult = Result[ParsedResult, ParserError]
 
   enum ParserError:
     case TooManyLetters
@@ -201,16 +225,22 @@ object IDParser:
         case ScannerError(msg, at) => s"Scanner error: $msg at location $at."
   end ParserError
 
-  given Conversion[ParserError, ParserResult] with
-    override def apply(x: ParserError): ParserResult = Left(x)
+  given [T]: Conversion[ParserError, ParserResult] with
+    override def apply(x: ParserError): ParserResult =
+      Result:
+        Result.error(x)
 
   given Conversion[IDScanner.Token.Error, ParserError] with
-    override def apply(x: IDScanner.Token.Error): ParserError = ParserError.ScannerError(x.msg, x.at)
+    override def apply(x: IDScanner.Token.Error): ParserError =
+      ParserError.ScannerError(x.msg, x.at)
 
-  given Conversion[ParsedResult, ParserResult] with
-    def apply(x: ParsedResult): ParserResult = Right(x)
+  given [E]: Conversion[ParsedResult, ParserResult] with
+    def apply(x: ParsedResult): ParserResult =
+      Result:
+        Result.success(x)
 
-  def apply(input: String): ParserResult =
+
+  def apply(input: String, hardDriveMode: Boolean = false): ParserResult =
     val parser = new IDParser
-    parser.parse(input)
+    parser.parse(input, hardDriveMode)
 end IDParser
