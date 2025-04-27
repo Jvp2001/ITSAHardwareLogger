@@ -2,23 +2,23 @@ package org.itsadigitaltrust.hardwarelogger.backend.entities
 
 import com.augustnagro.magnum.*
 
-@Table(MySqlDbType, SqlNameMapper.CamelToSnakeCase)
+@Table(MySqlDbType)
 @SqlName("disks")
 final case class Disk(
                        @Id id: Long,
-                       itsaid: String,
+                       @SqlName("itsaid") itsaID: String,
                        model: String,
                        @SqlName("capicty") capacity: String,
                        serial: String,
                        `type`: String,
-                       @SqlName("descr") description: String,
+                       @SqlName("description") description: String,
                      ) extends HLEntityWithItsaID derives DbCodec
 
 final case class DiskCreator(
-                              itsaid: String,
+                              @SqlName("itsaid") itsaID: String,
                               model: String,
                               @SqlName("capicty") capacity: String,
                               serial: String,
                               `type`: String,
-                              @SqlName("descr") description: String,
+                              @SqlName("description") description: String,
                             ) extends HLEntityCreatorWithItsaID derives DbCodec

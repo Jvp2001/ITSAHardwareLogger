@@ -14,7 +14,7 @@ import scalafx.scene.Cursor
 class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T]) extends TableView[T]:
   var rowDelegate: Option[TableRowDelegate[T]] = None
   var showHandCursorOnHover: Boolean = false
-  
+  val reordableColumns: Boolean = false
   private class TableTabRow[R](
                         var rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
 
@@ -91,7 +91,7 @@ class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewMo
                       cellValueFactory: T => ObservableValue[P, P]
                     ): Unit =
     column.editable = false
-    column.setReorderable(true)
+    column.setReorderable(reordableColumns)
     column.text = name
     column.minWidth = minWidth
     column.sortable = false

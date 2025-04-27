@@ -6,8 +6,6 @@ import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.batch.{BatchRunnerWithProgress, ItemTask}
 import scalafx.application.Platform
 
-//TODO:  Make this work as the hardware is not getting grabbed.
-//TODO: Also, add an argument list that takes a function that will be called once the task is done.
 object HLTaskRunner extends ServicesModule:
   def run[T[_] <: ItemTask[?], U](title: String, args: (() => U)*)(ctor: (() => U) => T[U])(finished: () => Unit = () => ()): Unit =
     val busyWorker = new BusyWorker(title, Seq())

@@ -38,7 +38,7 @@ class HDSentinelReaderTests extends AnyFunSuite:
   </HDSentinel>
   test("Get XML output"):
     val reader = if System.getProperty("os.name").toLowerCase.contains("linux") then
-      HDSentinelReader("password", XMLFile("report.xml"))
+      HDSentinelReader("password")
     else
       HDSentinelReader(xml)
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
@@ -53,7 +53,7 @@ class HDSentinelReaderTests extends AnyFunSuite:
         HardDriveConnectionType.SATA
       else
         HardDriveConnectionType.NVME,
-      `type` = true
+      `type` = "SSD"
     )
     assert(driveModel ne null)
 

@@ -6,9 +6,11 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.boundary
 import com.augustnagro.magnum.*
-import org.itsadigitaltrust.hardwarelogger.backend.entities.Wiping
+import org.itsadigitaltrust.hardwarelogger.backend.entities.{Info, Wiping}
 
 
-class DBConnectionTests extends AnyFunSuite
+class DBTests extends AnyFunSuite:
+  case class HardwareInfo(info: Info, wiping: Wiping)
+  def getHardwareData: Unit = ()
 
 

@@ -8,5 +8,6 @@ object backend:
   export repos.*
   export tables.given
   export tables.*
+  export types.*
   export org.itsadigitaltrust.hardwarelogger.backend.{HLDatabase, DataStoreLoader}
   type Fragment = Frag

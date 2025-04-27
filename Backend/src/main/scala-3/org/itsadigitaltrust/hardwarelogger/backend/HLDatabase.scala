@@ -6,11 +6,15 @@ import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
 import common.*
 import org.itsadigitaltrust.hardwarelogger.backend.backend.*
+import org.itsadigitaltrust.hardwarelogger.backend.entities.{Wiping, WipingCreator}
 
 import java.net.URL
 import java.sql.{PreparedStatement, ResultSet, SQLException}
 import scala.compiletime.{summonInline, uninitialized}
 import scala.concurrent.Future
+import scala.reflect
+import scala.reflect.{ClassTag, classTag}
+
 
 class HLDatabase private(dataSource: DataSource):
 
@@ -20,85 +24,139 @@ class HLDatabase private(dataSource: DataSource):
   private val connection: DataSource = dataSource
 
 
-  def getTableInfo[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](ec: EC): HLTableInfo[EC, E] =
-    val result = ec.getClass match
-      case c if c == classOf[MemoryCreator] => tables.MemoryTable
-      case c if c == classOf[MediaCreator] => tables.MediaTable
-      case c if c == classOf[DiskCreator] => tables.DiskTable
-      case c if c == classOf[InfoCreator] => tables.InfoTable
+  def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
+    val result = summon[ClassTag[EC]] match
+      case c if c == classTag[MemoryCreator] => tables.memoryTable
+      case c if c == classTag[MediaCreator] => tables.mediaTable
+      case c if c == classTag[DiskCreator] => tables.diskTable
+      case c if c == classTag[InfoCreator] => tables.infoTable
+      case c if c == classTag[WipingCreator] => tables.wipingTable
     result.asInstanceOf[HLTableInfo[EC, E]]
 
-  def getRepo[EC <: ItsaIDRepo, E <: HLEntityWithItsaID](ec: EC): HLRepo[EC, E] =
-    val result = ec.getClass match
-      case c if c == classOf[MemoryCreator] => repos.MemoryRepo
-      case c if c == classOf[MediaCreator] => repos.MediaRepo
-      case c if c == classOf[DiskCreator] => repos.DiskRepo
-      case c if c == classOf[InfoCreator] => repos.InfoRepo
 
+  def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): HLRepo[EC, E] =
+    val result = creator.getClass match
+      case c if c == classOf[MemoryCreator] => repos.memoryRepo
+      case c if c == classOf[MediaCreator] => repos.mediaRepo
+      case c if c == classOf[DiskCreator] => repos.diskRepo
+      case c if c == classOf[InfoCreator] => repos.infoRepo
+      case c if c == classOf[WipingCreator] => repos.wipingRepo
     result.asInstanceOf[HLRepo[EC, E]]
+  end getRepo
+
+  def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLRepo[EC, E] =
+    val result = summon[ClassTag[EC]]match
+      case c if c == classTag[MemoryCreator] => repos.memoryRepo
+      case c if c == classTag[MediaCreator] => repos.mediaRepo
+      case c if c == classTag[DiskCreator] => repos.diskRepo
+      case c if c == classTag[InfoCreator] => repos.infoRepo
+      case c if c == classTag[WipingCreator] => repos.wipingRepo
+    result.asInstanceOf[HLRepo[EC, E]]
+  end getRepo
 
 
-  given DbCodec[Memory] = DbCodec.derived
-
-  given DbCodec[Info] = DbCodec.derived
-
-  given DbCodec[Disk] = DbCodec.derived
-
-  given DbCodec[Media] = DbCodec.derived
 
 
-  type EntityDbCodec[EC <: HLEntityCreatorWithItsaID] = EC match
-    case MemoryCreator => DbCodec[Memory]
-    case InfoCreator => DbCodec[Info]
-    case DiskCreator => DbCodec[Disk]
-    case MediaCreator => DbCodec[Media]
+  private def getClassTagForEntityTypeEC[EC <: ItsaEC : ClassTag]: ClassTag[EntityFromEC[EC]] =
+    val result = summon[ClassTag[EC]].getClass match
+      case c if c == classOf[Memory] => summon[ClassTag[Memory]]
+      case c if c == classOf[Media] => summon[ClassTag[Media]]
+      case c if c == classOf[Disk] => summon[ClassTag[Disk]]
+      case c if c == classOf[Info] => summon[ClassTag[Info]]
+      case c if c == classOf[Wiping] => summon[ClassTag[Wiping]]
+    result.asInstanceOf[ClassTag[EntityFromEC[EC]]]
+  end getClassTagForEntityTypeEC
 
-  //  type DbCodecFromTuple[T : Tuple] =
-  //    T match
-  //      case t *: u *: EmptyTuple => t
+  private def getDbCodec[EC <: ItsaEC : ClassTag] =
+    val result = summon[ClassTag[EC]] match
+      case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
+      case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
+      case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
+      case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
+      case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
+      case c  if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
 
-  def getCreatorDbCodec[EC <: HLEntityCreatorWithItsaID](creator: EC): DbCodec[MemoryCreator] | DbCodec[InfoCreator] | DbCodec[DiskCreator] | DbCodec[MediaCreator] =
-    creator match
-      case _: MemoryCreator => summon[DbCodec[MemoryCreator]]
-      case _: InfoCreator => summon[DbCodec[InfoCreator]]
-      case _: DiskCreator => summon[DbCodec[DiskCreator]]
-      case _: MediaCreator => summon[DbCodec[MediaCreator]]
+    result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
+  end getDbCodec
 
 
-  def getDbCodec[EC <: HLEntityCreatorWithItsaID](creator: EC): DbCodec[HLEntity] = //DbCodec[Memory] | DbCodec[Info] | DbCodec[Disk] | DbCodec[Media] =
-    val result = creator match
-      case _: MemoryCreator => summon[DbCodec[Memory]]
-      case _: InfoCreator => summon[DbCodec[Info]]
-      case _: DiskCreator => summon[DbCodec[Disk]]
-      case _: MediaCreator => summon[DbCodec[Media]]
-    result.asInstanceOf[DbCodec[HLEntity]]
 
   def findItsaIdBySerialNumber(serial: String): Option[String] =
     val transaction = Transactor(connection)
     transact(transaction):
-      val result = repos.InfoRepo.findItsaIdBySerialNumber(serial)
+      val result = repos.infoRepo.findItsaIdBySerialNumber(serial)
       result
 
-  def insertOrUpdate[EC <: HLEntityCreatorWithItsaID, E <: HLEntityWithItsaID](creator: EC): Unit =
-    val repo = getRepo(creator)
-
-    given table: TableInfo[EC, ?, Long] = getTableInfo(creator)
+  def insertOrUpdate[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): Unit =
+    val repo = getRepo[EC, E](creator)
+    given table: HLTableInfo[EC, E] = getTableInfo[EC, E]
     val transaction = Transactor(connection)
-
-
     transact(transaction):
-      repo.insertOrUpdate(creator)
+      repo.insertOrUpdate(creator)(using summon[DbCon])
 
   def doesDriveExists(creator: DiskCreator): Boolean =
     val transaction = Transactor(connection)
-    given table: TableInfo[DiskCreator, Disk, Long] = tables.DiskTable
-    connect(connection):
-      repos.DiskRepo.sameDriveWithSerialNumber(creator.serial) match
+    given table: HLTableInfo[DiskCreator, Disk] = tables.diskTable
+    transact(transaction):
+      repos.diskRepo.sameDriveWithSerialNumber(creator.serial) match
         case Nil => false
         case _ => true
 
 
+  def findAllByIdStartingWith[EC <: ItsaEC : ClassTag ](id: String): Seq[EntityFromEC[EC]] =
+    val transaction = Transactor(connection)
+    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
+    transact(transaction):
+      getRepo[EC, EntityFromEC[EC]].findAllByIdsStartingWith(id)(using summon[DbCon], getDbCodec)
 
+
+
+  def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
+    val transaction = Transactor(connection)
+    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
+    given dbCodec: DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
+    transact(transaction):
+      val nonErrorRows:Seq[HLEntity] = getRepo.findAllByID(id)(using summon[DbCon], dbCodec)
+      val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)(using summon[DbCon], dbCodec)
+      val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
+      if numberOfErrorRows > 0 then
+        val errorIndices = Range(numberOfErrorRows, allRows.size+1)
+        val newIDs = errorIndices.map: index =>
+          s"$id-E$index"
+        val oldToNew =  nonErrorRows.map(_.id).zip(newIDs)
+        oldToNew.foreach: item =>
+          getRepo.replaceIDByPrimaryKey(item._1, item._2)
+  end markAllRowsWithIDAsError
+
+  def findWipingRecord(serial: String) : Option[Wiping] =
+    val transaction = Transactor(connection)
+    given table: HLTableInfo[WipingCreator, Wiping] = tables.wipingTable
+    given wipingCreatorCT: ClassTag[WipingCreator] = classTag[WipingCreator]
+    transact(transaction):
+      repos.wipingRepo.findWipingRecord(serial)(using summon[DbCon])(using table)
+  end findWipingRecord
+
+  /**
+   * This method will only replace the ID in the database, not in the entity itself, if there is an entity with the old ID.
+   *
+   * @param old   The old ID to be replaced
+   * @param `new` The new ID to replace the old one
+   * @tparam EC The type of the entity creator
+   */
+
+  def replaceAllRowsWithID[EC <: ItsaEC : ClassTag](old: String, `new`: String): Unit =
+    val transaction = Transactor(connection)
+    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
+    transact(transaction):
+      getRepo.replaceIdWith(old, `new`)(using summon[DbCon])
+
+  def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
+    val transaction = Transactor(connection)
+    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
+    transact(transaction):
+      getRepo.findAllByID(id)(using summon[DbCon], getDbCodec).headOption
+
+end HLDatabase
 object HLDatabase:
   enum Error:
     case LoaderError(error: DataStoreLoader.Error)

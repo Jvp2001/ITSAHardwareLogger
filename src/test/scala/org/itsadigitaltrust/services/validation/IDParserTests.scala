@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.services.validation
 
+import org.itsadigitaltrust.common.{Success, Error}
 import org.itsadigitaltrust.hardwarelogger.services.IDParser
 import org.itsadigitaltrust.hardwarelogger.services.IDParser.{ParsedResult, ParserError}
 import org.scalatest.funsuite.AnyFunSuite
@@ -34,8 +35,7 @@ class IDParserTests extends AnyFunSuite:
   test("Invalid ID with invalid character"):
     val result = IDParser("H82437.1@")
     result match
-      case Left(value) =>
+      case Success(value) =>
         assert(value.isInstanceOf[ParserError.ScannerError])
-
-      case Right(value) => assert(false)
+      case Error(value) => assert(false)
     

@@ -4,25 +4,25 @@ import com.augustnagro.magnum.{DbCodec, Id, MySqlDbType, SqlName, SqlNameMapper,
 
 import java.time.OffsetDateTime
 
-@Table(MySqlDbType, SqlNameMapper.CamelToSnakeCase)
+@Table(MySqlDbType)
 @SqlName("wiping")
 final case class Wiping(
-                         @Id int: Long,
-                         @SqlName("hdd_id") hddId: String,
+                         @SqlName("int") @Id id: Long,
+                         @SqlName("hdd_id") hddID: String,
                          serial: String,
                          model: String,
                          @SqlName("insertiondate") insertionDate: OffsetDateTime,
                          @SqlName("capicty") capacity: Option[String],
                          `type`: Option[String],
-                         @SqlName("descr") description: Option[String],
+                         @SqlName("description") description: Option[String],
                          health: Byte,
                          @SqlName("to_update") toUpdate: Boolean,
                          @SqlName("is_ssd") isSsd: Boolean,
                          @SqlName("form_factor") formFactor: Option[String]
-                       ) extends HLEntity derives DbCodec
+                       ) extends HLEntityWithHardDiskID derives DbCodec
 
 final case class WipingCreator(
-                                hddId: String,
+                               @SqlName("hdd_id") hddID: String,
                                 serial: String,
                                 model: String,
                                 insertionDate: OffsetDateTime,
@@ -33,6 +33,6 @@ final case class WipingCreator(
                                 toUpdate: Boolean = true,
                                 isSsd: Boolean = false,
                                 formFactor: Option[String] = None
-                              ) extends HLEntity derives DbCodec
+                              ) extends HLEntityCreatorWithHardDiskID derives DbCodec
 
 

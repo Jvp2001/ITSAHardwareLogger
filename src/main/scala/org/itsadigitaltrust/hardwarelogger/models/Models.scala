@@ -15,7 +15,7 @@ final case class GeneralInfoModel(
                                    vendor: String,
                                    serial: String,
                                    os: String,
-                                   itsaId: Option[String] = None,
+                                   itsaID: Option[String] = None,
                                  ) extends HLModel:
 
 
@@ -29,7 +29,7 @@ final case class HardDriveModel(
                                  model: String,
                                  serial: String,
                                  connectionType: HardDriveConnectionType,
-                                 id: String = "NOT LOGGED",
+                                 itsaID: String = "NOT LOGGED",
                                  `type`: "SSD" | "HHD" | "HDD" = "SSD",
                                  description: String = "",
                                  actions: String = "No actions needed.",

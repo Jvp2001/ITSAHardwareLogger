@@ -1,9 +1,18 @@
 package org.itsadigitaltrust.hardwarelogger.backend.entities
 
-import com.augustnagro.magnum.{DbCodec, Id}
-trait HLEntity
+import com.augustnagro.magnum.Id
+
+
+sealed trait HLEntity:
+  @Id val id: Long
 trait HLEntityWithItsaID extends HLEntity:
-  val itsaid: String
-trait HLEntityCreator
+  val itsaID: String
+trait HLEntityWithHardDiskID extends HLEntity:
+  val hddID: String
+
+sealed trait HLEntityCreator
 trait HLEntityCreatorWithItsaID extends HLEntityCreator:
-  val itsaid: String
+  val itsaID: String
+
+trait HLEntityCreatorWithHardDiskID extends HLEntityCreator:
+  val hddID: String

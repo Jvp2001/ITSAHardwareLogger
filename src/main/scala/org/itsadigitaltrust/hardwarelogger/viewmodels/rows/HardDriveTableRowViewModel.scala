@@ -30,7 +30,7 @@ final case class HardDriveTableRowViewModel(model: HardDriveModel) extends Table
     wrapper.field("type", _.connectionType, HardDriveConnectionType.SATA)(ObjectProperty.apply)
 
   def idProperty: StringProperty =
-    wrapper.field("id", _.id, "NOT LOGGED")(StringProperty.apply)
+    wrapper.field("id", _.itsaID, "NOT LOGGED")(StringProperty.apply)
 
   def driveTypeProperty: StringProperty =
     wrapper.field("isSSD", _.`type`, "SSD")(StringProperty.apply)

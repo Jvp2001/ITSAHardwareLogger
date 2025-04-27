@@ -1,79 +1,116 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
 import com.augustnagro.magnum.*
-import entities.*
-import entities.given
-import org.itsadigitaltrust.hardwarelogger.backend.repos.HLRepo
-import scala.languageFeature.{dynamics, reflectiveCalls}
+import org.itsadigitaltrust.common.Operators.in
+import org.itsadigitaltrust.hardwarelogger.backend.entities.*
+import org.itsadigitaltrust.hardwarelogger.backend.tables.HLTableInfo
+import org.itsadigitaltrust.hardwarelogger.backend.types.{EntityFromEC, ItsaEC}
+
 import java.sql.Timestamp
 import java.time.OffsetDateTime
+import scala.reflect.{ClassTag, classTag}
 
-object repos:
-  class HLRepo[EC, E](using default: RepoDefaults[EC, E, Long]) extends Repo[EC, E, Long]:
-    private def getValues(creator: EC): String = creator match
-      case c: MemoryCreator => s"(${c.descr}, ${c.itsaid}, ${c.size})"
-      case c: MediaCreator => s"(${c.descr}, ${c.itsaid}, ${c.handle})"
-      case c: DiskCreator => s"(${c.capacity}, ${c.description}, ${c.itsaid}, ${c.model}, ${c.serial}, ${c.`type`})"
-      case c: InfoCreator => s"""(${c.cpuCores}, ${c.cpuDescription}, ${c.cpuProduct},
-                                |${c.cpuSerial}, ${c.cpuSpeed}, ${c.cpuVendor}, ${c.cpuWidth}, ${c.genDesc}, ${c.genId}, ${c.genProduct},
-                                | ${c.genSerial}, ${c.genVendor}, ${c.insertionDate}, ${c.itsaid}, ${c.lastUpdated},
-                                | ${c.os}, ${c.totalMemory})""".stripMargin
-    end getValues
+extension [EC, E, ID](table: TableInfo[EC, E, ID])
+  def hasColumn(scalaName: String): Boolean =
+    table.all.columnNames.exists(_.scalaName == scalaName)
 
-    def insertOrUpdate(creator: EC)(using DbCon)(using table: TableInfo[EC, ?, Long]): Unit =
+type ECTableInfo[EC <: ItsaEC] = TableInfo[EC, EntityFromEC[EC], Long]
+
+private[backend] object repos:
+  type HLRepo[EC, E] = Repo[EC, E, Long]
+  inline def HLRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](using RepoDefaults[EC, E, Long]): HLRepo[EC, E] = Repo[EC, E, Long]
+
+  extension [EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](repo: HLRepo[EC, E])
+
+    /**
+     * Returns the name of the scala field that corresponds to the ITSA ID column in the database.
+     * @param table The table that is being queried.
+     * @return "itsaID" if the table has a column named "itsaID", otherwise "hddID".
+     */
+    private def idScalaName(using table: HLTableInfo[EC, E]): "itsaID" | "hddID" =
+      if table.hasColumn("itsaID") then "itsaID" else "hddID"
+
+    private[backend] def findAllByID(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
+      sql"select * from $table where ${table.selectDynamic(idScalaName)} = $id".query.run()
+
+    private[backend] def findAllByIdsStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
+      val itsaIDColumnName = if classTag[EC].runtimeClass == classOf[WipingCreator] then "hdd_id" else "itsaid"
+      val likeId = s"'$id%'"
+      val sqlString = s"where $itsaIDColumnName like $likeId"
+      val frag = sql"select * from $table where ${table.selectDynamic(itsaIDColumnName)}"
+      frag.query.run()
+
+    private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
+      val scalaName = (idScalaName, old)
+      val frag =
+        sql"""update $table set ${table.selectDynamic(scalaName._1)} = ${`new`}
+             where ${table.selectDynamic(scalaName._1)} = $scalaName._2"""
+      frag.update.run()
+    end replaceIdWith
+
+    private def getPrimaryKeyColumnName: "int" | "id" =
+      if classOf[HLEntityWithHardDiskID] in classTag[EC].runtimeClass.getInterfaces then
+        "int"
+      else
+        "id"
+    end getPrimaryKeyColumnName
+
+    def replaceIDByPrimaryKey(key: Long, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
+      val frag =
+        sql"""update $table set ${table.selectDynamic(idScalaName)} = ${`new`}
+             where ${table.selectDynamic(getPrimaryKeyColumnName)} = $key"""
+      frag.update.run()
+    end replaceIDByPrimaryKey
+
+    def insertOrUpdate(creator: EC)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
       creator match
         case infoCreator: InfoCreator =>
-          println(infoCreator.itsaid)
-          sql"select itsaid from info where itsaid = ${infoCreator.itsaid}".query[String].run().headOption match
-            case Some(info) =>
+          println(infoCreator.itsaID)
+          sql"select itsaid from info where itsaid = ${infoCreator.itsaID}".query[String].run().headOption match
+            case Some(info) => ()
             //              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${creator.asInstanceOf[InfoCreator].itsaid}".update.run()
-            case None =>
-              insert(creator)
+            case None => repo.insert(creator)
+          end match
         case c: HLEntityCreatorWithItsaID =>
-          sql"select itsaid from $table where itsaid = ${c.itsaid}".query[String].run().headOption match
+          sql"select itsaid from $table where itsaid = ${c.itsaID}".query[String].run().headOption match
             case Some(info) => ()
             case None =>
-              insert(creator)
-    //      val value = sql"insert into ignore $table ${table.insertColumns} values ${getValues(creator)}"
-    //      value.update.run()
-
+              repo.insert(creator)
+          end match
+      end match
     end insertOrUpdate
 
+  end extension
 
-  given DiskRepo: HLRepo[DiskCreator, Disk] = HLRepo[DiskCreator, Disk]
+
+  given diskRepo: HLRepo[DiskCreator, Disk] = HLRepo[DiskCreator, Disk]
 
   given wipingRepo: HLRepo[WipingCreator, Wiping] = HLRepo[WipingCreator, Wiping]
 
-  given MediaRepo: HLRepo[MediaCreator, Media] = HLRepo[MediaCreator, Media]
+  given mediaRepo: HLRepo[MediaCreator, Media] = HLRepo[MediaCreator, Media]
 
-  given InfoRepo: HLRepo[InfoCreator, Info] = HLRepo[InfoCreator, Info]
+  given infoRepo: HLRepo[InfoCreator, Info] = HLRepo[InfoCreator, Info]
 
-  given MemoryRepo: HLRepo[MemoryCreator, Memory] = HLRepo[MemoryCreator, Memory]
+  given memoryRepo: HLRepo[MemoryCreator, Memory] = HLRepo[MemoryCreator, Memory]
 
-  private[backend] type ItsaIDRepo = MemoryCreator | DiskCreator | InfoCreator | MediaCreator | HLEntityCreatorWithItsaID
-  type ItsaEntityType[EC <: ItsaIDRepo] =
-    EC match
-      case MediaCreator => Media
-      case InfoCreator => Info
-      case MemoryCreator => Memory
-      case DiskCreator => Disk
-      case HLEntityCreatorWithItsaID => EC
 
   extension (repo: HLRepo[InfoCreator, Info])
-    def findItsaIdBySerialNumber(serial: String)(using DbCon)(using table: TableInfo[InfoCreator, Info, Long]): Option[String] =
+    def findItsaIdBySerialNumber(serial: String)(using DbCon)(using table: HLTableInfo[InfoCreator, Info]): Option[String] =
       val frag = sql"select itsaid from $table where ${table.selectDynamic("genSerial")} = $serial"
       frag.query[String].run().headOption
   end extension
 
   extension (repo: HLRepo[DiskCreator, Disk])
-    def sameDriveWithSerialNumber(serial: String)(using DbCon)(using table: TableInfo[DiskCreator, Disk, Long]): Seq[Disk] =
+    def sameDriveWithSerialNumber(serial: String)(using DbCon)(using table: HLTableInfo[DiskCreator, Disk]): Seq[Disk] =
       val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
       frag.query[Disk].run()
+  end extension
 
-  extension [EC <: ItsaIDRepo](r: EC)
-    def findAllByItsaId(id: String)(using DbCon)(using table: TableInfo[EC, ItsaEntityType[EC], Long])(using reader: DbCodec[ItsaEntityType[EC]]): Seq[ItsaEntityType[EC]] =
-      val frag = sql"select * from $table where ${table.selectDynamic("itsaid")} = $id"
-      frag.query[ItsaEntityType[EC]].run()
+  extension (repo: HLRepo[WipingCreator, Wiping])
+    private[backend] def findWipingRecord(serial: String)(using DbCon)(using table: HLTableInfo[WipingCreator, Wiping]): Option[Wiping] =
+      val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
+      frag.query[Wiping].run().headOption
+  end extension
 
 end repos
 

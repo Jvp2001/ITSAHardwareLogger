@@ -1,11 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-
-trait ServicesModule:
-  given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberApplicationService
-
+trait TestServicesModule:
+  given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberTestService
   given hardwareIDValidationService: HardwareIDValidationService = new SimpleHardwareIDValidationService
-
   given notificationCentre: NotificationCentre[NotificationChannel] = SimpleNotificationCentre
-
   given databaseService: HLDatabaseService = SimpleHLDatabaseService
+

@@ -13,3 +13,19 @@ extension (ds: DataSize)
 object DataSize:
   inline def apply(value: Long, unit: DataSizeUnit): DataSize =
     (value, unit)
+
+  def from(string: String): DataSize =
+    val parts = string.split(" ")
+    if (parts.length != 2) return DataSize(string.toLong, "GB")
+    val value = parts(0).toLong
+    val unit = parts(1) match
+      case "KB" => "KB"
+      case "MB" => "MB"
+      case "GB" => "GB"
+      case "TB" => "TB"
+      case "KiB" => "KiB"
+      case "MiB" => "MiB"
+      case "GiB" => "GiB"
+      case "TiB" => "TiB"
+      case _ => throw new IllegalArgumentException(s"Unknown DataSize unit: ${parts(1)}")
+    DataSize(value, unit.asInstanceOf[DataSizeUnit])

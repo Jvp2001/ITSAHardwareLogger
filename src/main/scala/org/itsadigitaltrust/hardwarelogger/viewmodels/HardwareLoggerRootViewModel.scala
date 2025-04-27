@@ -17,8 +17,6 @@ import scalafx.scene.control.Alert.AlertType.{Information, Warning}
 
 final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule with ProgramModeChangedDelegate:
 
-
-
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
   val idStringProperty: StringProperty = StringProperty("")
@@ -53,8 +51,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     if pcInfo.isEmpty then
       ()
     val info = pcInfo.get
-
-    val itsaId = info.itsaId match
+    val itsaId = info.itsaID match
       case Some(value) => value
       case None => ""
     idStringProperty.value = itsaId
@@ -65,13 +62,13 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   def save(): Unit =
     validateID(true)
-
     if idErrorStringProperty.isEmpty.get then
-      databaseService.itsaid = idStringProperty.get()
+      databaseService.itsaId = idStringProperty.get()
       notificationCentre.publish(Save)
+  end save
+
 
   def validateID(showAlert: Boolean = false): Unit =
-
     val currentID: String = Option(idStringProperty.get()).getOrElse("")
     if currentID == "" then
       idErrorStringProperty.set("ID cannot be empty!")
@@ -98,3 +95,5 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
   override def onProgramModeChanged(mode: ProgramMode): Unit =
   notificationCentre.publish(Reload)
   hardwareIDValidationService.validate(idStringProperty.get)
+
+end HardwareLoggerRootViewModel

@@ -14,10 +14,12 @@ import ox.{fork, supervised}
 
 import java.util.Base64
 import scala.jdk.CollectionConverters.*
+trait Loadable:
+  def load()(using notificationCentre: NotificationCentre[NotificationChannel]): Unit = ()
 
 
-object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule:
 
+trait OshiHardwareGrabberService extends HardwareGrabberService:
   import org.itsadigitaltrust.hardwarelogger.models.HardDriveConnectionType.*
 
   private val systemInfo = new SystemInfo
@@ -27,6 +29,8 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
 //    val password = Base64.getDecoder.decode("TWlycm9yc0VkZ2UxOTA2MDE=")
 //    Dmidecode(password.toString)
 //
+
+// serial number was this: S1CTNSAG440003
   private val xml = <Hard_Disk_Summary>
     <Hard_Disk_Number>0</Hard_Disk_Number>
     <Interface>S-ATA Gen3, 6 Gbps</Interface>
@@ -34,7 +38,7 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
     <Disk_Location>Channel 1, Target 0, Lun 0, Device: 0</Disk_Location>
     <Hard_Disk_Model_ID>SSD Model</Hard_Disk_Model_ID>
     <Firmware_Revision>1234567890</Firmware_Revision>
-    <Hard_Disk_Serial_Number>S1CTNSAG440003</Hard_Disk_Serial_Number>
+    <Hard_Disk_Serial_Number>S13TJ1CQ404992</Hard_Disk_Serial_Number>
     <SSD_Controller>SSD Controller</SSD_Controller>
     <Total_Size>12345 MB</Total_Size>
     <Power_State>Active</Power_State>
@@ -53,18 +57,15 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
   </Hard_Disk_Summary>
 
 
-  override def load(): Unit =
-    HLTaskRunner.run("Getting Hardware Information",
-      loadGeneralInfo, loadMemory, loadHardDrives, loadProcessors, loadMedia)(t => HardwareGrabberTask(t)): () =>
-        notificationCentre.publish(NotificationChannel.Reload)
 
+  protected def findItsaIdBySerialNumber(serial: String): Option[String]
   override def loadGeneralInfo(): Unit =
     val serialNumber = hal.getComputerSystem.getSerialNumber
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
-    val id = databaseService.findItsaIdBySerialNumber("HUB435096F").getOrElse("")
-    generalInfo = GeneralInfoModel("itsa-hwlogger", /*dmidecode.getKeywordValue("chassis-type")*/ "", model, vendor, /*serialNumber*/ "HUB435096F", os, itsaId = Some(id))
+    val id = findItsaIdBySerialNumber("HUB435096F").getOrElse("")
+    generalInfo = GeneralInfoModel("itsa-hwlogger", /*dmidecode.getKeywordValue("chassis-type")*/ "", model, vendor, /*serialNumber*/ "HUB435096F", os, itsaID = Some(id))
 
 
   override def loadHardDrives(): Unit =
@@ -128,3 +129,19 @@ object OshiHardwareGrabberService extends HardwareGrabberService, ServicesModule
   override def loadMedia(): Unit =
     ()
   
+end OshiHardwareGrabberService
+
+object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwareGrabberService:
+  override def findItsaIdBySerialNumber(serial: String): Option[String] =
+    databaseService.findByID[GeneralInfoModel](serial).map(_.itsaID.getOrElse(""))
+  override def load(): Unit =
+    HLTaskRunner("Getting Hardware Information",
+      loadGeneralInfo,
+      loadHardDrives,
+      loadMemory,
+      loadProcessors,
+      loadMedia
+    )(HardwareGrabberTask(_))()
+
+
+
