@@ -199,7 +199,7 @@ final class IDParser:
 object IDParser:
   final case class ParsedResult(prefix: Option[String] = None, number: Option[String] = None, decimal: Option[String] = None, checkDigit: Option[String] = None, suffix: Option[String] = None):
     override def toString: String =
-      s"${prefix.get}${number.get}${decimal ?? "."}${checkDigit ?? "0"}${suffix ?? ""}"
+      s"${prefix ?? ""}${number.get}${decimal ?? "."}${checkDigit ?? "0"}${suffix ?? ""}"
 
   type ParserResult = Result[ParsedResult, ParserError]
 

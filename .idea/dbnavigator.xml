@@ -57,6 +57,7 @@ select * from info where itsaid like '85977%';
 
 select * from itsahw.memory where itsaid like '85977'%;
 
+
 select * from memory;
 
 
