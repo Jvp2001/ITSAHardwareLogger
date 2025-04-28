@@ -9,6 +9,7 @@ import java.time.{Instant, OffsetDateTime}
  * DO NOT REORDER THE FIELDS IN EACH CLASS THAT IS MARKED WITH THE [[Table]] ANNOTATION. This will cause an [[java.sql.SQLDataException]] to be thrown.
  */
 @Table(MySqlDbType)
+@SqlName("info")
 final case class Info(
                        @Id id: Long,
                        @SqlName("genid") genId: String,

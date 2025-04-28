@@ -87,6 +87,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
                 case _ => idFieldFocusProperty.value = true
       case Success(value) =>
         idErrorStringProperty.value = ""
+        idStringProperty.value = value.toString
   end validateID
 
   def reload(): Unit =

@@ -31,13 +31,19 @@ private[backend] object repos:
       if table.hasColumn("itsaID") then "itsaID" else "hddID"
 
     private[backend] def findAllByID(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
-      sql"select * from $table where ${table.selectDynamic(idScalaName)} = $id".query.run()
+      val itsaIDFieldName = if classTag[EC].runtimeClass == classOf[WipingCreator] then
+        "hddID"
+      else
+        "itsaID"
+      val frag = sql"select * from $table where ${table.selectDynamic(itsaIDFieldName)} = '85977.0'"
+      val result  = frag.query.run()
+      result
+    end findAllByID
+
 
     private[backend] def findAllByIdsStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
-      val itsaIDColumnName = if classTag[EC].runtimeClass == classOf[WipingCreator] then "hdd_id" else "itsaid"
-      val likeId = s"'$id%'"
-      val sqlString = s"where $itsaIDColumnName like $likeId"
-      val frag = sql"select * from $table where ${table.selectDynamic(itsaIDColumnName)}"
+
+      val frag = sql"select * from $table where itsaid like '85977%'"
       frag.query.run()
 
     private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
@@ -68,15 +74,18 @@ private[backend] object repos:
           println(infoCreator.itsaID)
           sql"select itsaid from info where itsaid = ${infoCreator.itsaID}".query[String].run().headOption match
             case Some(info) => ()
-            //              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${creator.asInstanceOf[InfoCreator].itsaid}".update.run()
+                          sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${infoCreator.itsaID}".update.run()
             case None => repo.insert(creator)
           end match
         case c: HLEntityCreatorWithItsaID =>
-          sql"select itsaid from $table where itsaid = ${c.itsaID}".query[String].run().headOption match
+          val result = sql"select itsaid from $table where itsaid = ${c.itsaID}".query[String].run()
+          result.headOption match
             case Some(info) => ()
             case None =>
               repo.insert(creator)
           end match
+        case _: org.itsadigitaltrust.hardwarelogger.backend.entities.
+        HLEntityCreatorWithHardDiskID => ()
       end match
     end insertOrUpdate
 

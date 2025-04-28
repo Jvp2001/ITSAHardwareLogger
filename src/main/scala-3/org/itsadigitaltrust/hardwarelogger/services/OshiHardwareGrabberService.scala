@@ -19,7 +19,7 @@ trait Loadable:
 
 
 
-trait OshiHardwareGrabberService extends HardwareGrabberService:
+trait OshiHardwareGrabberService extends HardwareGrabberService with Loadable:
   import org.itsadigitaltrust.hardwarelogger.models.HardDriveConnectionType.*
 
   private val systemInfo = new SystemInfo

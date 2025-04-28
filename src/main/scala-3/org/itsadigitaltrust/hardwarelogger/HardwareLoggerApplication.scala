@@ -49,8 +49,8 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule:
         maximized = true
         title <==> titleProperty
         scene = new Scene(1020, 720):
-          root = new HardwareLoggerRootView:
-            menuBar.useSystemMenuBar =  true
+          root = new HardwareLoggerRootView
+//            menuBar.useSystemMenuBar =  true
           onKeyPressed = (event: KeyEvent) =>
             val code = event.code
             if code == KeyCode.F5 then

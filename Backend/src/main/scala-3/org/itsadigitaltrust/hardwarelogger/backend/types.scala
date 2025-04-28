@@ -15,7 +15,7 @@ object types:
       case MemoryCreator => Memory
       case DiskCreator => Disk
       case WipingCreator => Wiping
-      case HLEntityCreator => HLEntity
+      case HLEntityCreator | HLEntityWithItsaID => HLEntity
   type ECFromEntity[E <: ItsaEntity] =
     E match
       case Media => MediaCreator

@@ -22,8 +22,13 @@ trait TableRowViewModel[M](model: M) extends ViewModel with ServicesModule:
       val model = wrapper.model match
         case Some(value) => value
         case _ => return
-      databaseService += model.asInstanceOf[HLModel]
-    
+      end model
+    end if
+    databaseService += model.asInstanceOf[HLModel]
+  end save
+
+end TableRowViewModel
+
     
 
 

@@ -1,10 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.tasks
 
-import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, NotificationCentre, NotificationChannel, ServicesModule}
 import org.scalafx.extras.BusyWorker
 import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.batch.{BatchRunnerWithProgress, ItemTask}
 import scalafx.application.Platform
+
+trait TaskExecutor[T[_]]:
+  def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit
 
 object HLTaskRunner extends ServicesModule:
   def run[T[_] <: ItemTask[?], U](title: String, args: (() => U)*)(ctor: (() => U) => T[U])(finished: () => Unit = () => ()): Unit =

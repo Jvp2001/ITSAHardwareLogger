@@ -6,7 +6,7 @@ import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.types.*
 import org.itsadigitaltrust.hardwarelogger.backend.{DataStoreLoader, HLDatabase}
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.tasks.{DatabaseTransactionTask, HLTaskRunner}
+import org.itsadigitaltrust.hardwarelogger.tasks.{DatabaseTransactionTask, HLTaskRunner, HardwareLoggerTask, TaskExecutor}
 
 import java.sql.Timestamp
 import java.time.OffsetDateTime
@@ -30,16 +30,15 @@ trait HLDatabaseService:
 
   def findAllStartingWithID[M <: HLModel : ClassTag](id: String): Seq[M]
 
-  def +=[M <: HLModel : ClassTag](model: M): Unit
+  def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
-  def ++=[M <: HLModel : ClassTag](models: Seq[M]): Unit
+  def ++=[M <: HLModel : ClassTag](models: Seq[M])(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
   def stop(): Unit
 
 private type ModelECType[M <: HLModel] =
   M match
-    case GeneralInfoModel => InfoCreator
-    case ProcessorModel => InfoCreator
+    case ProcessorModel | GeneralInfoModel => InfoCreator
     case MemoryModel => MemoryCreator
     case HardDriveModel => DiskCreator
     case MediaModel => MediaCreator
@@ -53,23 +52,11 @@ private type ModelToECClassTag[M <: HLModel] =
     case HardDriveModel => ClassTag[DiskCreator]
     case MediaModel => ClassTag[MediaCreator]
 
+trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
+  protected var db: Option[HLDatabase] = None
+  protected val minAmountOfTransactions = 4
 
-object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
-
-
-  private var db: Option[HLDatabase] = None
-  private val minAmountOfTransactions = 4
-
-  private val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
-
-  notificationCentre.subscribe(NotificationChannel.ContinueWithDuplicateDrive): (key, _) =>
-    save()
-  notificationCentre.subscribe(NotificationChannel.FoundDuplicateRowsWithID): (key, _) =>
-    markAllRowsInDBAsError()
-    save()
-
-  notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
-    transactionQueue.clear()
+  protected val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
     Result:
@@ -84,16 +71,16 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
       catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
 
 
-  override def +=[M <: HLModel : ClassTag](model: M): Unit =
+  override def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     val creator = createEC(model)
     //    if !transactionQueue.contains(creator) then
     transactionQueue.add(creator)
 
     checkAndSave()
 
-  override def ++=[M <: HLModel : ClassTag](models: Seq[M]): Unit =
+  override def ++=[M <: HLModel : ClassTag](models: Seq[M])(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     transactionQueue.addAll(models.map(createEC).asJavaCollection)
-    checkAndSave(models.size)
+    checkAndSave()
 
   def findItsaIdBySerialNumber(serial: String): Option[String] =
     db match
@@ -102,11 +89,11 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
       case None =>
         None
 
-  given [T]: Conversion[T, Option[T]] with
-    override def apply(x: T): Option[T] = Some(x)
+  given [U]: Conversion[U, Option[U]] with
+    override def apply(x: U): Option[U] = Some(x)
 
 
-  private def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions): Unit =
+  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using notificationCentre: NotificationCentre[NotificationChannel])(using HardwareGrabberService): Unit =
     def checkForDuplicateDrives(): Iterable[String] =
       transactionQueue.asScala
         .filter(c => c.isInstanceOf[DiskCreator])
@@ -118,7 +105,8 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
             ""
     end checkForDuplicateDrives
 
-    def hasAnyDuplicateRows: Boolean = findAllStartingWithID[M](itsaId).nonEmpty
+    def hasAnyDuplicateRows: Boolean =
+      findAllStartingWithID[M](itsaId).nonEmpty
 
 
     if transactionQueue.size() >= minAmountOfTransactions then
@@ -127,25 +115,24 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
       else
         val duplicateDrives = checkForDuplicateDrives()
         if duplicateDrives.headOption.getOrElse("") ne "" then
-          sendDuplicateDriveNotification(duplicateDrives.head)
+          notificationCentre.publish(NotificationChannel.ShowDuplicateDriveWarning, duplicateDrives.head)
         else // if duplicateDrives.contains("") then
           save()
 
-  private def save[M <: HLModel](): Unit =
-    @tailrec
-    def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
-      if transactionQueue.size() < 0 then
-        return functions.getOrElse(Seq())
-      val creator = transactionQueue.poll()
-      if creator == null then
-        functions
-      else
-        generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
-
-    HLTaskRunner("Saving to Database", generateTaskFunctions() *)(t => DatabaseTransactionTask(t)): () =>
-      if transactionQueue.size() < 1 then
-        sendDBSuccessNotification()
+  protected def save[M <: HLModel]()(using NotificationCentre[NotificationChannel],  HardwareGrabberService): Unit =
+    executeTasks()
   end save
+
+  @tailrec
+  final protected def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
+    if transactionQueue.size() < 0 then
+      return functions.getOrElse(Seq())
+    val creator = transactionQueue.poll()
+    if creator == null then
+      functions
+    else
+      generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
+
 
   given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
     val result = classTag[M] match
@@ -167,7 +154,6 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
       db.?.markAllRowsWithIDAsError[DiskCreator](itsaId)
       db.?.markAllRowsWithIDAsError[MemoryCreator](itsaId)
       db.?.markAllRowsWithIDAsError[MediaCreator](itsaId)
-      db.?.markAllRowsWithIDAsError[ModelECType[ProcessorModel]](itsaId)
 
   override def markAllRowsWithIDAsError[M <: HLModel : ClassTag](id: String): Unit =
     optional:
@@ -188,17 +174,10 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
 
   override def stop(): Unit = ()
 
-
-  private def sendDBSuccessNotification(): Unit =
-    notificationCentre.publish(NotificationChannel.DBSuccess)
-
-  private def sendDuplicateDriveNotification(serial: String): Unit =
-    notificationCentre.publish(NotificationChannel.ShowDuplicateDriveWarning, serial)
-
-  private var processor: Option[ProcessorModel] = None
+  protected var processor: Option[ProcessorModel] = None
 
 
-  private def toModel[E <: ItsaEntity, M <: HLModel : ClassTag](entity: E): M =
+  protected def toModel[E <: ItsaEntity, M <: HLModel : ClassTag](entity: E): M =
     val model = entity match
       case info: Info if classTag[M] == classTag[ProcessorModel] =>
         ProcessorModel(
@@ -242,7 +221,7 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
   end toModel
 
 
-  private def createEC[M](model: M): HLEntityCreatorWithItsaID =
+  protected def createEC[M](model: M)(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
     model match
       case memory: MemoryModel => createMemory(memory)
       case hardDriveModel: HardDriveModel => createHardDrive(hardDriveModel)
@@ -254,13 +233,13 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
       case _ => scala.sys.error("Unknown Type!")
 
 
-  private def createMemory(memoryModel: MemoryModel): MemoryCreator =
+  protected def createMemory(memoryModel: MemoryModel): MemoryCreator =
     MemoryCreator(memoryModel.size.dbString, itsaId, memoryModel.description)
 
-  private def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
+  protected def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
     DiskCreator(itsaId, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.connectionType.toString, "ATA Disk")
 
-  private def createInfo(infoModel: GeneralInfoModel): InfoCreator =
+  protected def createInfo(infoModel: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): InfoCreator =
     val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum
     val processor = this.processor.getOrElse(hardwareGrabberService.processors.head)
     val creator = InfoCreator(cpuVendor = infoModel.vendor,
@@ -275,4 +254,35 @@ object SimpleHLDatabaseService extends HLDatabaseService, ServicesModule:
 
   private def createMedia(media: MediaModel): MediaCreator =
     MediaCreator(itsaId, media.description, media.handle)
+end CommonHLDatabase
+
+
+object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
+
+  def apply()(using notificationCentre: NotificationCentre[NotificationChannel])(using HardwareGrabberService): SimpleHLDatabaseService.type =
+
+    notificationCentre.subscribe(NotificationChannel.ContinueWithDuplicateDrive): (key, _) =>
+      save()
+
+    notificationCentre.subscribe(NotificationChannel.FoundDuplicateRowsWithID): (key, _) =>
+      markAllRowsInDBAsError()
+      save()
+
+    notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
+      transactionQueue.clear()
+    this
+  end apply
+
+  override def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit =
+
+    HLTaskRunner("Saving to Database", generateTaskFunctions() *)(t => DatabaseTransactionTask(t)): () =>
+      if transactionQueue.size() < 1 then
+        notificationCentre.publish(NotificationChannel.DBSuccess)
+
+  end executeTasks
+
 end SimpleHLDatabaseService
+
+
+
+

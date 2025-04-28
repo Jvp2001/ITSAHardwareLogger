@@ -23,9 +23,12 @@ class HLDatabase private(dataSource: DataSource):
 
   private val connection: DataSource = dataSource
 
+  private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
+  private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] =
+    getDbCodec[EC]
 
   def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
-    val result = summon[ClassTag[EC]] match
+    val result = classTag[EC] match
       case c if c == classTag[MemoryCreator] => tables.memoryTable
       case c if c == classTag[MediaCreator] => tables.mediaTable
       case c if c == classTag[DiskCreator] => tables.diskTable
@@ -89,14 +92,13 @@ class HLDatabase private(dataSource: DataSource):
 
   def insertOrUpdate[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): Unit =
     val repo = getRepo[EC, E](creator)
-    given table: HLTableInfo[EC, E] = getTableInfo[EC, E]
     val transaction = Transactor(connection)
+    given t: HLTableInfo[EC, E] = getTableInfo[EC, E]
     transact(transaction):
       repo.insertOrUpdate(creator)(using summon[DbCon])
 
   def doesDriveExists(creator: DiskCreator): Boolean =
     val transaction = Transactor(connection)
-    given table: HLTableInfo[DiskCreator, Disk] = tables.diskTable
     transact(transaction):
       repos.diskRepo.sameDriveWithSerialNumber(creator.serial) match
         case Nil => false
@@ -105,24 +107,22 @@ class HLDatabase private(dataSource: DataSource):
 
   def findAllByIdStartingWith[EC <: ItsaEC : ClassTag ](id: String): Seq[EntityFromEC[EC]] =
     val transaction = Transactor(connection)
-    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
     transact(transaction):
-      getRepo[EC, EntityFromEC[EC]].findAllByIdsStartingWith(id)(using summon[DbCon], getDbCodec)
+      getRepo[EC, EntityFromEC[EC]].findAllByIdsStartingWith(id)
 
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
     val transaction = Transactor(connection)
-    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
-    given dbCodec: DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
+
     transact(transaction):
-      val nonErrorRows:Seq[HLEntity] = getRepo.findAllByID(id)(using summon[DbCon], dbCodec)
-      val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)(using summon[DbCon], dbCodec)
+      val nonErrorRows:Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
+      val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)
       val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
       if numberOfErrorRows > 0 then
         val errorIndices = Range(numberOfErrorRows, allRows.size+1)
         val newIDs = errorIndices.map: index =>
-          s"$id-E$index"
+          s"${if id(id.length-2) == '.' then id else s"$id.0" }-E$index"
         val oldToNew =  nonErrorRows.map(_.id).zip(newIDs)
         oldToNew.foreach: item =>
           getRepo.replaceIDByPrimaryKey(item._1, item._2)
@@ -152,11 +152,9 @@ class HLDatabase private(dataSource: DataSource):
 
   def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
     val transaction = Transactor(connection)
-    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
     transact(transaction):
       getRepo.findAllByID(id)(using summon[DbCon], getDbCodec).headOption
 
-end HLDatabase
 object HLDatabase:
   enum Error:
     case LoaderError(error: DataStoreLoader.Error)

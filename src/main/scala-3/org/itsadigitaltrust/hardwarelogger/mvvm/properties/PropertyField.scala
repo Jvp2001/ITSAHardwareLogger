@@ -10,7 +10,7 @@ import scala.sys.error
  * This interface defines the operations that are possible for each field of a wrapped class.
  *
  * @tparam T
- * target type. The base type of the returned property, f.e. {@link String}.
+ * target type. The base type of the returned property, f.e. [[String]].
  * @tparam M
  * model type. The type of the Model class, that is wrapped by this ModelWrapper instance.
  * @tparam R

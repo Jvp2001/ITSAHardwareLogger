@@ -17,4 +17,10 @@ object Operators:
       seq.contains(item)
     infix def notIn[V](seq: MapType[T, V]): Boolean =
       !seq.contains(item)
+  end extension
+  extension[T](option: Option[T])
+    def ??(default: T): T =
+      option.getOrElse(default)
+
+end Operators
 

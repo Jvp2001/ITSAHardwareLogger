@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-import org.itsadigitaltrust.common.Operators.in
-import org.itsadigitaltrust.common.Result
+import org.itsadigitaltrust.common.Operators.{??, in}
+import org.itsadigitaltrust.common.{Result, optional}
 
 import scala.annotation.tailrec
 import scala.compiletime.uninitialized
@@ -37,7 +37,7 @@ class IDScanner(input: String, hdMode: Boolean = false):
   import IDScanner.*
 
   private final val pcPrefixLetters = Seq('k', 'l')
-  private final val hdPrefixLetters = pcPrefixLetters :+ 'h'
+  private final val hdPrefixLetters = pcPrefixLetters :++ Seq('h')
   private lazy val prefixLetters = if hdMode then hdPrefixLetters else pcPrefixLetters
 
 
@@ -197,12 +197,13 @@ final class IDParser:
 
 
 object IDParser:
-  final case class ParsedResult(prefix: Option[String] = None, number: Option[String] = None, decimal: Option[String] = None, checkDigit: Option[String] = None, suffix: Option[String] = None)
+  final case class ParsedResult(prefix: Option[String] = None, number: Option[String] = None, decimal: Option[String] = None, checkDigit: Option[String] = None, suffix: Option[String] = None):
+    override def toString: String =
+      s"${prefix.get}${number.get}${decimal ?? "."}${checkDigit ?? "0"}${suffix ?? ""}"
 
   type ParserResult = Result[ParsedResult, ParserError]
 
   enum ParserError:
-    case TooManyLetters
     case TooShort
     case TooLong
     case MissingNumber
@@ -214,7 +215,6 @@ object IDParser:
 
     override def toString: String =
       this match
-        case TooManyLetters => "The ID must start with H, L or K."
         case TooShort => "ID is too short in length."
         case TooLong => "ID is too long in length."
         case MissingNumber => "Missing the number part of the ID before the decimal point."
