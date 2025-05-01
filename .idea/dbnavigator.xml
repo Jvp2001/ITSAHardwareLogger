@@ -40,35 +40,14 @@
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
       <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select * from itsahw.disks where itsaid like '85'%;
 
-
-
-
 select * from itsahw.disks where itsaid like '85%';
 
-select * from itsahw.info where itsaid like '85977%';
+select * from itsahw.info;
+
+select * from memory where itsaid like '85977%';
 
 
-
-
-select * from info where itsaid like '85977%';
-
-
-
-
-select * from itsahw.memory where itsaid like '85977'%;
-
-
-select * from memory;
-
-
-
---
---delete from itsahw.disks;
---
---delete from itsahw.info;
---
---delete from itsahw.memory;
---]]></console>
+select * from memory;]]></console>
     </connection>
     <connection id="cc392073-c906-4319-a766-6683de9c4037">
       <console name="External Itsahw" type="STANDARD" schema="mysql" session="Main" />
@@ -100,11 +79,11 @@ select * from memory;
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />

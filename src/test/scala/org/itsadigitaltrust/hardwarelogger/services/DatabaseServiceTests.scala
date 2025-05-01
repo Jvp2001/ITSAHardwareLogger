@@ -89,7 +89,7 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
   test("Insert data into db"):
     val hardwareData = getHardwareData
 
-//    databaseService += hardwareData.info
+    databaseService += hardwareData.info
     databaseService ++= hardwareData.drives
     databaseService ++= hardwareData.memory
     databaseService ++= hardwareData.processors

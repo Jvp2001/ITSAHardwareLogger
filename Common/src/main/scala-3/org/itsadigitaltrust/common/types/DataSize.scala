@@ -10,12 +10,18 @@ extension (ds: DataSize)
     s"$value $unit"
   def toLong: Long = value
 
+
 object DataSize:
   inline def apply(value: Long, unit: DataSizeUnit): DataSize =
     (value, unit)
 
   def from(string: String): DataSize =
-    val parts = string.split(" ")
+    val parts =
+      if string.startsWith("(") then
+        string.substring(1, string.length - 1).split(",")
+      else
+        string.split(" ")
+    println(s"DataSize.from: $string, parts: ${parts.mkString(",")}")
     if (parts.length != 2) return DataSize(string.toLong, "GB")
     val value = parts(0).toLong
     val unit = parts(1) match
