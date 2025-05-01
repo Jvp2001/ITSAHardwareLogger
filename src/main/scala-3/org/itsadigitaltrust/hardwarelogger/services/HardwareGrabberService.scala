@@ -34,7 +34,7 @@ trait HardwareGrabberService:
   protected final def media_=(newValue: Seq[MediaModel]): Unit = med = newValue.toList
 
 
-  def load(): Unit
+  def load()(finished: () => Unit = () => ()): Unit
 
   protected def loadGeneralInfo(): Unit
 

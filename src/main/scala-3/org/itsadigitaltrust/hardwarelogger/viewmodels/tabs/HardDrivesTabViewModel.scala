@@ -20,6 +20,6 @@ final class HardDrivesTabViewModel extends TabTableViewModel[HardDriveModel, Har
         actionsText.value = row.model.actions
 
   notificationCentre.subscribe(Save): (key, _) =>
-    if !ProgramMode.isInNormalMode then
-      databaseService ++= data.map(_.model).toSeq
+//    if !ProgramMode.isInNormalMode then
+    databaseService ++= data.map(_.model).toSeq
 

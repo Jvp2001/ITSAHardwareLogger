@@ -54,7 +54,9 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule:
           onKeyPressed = (event: KeyEvent) =>
             val code = event.code
             if code == KeyCode.F5 then
-              notificationCentre.publish(NotificationChannel.Reload)
+              hardwareGrabberService.load(): () =>
+                notificationCentre.publish(NotificationChannel.Reload)
+
 
 
         show()

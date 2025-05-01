@@ -6,6 +6,7 @@ import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerTask
 
 
 object HLDatabaseTestService extends CommonHLDatabase[HardwareLoggerTask]:
+  connect(getClass, "db/db.properties")
   override def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit =
     print("Executing tasks...")
     transactionQueue.forEach:

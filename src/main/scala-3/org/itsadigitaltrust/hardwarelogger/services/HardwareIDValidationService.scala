@@ -17,6 +17,12 @@ end HardwareIDValidationService
 
 object HardwareIDValidationService:
   type ValidationResult = Result[ParsedResult, ValidationError]
+  extension (result: ValidationResult)
+    def toBoolean: Boolean =
+      result match
+        case Success(_) => true
+        case Error(_) => false
+
 
   enum ValidationError:
     case ParserError(error: IDParser.ParserError)

@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
 import org.itsadigitaltrust.common
+import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.Success
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
@@ -91,10 +92,16 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
   end validateID
 
   def reload(): Unit =
-    hardwareGrabberService.load()
+    hardwareGrabberService.load(): () =>
+      notificationCentre.publish(NotificationChannel.Reload)
+      idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
+      validIDProperty.value = hardwareIDValidationService.validate(idStringProperty.value).toBoolean
+      hardwareGrabberService.hardDrives.map: hardDrive =>
+        hardDrive.
+      println(idStringProperty.value)
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
-  notificationCentre.publish(Reload)
+    reload()
   hardwareIDValidationService.validate(idStringProperty.get)
 
 end HardwareLoggerRootViewModel

@@ -132,16 +132,18 @@ trait OshiHardwareGrabberService extends HardwareGrabberService with Loadable:
 end OshiHardwareGrabberService
 
 object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwareGrabberService:
+
+
   override def findItsaIdBySerialNumber(serial: String): Option[String] =
     databaseService.findByID[GeneralInfoModel](serial).map(_.itsaID.getOrElse(""))
-  override def load(): Unit =
+  override def load()(finished: () => Unit = () => ()): Unit =
     HLTaskRunner("Getting Hardware Information",
       loadGeneralInfo,
       loadHardDrives,
       loadMemory,
       loadProcessors,
       loadMedia
-    )(HardwareGrabberTask(_))()
+    )(HardwareGrabberTask(_))(finished)
 
 
 

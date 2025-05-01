@@ -93,7 +93,6 @@ class HLDatabase private(dataSource: DataSource):
   def insertOrUpdate[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): Unit =
     val repo = getRepo[EC, E](creator)
     val transaction = Transactor(connection)
-    given t: HLTableInfo[EC, E] = getTableInfo[EC, E]
     transact(transaction):
       repo.insertOrUpdate(creator)(using summon[DbCon])
 

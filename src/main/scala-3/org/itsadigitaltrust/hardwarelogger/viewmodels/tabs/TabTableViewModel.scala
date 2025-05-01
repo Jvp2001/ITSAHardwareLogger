@@ -18,7 +18,6 @@ class TabTableViewModel[M, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadD
   def reload(): Unit =
     data.clear()
     data.addAll(reloadData(hardwareGrabberService).map(rowCtor))
-    println(data)
 
   notificationCentre.subscribe(Reload): (*, _) =>
     reload()

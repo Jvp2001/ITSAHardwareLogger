@@ -29,7 +29,7 @@ trait HLDatabaseService:
   def findByID[M <: HLModel : ClassTag](id: String = itsaId): Option[M]
 
   def findAllStartingWithID[M <: HLModel : ClassTag](id: String): Seq[M]
-
+  def findWipingRecord(serial: String): Option[Disk]
   def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
   def ++=[M <: HLModel : ClassTag](models: Seq[M])(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
@@ -84,10 +84,13 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
   def findItsaIdBySerialNumber(serial: String): Option[String] =
     db match
-      case Some(database) =>
-        database.findItsaIdBySerialNumber(serial)
-      case None =>
-        None
+      case Some(value) => value.findItsaIdBySerialNumber(serial)
+      case None => None
+
+
+  override def findWipingRecord(serial: String): Option[Disk] =
+      db.get.findWipingRecord(serial).flatMap: wiping =>
+        toModel(wiping)
 
   given [U]: Conversion[U, Option[U]] with
     override def apply(x: U): Option[U] = Some(x)
