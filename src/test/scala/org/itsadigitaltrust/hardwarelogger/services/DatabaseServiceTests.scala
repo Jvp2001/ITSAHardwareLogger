@@ -16,10 +16,10 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
         db += model
 
   def load(): Unit =
-    hardwareGrabberService.load()
-    databaseService.connect(HardwareLoggerApplication.getClass, "db/db.properties")
-    databaseService.itsaId = id
-    notificationCentre.subscribe(NotificationChannel.DBSuccess)((_, _) => println("Database connection successful"))
+    hardwareGrabberService.load(): () =>
+      databaseService.connect(HardwareLoggerApplication.getClass, "db/db.properties")
+      databaseService.itsaId = id
+      notificationCentre.subscribe(NotificationChannel.DBSuccess)((_, _) => println("Database connection successful"))
 
   load()
 

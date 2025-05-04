@@ -96,10 +96,29 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       notificationCentre.publish(NotificationChannel.Reload)
       idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
       validIDProperty.value = hardwareIDValidationService.validate(idStringProperty.value).toBoolean
-      hardwareGrabberService.hardDrives.map: hardDrive =>
-        hardDrive.
-      println(idStringProperty.value)
+      val notWipedDrives = hardwareGrabberService.hardDrives.filterNot: hardDrive =>
+        databaseService.findWipingRecord(hardDrive.serial) match
+          case Some(value) => true
+          case None => false
 
+      var serials = notWipedDrives.map(_.serial).mkString(", ")
+      serials = serials.patch(serials.lastIndexOf(", "), "& ", 1)
+      val word = serials.length match
+        case 0 => ""
+        case 1 => "drive"
+        case _ => "drives"
+
+      if word == "" then
+        ()
+
+      new Alert(Information, s"The $word '$serials' have not been logged. Do you want to log them now?", ButtonType.Yes, ButtonType.No):
+        headerText = "No Wiping Records Found"
+
+      .showAndWait() match
+        case Some(value) if value == ButtonType.Yes =>
+        case None => ???
+  end reload
+  
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     reload()
   hardwareIDValidationService.validate(idStringProperty.get)

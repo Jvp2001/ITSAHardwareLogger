@@ -127,6 +127,12 @@ class HLDatabase private(dataSource: DataSource):
           getRepo.replaceIDByPrimaryKey(item._1, item._2)
   end markAllRowsWithIDAsError
 
+
+  def addWipingRecords(disks: WipingCreator*): Unit =
+    transact(Transactor(connection)):
+      repos.wipingRepo.insertAll(disks.iterator.to(Iterable))
+
+
   def findWipingRecord(serial: String) : Option[Wiping] =
     val transaction = Transactor(connection)
     given table: HLTableInfo[WipingCreator, Wiping] = tables.wipingTable

@@ -92,7 +92,13 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       db.get.findWipingRecord(serial).flatMap: wiping =>
         toModel(wiping)
 
-  given [U]: Conversion[U, Option[U]] with
+
+  def addWipingRecords(drives: HardDriveModel*): Unit =
+    val disks = drives.map(createWiping)
+    val task = DatabaseTransactionTask:  () =>
+      db.get.addWipingRecords(disks*)
+
+  given[U]: Conversion[U, Option[U]] with
     override def apply(x: U): Option[U] = Some(x)
 
 
@@ -126,15 +132,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     executeTasks()
   end save
 
-  @tailrec
-  final protected def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
-    if transactionQueue.size() < 0 then
-      return functions.getOrElse(Seq())
-    val creator = transactionQueue.poll()
-    if creator == null then
-      functions
-    else
-      generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
+
 
 
   given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
@@ -177,6 +175,15 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
   override def stop(): Unit = ()
 
+  def convertAndClearTransactions(function: HLEntityCreator => Unit) =
+    val result = transactionQueue.asScala.map: ec =>
+      () => function(ec)
+    .toSeq
+    
+    transactionQueue.clear()
+    result
+  end convertAndClearTransactions
+    
   protected var processor: Option[ProcessorModel] = None
 
 
@@ -254,6 +261,11 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     creator
   end createInfo
 
+  var currentTimeStamp: Timestamp =
+    Timestamp.from(OffsetDateTime.now.toInstant)
+  protected def createWiping(model: HardDriveModel): WipingCreator =
+    WipingCreator(hddID = model.itsaID, serial = model.serial, model = model.model, insertionDate = OffsetDateTime.now, capacity = model.size.dbString, description = model.description, health = model.health.toByte, formFactor = "")
+
 
   private def createMedia(media: MediaModel): MediaCreator =
     MediaCreator(itsaId, media.description, media.handle)
@@ -278,7 +290,9 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
 
   override def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit =
 
-    HLTaskRunner("Saving to Database", generateTaskFunctions() *)(t => DatabaseTransactionTask(t)): () =>
+    val taskFuncs = convertAndClearTransactions(db.get.insertOrUpdate)
+    transactionQueue.clear()
+    HLTaskRunner("Saving to Database", taskFuncs*)(t => DatabaseTransactionTask(t)): () =>
       if transactionQueue.size() < 1 then
         notificationCentre.publish(NotificationChannel.DBSuccess)
 
