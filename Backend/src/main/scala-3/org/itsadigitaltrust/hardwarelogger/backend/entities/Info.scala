@@ -4,7 +4,7 @@ import com.augustnagro.magnum.{DbCodec, Id, MySqlDbType, SqlName, SqlNameMapper,
 
 import java.sql.Timestamp
 import java.time.{Instant, OffsetDateTime}
-
+import scala.languageFeature.implicitConversions
 /**
  * DO NOT REORDER THE FIELDS IN EACH CLASS THAT IS MARKED WITH THE [[Table]] ANNOTATION. This will cause an [[java.sql.SQLDataException]] to be thrown.
  */

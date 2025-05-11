@@ -4,10 +4,13 @@ import org.itsadigitaltrust.common.*
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.types.*
-import org.itsadigitaltrust.hardwarelogger.backend.{DataStoreLoader, HLDatabase}
+import org.itsadigitaltrust.hardwarelogger.backend.{DataStoreLoader, HLDatabase, URLPropertyNameGetter}
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.tasks.{DatabaseTransactionTask, HLTaskRunner, HardwareLoggerTask, TaskExecutor}
+import org.itsadigitaltrust.hardwarelogger.tasks.{DatabaseTransactionTask, HLTaskGroupBuilder, HLTaskRunner, HardwareLoggerTask, TaskExecutor}
+import scalafx.scene.control.{Alert, ButtonType}
+import scalafx.scene.control.Alert.AlertType
 
+import java.net.{Inet4Address, InterfaceAddress}
 import java.sql.Timestamp
 import java.time.OffsetDateTime
 import java.util.concurrent.LinkedBlockingQueue
@@ -18,23 +21,30 @@ import scala.util.boundary
 
 
 trait HLDatabaseService:
-  var itsaId: String = ""
+  var itsaID: String = ""
 
   def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String]
 
   def findItsaIdBySerialNumber(serial: String): Option[String]
 
-  def markAllRowsWithIDAsError[M <: HLModel : ClassTag](id: String): Unit
+  def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String): Unit
 
-  def findByID[M <: HLModel : ClassTag](id: String = itsaId): Option[M]
+  def markAllRowsWithIDInDBAsError(id: String): Unit
+
+  def findByID[M <: HLModel : ClassTag](id: String = itsaID): Option[M]
 
   def findAllStartingWithID[M <: HLModel : ClassTag](id: String): Seq[M]
+
   def findWipingRecord(serial: String): Option[Disk]
+
+  def addWipingRecords(drives: HardDriveModel*): Unit
+
   def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
   def ++=[M <: HLModel : ClassTag](models: Seq[M])(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
   def stop(): Unit
+end HLDatabaseService
 
 private type ModelECType[M <: HLModel] =
   M match
@@ -52,23 +62,60 @@ private type ModelToECClassTag[M <: HLModel] =
     case HardDriveModel => ClassTag[DiskCreator]
     case MediaModel => ClassTag[MediaCreator]
 
-trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
+trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLDatabaseService with TaskExecutor[T]:
   protected var db: Option[HLDatabase] = None
-  protected val minAmountOfTransactions = 4
+  private val minAmountOfTransactions = 4
 
   protected val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
+  private var noIDIndex: Option[Long] = None
+
+  private given urlPropertyNameGetter: URLPropertyNameGetter = props =>
+    val officeAddressPrefix = props.get("db.office.url").toString.replace("jdbc:mysql://", "").split(":")(0).split("\\.", 1)(0)
+    val workshopAddressPrefix = props.get("db.workshop.url").toString.replace("jdbc:mysql://", "").split(":")(0).split("\\.", 1)(0)
+
+    ipFinderService.findAddresses().find: address =>
+      val hostAddress = address.getAddress.getHostAddress
+      hostAddress.startsWith(officeAddressPrefix) || hostAddress.startsWith(workshopAddressPrefix)
+    match
+      case Some(value) =>
+        val hostAddress = value.getAddress.getHostAddress
+
+        if hostAddress.startsWith(officeAddressPrefix) then
+          Some("db.office.url")
+        else if hostAddress.startsWith(workshopAddressPrefix) then
+          Some("db.workshop.url")
+        else
+          propertyNamGetterError(Some(value))
+          None
+
+      case None =>
+        propertyNamGetterError(None)
+        None
+  end urlPropertyNameGetter
+
+  def propertyNamGetterError(address: Option[InterfaceAddress]): Unit
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
+    def connectViaSpecificURL(connectionPropName: String): Result[Unit, String] =
+      Result:
+        try
+          HLDatabase(klazz.getResource(dbPropsFilePath).toURI.toURL, connectionPropName) match
+            case Success(value) =>
+              db = Some(value)
+              println("Connected to database.")
+              noIDIndex = Option(value.getLatestNoIDValue)
+              Result.success(())
+            case Error(reason) =>
+              Result.error(reason.toString)
+        catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
+    end connectViaSpecificURL
     Result:
-      try
-        HLDatabase(klazz.getResource(dbPropsFilePath).toURI.toURL) match
-          case Success(value) =>
-            db = Some(value)
-            println("Connected to database.")
-            Result.success(())
-          case Error(reason) =>
-            Result.error(reason.toString)
-      catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
+      connectViaSpecificURL("db.office.url") match
+        case Success(value) => ()
+        case Error(reason) => connectViaSpecificURL("db.workshop.url") match
+          case Success(value) => ()
+          case Error(reason) => Result.error("Failed to connect to database!")
+
 
 
   override def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
@@ -89,16 +136,19 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
 
   override def findWipingRecord(serial: String): Option[Disk] =
-      db.get.findWipingRecord(serial).flatMap: wiping =>
-        toModel(wiping)
+    optional:
+      val database = db.get
+      val record = database.findWipingRecord(serial)
+      Disk(record.?.id, record.?.hddID, record.?.model, record.?.capacity.?, record.?.serial, record.?.`type`.?, record.?.description.?)
 
 
   def addWipingRecords(drives: HardDriveModel*): Unit =
     val disks = drives.map(createWiping)
-    val task = DatabaseTransactionTask:  () =>
-      db.get.addWipingRecords(disks*)
 
-  given[U]: Conversion[U, Option[U]] with
+    HLTaskRunner("Adding Wiping Records", Seq(() => db.get.addWipingRecords(disks *)) *)(DatabaseTransactionTask.apply)()
+
+
+  given [U]: Conversion[U, Option[U]] with
     override def apply(x: U): Option[U] = Some(x)
 
 
@@ -115,7 +165,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     end checkForDuplicateDrives
 
     def hasAnyDuplicateRows: Boolean =
-      findAllStartingWithID[M](itsaId).nonEmpty
+      findAllStartingWithID[M](itsaID).nonEmpty
 
 
     if transactionQueue.size() >= minAmountOfTransactions then
@@ -128,11 +178,19 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
         else // if duplicateDrives.contains("") then
           save()
 
-  protected def save[M <: HLModel]()(using NotificationCentre[NotificationChannel],  HardwareGrabberService): Unit =
+  protected def save[M <: HLModel]()(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     executeTasks()
   end save
 
-
+  @tailrec
+  final protected def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
+    if transactionQueue.size() < 0 then
+      return functions.getOrElse(Seq())
+    val creator = transactionQueue.poll()
+    if creator == null then
+      functions
+    else
+      generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
 
 
   given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
@@ -149,41 +207,40 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   end ecClassTag
 
 
-  def markAllRowsInDBAsError(): Unit =
-    optional:
-      db.?.markAllRowsWithIDAsError[InfoCreator](itsaId)
-      db.?.markAllRowsWithIDAsError[DiskCreator](itsaId)
-      db.?.markAllRowsWithIDAsError[MemoryCreator](itsaId)
-      db.?.markAllRowsWithIDAsError[MediaCreator](itsaId)
+  override def markAllRowsWithIDInDBAsError(id: String = itsaID): Unit =
+    val database = db match
+      case Some(value) => value
+      case None => return
+    new HLTaskGroupBuilder(DatabaseTransactionTask.apply)
+      .addAll(
+        database.markAllRowsWithIDAsError[InfoCreator](itsaID),
+        database.markAllRowsWithIDAsError[DiskCreator](itsaID),
+        database.markAllRowsWithIDAsError[MemoryCreator](itsaID),
+        database.markAllRowsWithIDAsError[MediaCreator](itsaID)
+      )
+      .run("Marking all current rows as error.")()
 
-  override def markAllRowsWithIDAsError[M <: HLModel : ClassTag](id: String): Unit =
+
+  override def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String): Unit =
     optional:
       db.?.markAllRowsWithIDAsError(id)
 
-  def findAllStartingWithID[M <: HLModel : ClassTag](id: String = itsaId): Seq[M] =
+  def findAllStartingWithID[M <: HLModel : ClassTag](id: String = itsaID): Seq[M] =
     optional:
-      val result = db.?.findAllByIdStartingWith(if id == "" then itsaId else id)
+      val result = db.?.findAllByIdStartingWith(if id == "" then itsaID else id)
       result.map(toModel)
     .getOrElse(Seq())
 
 
-  def findByID[M <: HLModel : ClassTag](id: String = itsaId): Option[M] =
+  def findByID[M <: HLModel : ClassTag](id: String = itsaID): Option[M] =
     optional:
-      val result = db.?.findByID(if id == "" then itsaId else id).?
+      val result = db.?.findByID(if id == "" then itsaID else id).?
       toModel(result)
 
 
   override def stop(): Unit = ()
 
-  def convertAndClearTransactions(function: HLEntityCreator => Unit) =
-    val result = transactionQueue.asScala.map: ec =>
-      () => function(ec)
-    .toSeq
-    
-    transactionQueue.clear()
-    result
-  end convertAndClearTransactions
-    
+
   protected var processor: Option[ProcessorModel] = None
 
 
@@ -211,15 +268,26 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
         )
       case memory: Memory =>
         MemoryModel(size = DataSize.from(memory.size), description = memory.description.getOrElse(""))
-      case hardDrive: Disk => HardDriveModel(
-        model = hardDrive.model,
-        size = DataSize(0, "GiB"),
-        serial = hardDrive.serial,
-        description = hardDrive.description.getOrElse(""),
-        health = Percentage(100),
-        performance = Percentage(100),
-        connectionType = HardDriveConnectionType.NVME
-      )
+      case hardDrive: Disk =>
+        HardDriveModel(
+          model = hardDrive.model,
+          size = DataSize(0, "GiB"),
+          serial = hardDrive.serial,
+          description = hardDrive.description.getOrElse(""),
+          health = Percentage(100),
+          performance = Percentage(100),
+          connectionType = HardDriveConnectionType.NVME
+        )
+      case hardDrive: Wiping =>
+        HardDriveModel(
+          model = hardDrive.model,
+          size = DataSize(0, "GiB"),
+          serial = hardDrive.serial,
+          description = hardDrive.description ?? "",
+          health = Percentage(100),
+          performance = Percentage(100),
+          connectionType = HardDriveConnectionType.NVME
+        )
       //        var matchingDrive = hardwareGrabberService.drives.filter(hd =>
       //          hd.model == hardDrive.model).headOption
       //        println(matchingDrive)
@@ -228,10 +296,11 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
         MediaModel(description = media.description, handle = media.handle.getOrElse(""))
       case _ => scala.sys.error("Unknown Type!")
     model.asInstanceOf[M]
+
   end toModel
 
 
-  protected def createEC[M](model: M)(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
+  protected def createEC[M <: HLModel](model: M)(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
     model match
       case memory: MemoryModel => createMemory(memory)
       case hardDriveModel: HardDriveModel => createHardDrive(hardDriveModel)
@@ -244,16 +313,16 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
 
   protected def createMemory(memoryModel: MemoryModel): MemoryCreator =
-    MemoryCreator(memoryModel.size.dbString, itsaId, memoryModel.description)
+    MemoryCreator(memoryModel.size.dbString, itsaID, memoryModel.description)
 
   protected def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
-    DiskCreator(itsaId, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.connectionType.toString, "ATA Disk")
+    DiskCreator(itsaID, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.connectionType.toString, "ATA Disk")
 
   protected def createInfo(infoModel: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): InfoCreator =
     val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum
     val processor = this.processor.getOrElse(hardwareGrabberService.processors.head)
     val creator = InfoCreator(cpuVendor = infoModel.vendor,
-      itsaID = this.itsaId, cpuSerial = Some(processor.serial), totalMemory = s"$totalMemory GiB",
+      itsaID = this.itsaID, cpuSerial = Some(processor.serial), totalMemory = s"$totalMemory GiB",
       cpuSpeed = processor.speed.toString, cpuDescription = processor.longDescription, cpuProduct = processor.name,
       genDesc = "TODO", genId = "itsa-hwlogger", genProduct = "CPU", genSerial = infoModel.serial, genVendor = infoModel.vendor,
       cpuWidth = processor.width.toString, os = infoModel.os, cpuCores = processor.cores.toString, insertionDate = Timestamp.from(OffsetDateTime.now().toInstant), lastUpdated = Timestamp.from(OffsetDateTime.now().toInstant))
@@ -261,16 +330,32 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     creator
   end createInfo
 
-  var currentTimeStamp: Timestamp =
-    Timestamp.from(OffsetDateTime.now.toInstant)
   protected def createWiping(model: HardDriveModel): WipingCreator =
-    WipingCreator(hddID = model.itsaID, serial = model.serial, model = model.model, insertionDate = OffsetDateTime.now, capacity = model.size.dbString, description = model.description, health = model.health.toByte, formFactor = "")
+    // The description is too long. So the description in the DB will only be the first sentence.
+    val description = model.description.split("\\.")(0) + "."
+    val newID =
+      if model.itsaID.toLowerCase.startsWith("no id") then
+        noIDIndex = Option((noIDIndex ?? 1L) + 1L)
+        noIDIndex.get.toString
+      else if model.itsaID.nonEmpty && model.itsaID.head.isLetterOrDigit then
+        model.itsaID
+      else
+        "NO ID1"
+    end newID
+
+    WipingCreator(hddID = newID,
+      serial = model.serial, model = model.model,
+      insertionDate = OffsetDateTime.now, capacity = model.size.dbString,
+      `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
+      description = description, health = model.health.toByte, formFactor = "")
 
 
   private def createMedia(media: MediaModel): MediaCreator =
-    MediaCreator(itsaId, media.description, media.handle)
+    MediaCreator(itsaID, media.description, media.handle)
 end CommonHLDatabase
 
+
+import IPFinderService.given
 
 object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
 
@@ -279,9 +364,6 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
     notificationCentre.subscribe(NotificationChannel.ContinueWithDuplicateDrive): (key, _) =>
       save()
 
-    notificationCentre.subscribe(NotificationChannel.FoundDuplicateRowsWithID): (key, _) =>
-      markAllRowsInDBAsError()
-      save()
 
     notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
       transactionQueue.clear()
@@ -290,14 +372,20 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
 
   override def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit =
 
-    val taskFuncs = convertAndClearTransactions(db.get.insertOrUpdate)
-    transactionQueue.clear()
-    HLTaskRunner("Saving to Database", taskFuncs*)(t => DatabaseTransactionTask(t)): () =>
+    HLTaskRunner("Saving to Database", generateTaskFunctions() *)(t => DatabaseTransactionTask(t)): () =>
       if transactionQueue.size() < 1 then
         notificationCentre.publish(NotificationChannel.DBSuccess)
 
   end executeTasks
 
+
+  override def propertyNamGetterError(address: Option[InterfaceAddress]): Unit =
+    val errorMessage = address match
+      case Some(value) => s"Failed to find connection for database by client's IP address: ${value.getAddress.getHostAddress}!"
+      case None => "Failed find any IP addresses. Check internet connection!"
+    new Alert(AlertType.Error, errorMessage, ButtonType.OK):
+      title = "DB Connection Error"
+      showAndWait()
 end SimpleHLDatabaseService
 
 

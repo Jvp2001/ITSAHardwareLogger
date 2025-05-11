@@ -5,6 +5,7 @@ import com.augustnagro.magnum.*
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
 import common.*
+import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.hardwarelogger.backend.backend.*
 import org.itsadigitaltrust.hardwarelogger.backend.entities.{Wiping, WipingCreator}
 
@@ -24,8 +25,9 @@ class HLDatabase private(dataSource: DataSource):
   private val connection: DataSource = dataSource
 
   private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
-  private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] =
-    getDbCodec[EC]
+  private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
+  private given transaction: Transactor = Transactor(connection)
+
 
   def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
     val result = classTag[EC] match
@@ -84,6 +86,25 @@ class HLDatabase private(dataSource: DataSource):
 
 
 
+
+  def getLatestNoIDValue: Long =
+    transact(Transactor(connection)):
+      val value = repos.wipingRepo.getLatestNoIDValue(using summon[DbCon])
+
+
+      optional:
+        if value.?.equalsIgnoreCase("NO ID") then
+          1L
+        else
+          value.?.toLowerCase.replace("no id", "").toLongOption.?
+      ?? 1L
+
+
+  /**
+   * Finds the itsaID by the PC's serial number
+   * @param serial The serial number of the PC
+   * @return [[Some]](String) if the itsaID was found, otherwise [[None]].
+   */
   def findItsaIdBySerialNumber(serial: String): Option[String] =
     val transaction = Transactor(connection)
     transact(transaction):
@@ -134,11 +155,11 @@ class HLDatabase private(dataSource: DataSource):
 
 
   def findWipingRecord(serial: String) : Option[Wiping] =
-    val transaction = Transactor(connection)
     given table: HLTableInfo[WipingCreator, Wiping] = tables.wipingTable
     given wipingCreatorCT: ClassTag[WipingCreator] = classTag[WipingCreator]
     transact(transaction):
-      repos.wipingRepo.findWipingRecord(serial)(using summon[DbCon])(using table)
+      val result = repos.wipingRepo.findWipingRecord(serial)(using summon[DbCon])(using table)
+      result
   end findWipingRecord
 
   /**
@@ -150,13 +171,17 @@ class HLDatabase private(dataSource: DataSource):
    */
 
   def replaceAllRowsWithID[EC <: ItsaEC : ClassTag](old: String, `new`: String): Unit =
-    val transaction = Transactor(connection)
     given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
     transact(transaction):
       getRepo.replaceIdWith(old, `new`)(using summon[DbCon])
 
+  def findWipingRecordID(serial: String): Option[String] =
+    findWipingRecord(serial).map(_.hddID)
+
+
+
   def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
-    val transaction = Transactor(connection)
+    transaction.connectionConfig
     transact(transaction):
       getRepo.findAllByID(id)(using summon[DbCon], getDbCodec).headOption
 
@@ -168,9 +193,9 @@ object HLDatabase:
     override def apply(x: DataStoreLoader.Error): Error =
       Error.LoaderError(x)
 
-  def apply(dbProperties: URL): Result[HLDatabase, DataStoreLoader.Error] =
+  def apply(dbProperties: URL, connectionPropName: String ): Result[HLDatabase, DataStoreLoader.Error] =
     Result:
-      DataStoreLoader(dbProperties.toURI) match
+      DataStoreLoader(dbProperties.toURI, connectionPropName) match
         case Success(value) =>
           Result.success(new HLDatabase(value))
         case common.Error(reason) =>

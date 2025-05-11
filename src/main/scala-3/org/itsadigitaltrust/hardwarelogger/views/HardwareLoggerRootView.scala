@@ -35,7 +35,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
           items ++= Seq(
             new CheckMenuItem("Normal"):
               onAction = _ => ProgramMode.mode = "Normal"
-              selected <==>  ProgramMode.isModeNormal
+              selected <==> ProgramMode.isModeNormal
             ,
             new CheckMenuItem("HardDrive"):
               onAction = _ =>
@@ -77,16 +77,24 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     margin = Insets(5.0, 0.0, 0.0, 0.0)
     spacing = 10.0
     children ++= Seq(idLabel, idTextField)
+    visible <== viewModel.isInNormalMode
 
-  contentBorderPane.top = new VBox:
+   
+  val topContainer = new VBox:
     private val region = new Region:
       maxWidth = 10.0
+      visible <== viewModel.isInNormalMode
     alignment = CenterLeft
     prefHeight = 50.0
     prefWidth = 200.0
     spacing = 10.0
     children ++= Seq(region, idContainer, idErrorLabel)
-
+    visible <== viewModel.isInNormalMode
+  end topContainer
+  viewModel.isInNormalMode.onChange: (op, oldValue, newValue) =>
+    contentBorderPane.top = if newValue then
+      topContainer
+    else null
   private val tabPane = new TabPane:
     prefHeight = prefWidth.get
     prefWidth = 200.0
@@ -139,6 +147,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
           case _ => ()
     tab
   end createTab
+
   viewModel.idFieldFocusProperty.onChange: (_, oldValue, newValue) =>
     if newValue then
       idTextField.requestFocus()
@@ -155,7 +164,6 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
         )
         ProgramMode.isHardDriveMode.value = true
         ProgramMode.isModeNormal.value = false
-
 
 
       case "Normal" =>

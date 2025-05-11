@@ -18,7 +18,7 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
   def load(): Unit =
     hardwareGrabberService.load(): () =>
       databaseService.connect(HardwareLoggerApplication.getClass, "db/db.properties")
-      databaseService.itsaId = id
+      databaseService.itsaID = id
       notificationCentre.subscribe(NotificationChannel.DBSuccess)((_, _) => println("Database connection successful"))
 
   load()
@@ -28,6 +28,8 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
   def getHardwareData: HardwareData =
     HardwareData(info = hardwareGrabberService.generalInfo, drives = hardwareGrabberService.hardDrives, memory = hardwareGrabberService.memory, processors = hardwareGrabberService.processors)
 
+  test("Connection"):
+    databaseService.connect(getClass, "db/db.properties")
   test("Find by id"):
     val hardwareData = getHardwareData
     val info = databaseService.findByID[GeneralInfoModel](hardwareData.info.itsaID.getOrElse(""))
@@ -51,10 +53,10 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
     val hardwareData = getHardwareData
 
 
-    databaseService.markAllRowsWithIDAsError[GeneralInfoModel](id)
-    databaseService.markAllRowsWithIDAsError[HardDriveModel](id)
-    databaseService.markAllRowsWithIDAsError[MemoryModel](id)
-    databaseService.markAllRowsWithIDAsError[ProcessorModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[GeneralInfoModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[HardDriveModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[MemoryModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[ProcessorModel](id)
 
     val info = databaseService.findByID[GeneralInfoModel](id)
     val drives = databaseService.findByID[HardDriveModel](id)
@@ -68,10 +70,10 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
     val hardwareData = getHardwareData
 
 
-    databaseService.markAllRowsWithIDAsError[GeneralInfoModel](id)
-    databaseService.markAllRowsWithIDAsError[HardDriveModel](id)
-    databaseService.markAllRowsWithIDAsError[MemoryModel](id)
-    databaseService.markAllRowsWithIDAsError[ProcessorModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[GeneralInfoModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[HardDriveModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[MemoryModel](id)
+    databaseService.markAllRowsWithIDInTableAsError[ProcessorModel](id)
 
     val info = databaseService.findByID[GeneralInfoModel](id)
     val drives = databaseService.findByID[HardDriveModel](id)
@@ -83,6 +85,8 @@ class DatabaseServiceTests extends AnyFunSuite with TestServicesModule:
     databaseService ++= hardwareData.memory
     databaseService ++= hardwareData.processors
 
+  test("Insert into wiping"):
+    databaseService.addWipingRecords(getHardwareData.drives*)
 
   //    assert(info.isDefined &&  drives.isDefined && memory.isDefined && processors.isDefined)
 

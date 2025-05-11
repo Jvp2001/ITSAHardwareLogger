@@ -30,9 +30,7 @@ final case class HardDiskSummary(
                             @JacksonXmlProperty(localName = "Tip") tip: String,
                             @JacksonXmlProperty(localName = "Hard_Disk_Device") @JsonIgnore hardDiskDevice: String = ""
                           )
-object HardDiskSummary: 
-  given Class[HardDiskSummary] = classOf[HardDiskSummary]
-  given Class[List[HardDiskSummary]] = classOf[List[HardDiskSummary]]
+
 //import com.fasterxml.jackson.annotation.JsonCreator
 //import com.fasterxml.jackson.dataformat.xml.annotation.{JacksonXmlElementWrapper, JacksonXmlProperty}
 //

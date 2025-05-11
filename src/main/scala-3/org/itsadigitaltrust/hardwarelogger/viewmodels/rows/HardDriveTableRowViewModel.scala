@@ -1,16 +1,19 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.common.Types.*
-import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveConnectionType}
+import org.itsadigitaltrust.hardwarelogger.models.{HardDriveConnectionType, HardDriveModel}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 import org.itsadigitaltrust.common.percent
+import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 
 import java.lang
 
 
 final case class HardDriveTableRowViewModel(model: HardDriveModel) extends TableRowViewModel[HardDriveModel](model):
 
+  override protected val modeToSaveIn: ProgramMode | "both" = "both"
+  
   def healthProperty: ObjectProperty[Percentage] =
     wrapper.field("Health", _.health, 100.percent)(ObjectProperty.apply)
 

@@ -17,7 +17,7 @@ import scalafx.scene.Scene
 import scala.compiletime.uninitialized
 
 
-object HardwareLoggerApplication extends JFXApp3, ServicesModule:
+object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeChangedDelegate:
 
 
   private val titleProperty: StringProperty = StringProperty("Hardware Logger")
@@ -26,10 +26,6 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule:
     ProgramMode.mode =
       if parameters.raw.map(_.toLowerCase).contains("--harddrive") then "HardDrive"
       else "Normal"
-    titleProperty.value = ProgramMode.mode match
-
-      case "HardDrive" => "Hard Drive"
-      case "Normal" => "Hardware Logger"
 
   end setProgramMode
 
@@ -40,6 +36,7 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule:
         case Success(_) => ()
         case Error(reason) =>
           new Alert(AlertType.Error, reason, ButtonType.OK).showAndWait()
+
 
     try
 
@@ -56,9 +53,6 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule:
             if code == KeyCode.F5 then
               hardwareGrabberService.load(): () =>
                 notificationCentre.publish(NotificationChannel.Reload)
-
-
-
         show()
     catch
       case e: NumberFormatException =>
@@ -67,6 +61,12 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule:
 
   override def stopApp(): Unit =
     databaseService.stop()
+
+  override def onProgramModeChanged(mode: ProgramMode): Unit =
+    titleProperty.value = ProgramMode.mode match
+      case "HardDrive" => "Hard Drive Logger"
+      case "Normal" => "Hardware Logger"
+
 end HardwareLoggerApplication
 
 

@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
-import com.augustnagro.magnum.*
+
+import com.augustnagro.magnum.{DbCodec, DbCon, Repo, RepoDefaults, TableInfo, sql}
 import org.itsadigitaltrust.common.Operators.in
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.tables.HLTableInfo
@@ -35,7 +36,7 @@ private[backend] object repos:
         "hddID"
       else
         "itsaID"
-      val frag = sql"select * from $table where ${table.selectDynamic(itsaIDFieldName)} = '85977.0'"
+      val frag = sql"select * from $table where ${table.selectDynamic(itsaIDFieldName)} = $id"
       val result  = frag.query.run()
       result
     end findAllByID
@@ -119,9 +120,12 @@ private[backend] object repos:
     private[backend] def findWipingRecord(serial: String)(using DbCon)(using table: HLTableInfo[WipingCreator, Wiping]): Option[Wiping] =
       val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
       frag.query[Wiping].run().headOption
-  end extension
 
+    private[backend] def getLatestNoIDValue(using DbCon): Option[String] =
+      sql"select MAX(itsahw.wiping.hdd_id) from wiping".query[String].run().headOption
+  end extension
 end repos
+export repos.*
 
 //
 //  extension(r: HLRepo[MemoryCreator, Memory])

@@ -10,7 +10,7 @@ import scala.compiletime.{summonInline, uninitialized}
 import scala.io.Source
 import scala.util.Using
 import java.io.{InputStream, StringReader}
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 
 private[hdsentinelreader] final class XMLParser:
 
@@ -39,7 +39,7 @@ private[hdsentinelreader] final class XMLParser:
   def getAllNodesStartingWith(name: String): NodeSeq =
     xml.child.filter(_.label.startsWith(name))
 
-  def \[T](name: String)(using Class[T]): T =
+  def \[T : ClassTag](name: String): T =
     xml \\> name
 
 object XMLParser:
@@ -53,10 +53,11 @@ object XMLParser:
 export XMLParser.given
 
 extension(elem: Elem | Node)
-  def \\>[T](name: String)(using xmlMapper: XmlMapper)(using Class[T]): T =
+  def \\>[T : ClassTag](name: String)(using xmlMapper: XmlMapper): T =
     val node = s"${elem \\ name}"
     println(node.length)
-    xmlMapper.readValue[T](node, summon[Class[T]])
+    val ct: ClassTag[T] = classTag[T]
+    xmlMapper.readValue(node, ct.runtimeClass.asInstanceOf[Class[T]])
 
   
   

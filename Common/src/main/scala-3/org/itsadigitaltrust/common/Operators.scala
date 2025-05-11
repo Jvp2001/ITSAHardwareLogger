@@ -24,3 +24,6 @@ object Operators:
 
 end Operators
 
+
+
+export Operators.*

@@ -13,7 +13,8 @@ object Percentage:
       scala.compiletime.error("Percentage must be between 0 and 100")
 
   extension(p: Percentage)
-    def toByte: Byte = p.replace("%", "").toByteOption.get
+    def toByte: Byte =
+      p.replace("%", "").trim.toByteOption.get
   extension (i: Int)
     inline def percent: Percentage = Percentage(i)
   

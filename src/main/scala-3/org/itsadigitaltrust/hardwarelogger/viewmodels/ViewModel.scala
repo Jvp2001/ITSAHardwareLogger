@@ -13,18 +13,13 @@ trait ViewModel:
 
 trait TableRowViewModel[M](model: M) extends ViewModel with ServicesModule:
   protected val wrapper: ModelWrapper[M] = ModelWrapper(model)
-
+  protected val modeToSaveIn: ProgramMode | "both" = "Normal"
   notificationCentre.subscribe(Save): (key, _) =>
     save()
 
   def save(): Unit =
-    if ProgramMode.isInNormalMode then
-      val model = wrapper.model match
-        case Some(value) => value
-        case _ => return
-      end model
-    end if
-    databaseService += model.asInstanceOf[HLModel]
+    if ProgramMode.mode == modeToSaveIn || modeToSaveIn == "both" then
+      databaseService += model.asInstanceOf[HLModel]
   end save
 
 end TableRowViewModel
