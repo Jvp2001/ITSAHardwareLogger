@@ -11,7 +11,7 @@ final case class Disk(
                        @SqlName("capicty") capacity: String,
                        serial: String,
                        `type`: String,
-                       @SqlName("description") description: String,
+                       @SqlName("descr") description: String,
                      ) extends HLEntityWithItsaID derives DbCodec
 
 final case class DiskCreator(
@@ -20,5 +20,5 @@ final case class DiskCreator(
                               @SqlName("capicty") capacity: String,
                               serial: String,
                               `type`: String,
-                              @SqlName("description") description: String,
+                              @SqlName("descr") description: String,
                             ) extends HLEntityCreatorWithItsaID derives DbCodec

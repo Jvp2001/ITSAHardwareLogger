@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ISO-8859-2"?>
+sentinal <?xml version="1.0" encoding="ISO-8859-2"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="Hard_Disk_Sentinel">
         <xs:complexType>

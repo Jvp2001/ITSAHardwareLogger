@@ -10,7 +10,7 @@ sealed trait HLModel
 
 final case class GeneralInfoModel(
                                    computerID: String,
-                                   description: String,
+                                   description: String, // The chassis-type
                                    model: String,
                                    vendor: String,
                                    serial: String,

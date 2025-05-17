@@ -27,8 +27,13 @@ trait HLDatabaseService:
 
   def findItsaIdBySerialNumber(serial: String): Option[String]
 
+  def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID:String): Unit
+
   def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String): Unit
 
+  /**
+   * This does not include the wiping table.
+   */
   def markAllRowsWithIDInDBAsError(id: String): Unit
 
   def findByID[M <: HLModel : ClassTag](id: String = itsaID): Option[M]
@@ -46,54 +51,18 @@ trait HLDatabaseService:
   def stop(): Unit
 end HLDatabaseService
 
-private type ModelECType[M <: HLModel] =
-  M match
-    case ProcessorModel | GeneralInfoModel => InfoCreator
-    case MemoryModel => MemoryCreator
-    case HardDriveModel => DiskCreator
-    case MediaModel => MediaCreator
-private type ModelEntityType[M <: HLModel] = EntityFromEC[ModelECType[M]]
 
-private type ModelToECClassTag[M <: HLModel] =
-  M match
-    case GeneralInfoModel => ClassTag[InfoCreator]
-    case ProcessorModel => ClassTag[InfoCreator]
-    case MemoryModel => ClassTag[MemoryCreator]
-    case HardDriveModel => ClassTag[DiskCreator]
-    case MediaModel => ClassTag[MediaCreator]
-
-trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLDatabaseService with TaskExecutor[T]:
+trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   protected var db: Option[HLDatabase] = None
   private val minAmountOfTransactions = 4
 
+  /**
+  * Can be used to mark a new version of the program.
+  */
+  private final val genID = "itsa-hwlogger"
+
   protected val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
   private var noIDIndex: Option[Long] = None
-
-  private given urlPropertyNameGetter: URLPropertyNameGetter = props =>
-    val officeAddressPrefix = props.get("db.office.url").toString.replace("jdbc:mysql://", "").split(":")(0).split("\\.", 1)(0)
-    val workshopAddressPrefix = props.get("db.workshop.url").toString.replace("jdbc:mysql://", "").split(":")(0).split("\\.", 1)(0)
-
-    ipFinderService.findAddresses().find: address =>
-      val hostAddress = address.getAddress.getHostAddress
-      hostAddress.startsWith(officeAddressPrefix) || hostAddress.startsWith(workshopAddressPrefix)
-    match
-      case Some(value) =>
-        val hostAddress = value.getAddress.getHostAddress
-
-        if hostAddress.startsWith(officeAddressPrefix) then
-          Some("db.office.url")
-        else if hostAddress.startsWith(workshopAddressPrefix) then
-          Some("db.workshop.url")
-        else
-          propertyNamGetterError(Some(value))
-          None
-
-      case None =>
-        propertyNamGetterError(None)
-        None
-  end urlPropertyNameGetter
-
-  def propertyNamGetterError(address: Option[InterfaceAddress]): Unit
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
     def connectViaSpecificURL(connectionPropName: String): Result[Unit, String] =
@@ -109,13 +78,13 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
               Result.error(reason.toString)
         catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
     end connectViaSpecificURL
+
     Result:
       connectViaSpecificURL("db.office.url") match
         case Success(value) => ()
         case Error(reason) => connectViaSpecificURL("db.workshop.url") match
           case Success(value) => ()
           case Error(reason) => Result.error("Failed to connect to database!")
-
 
 
   override def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
@@ -180,7 +149,6 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
 
   protected def save[M <: HLModel]()(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     executeTasks()
-  end save
 
   @tailrec
   final protected def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
@@ -191,6 +159,7 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
       functions
     else
       generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
+  end generateTaskFunctions
 
 
   given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
@@ -206,6 +175,9 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
     result.asInstanceOf[ClassTag[ItsaEC]]
   end ecClassTag
 
+
+  override def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID: String): Unit =
+    () //TODO: See if this needs implementing.
 
   override def markAllRowsWithIDInDBAsError(id: String = itsaID): Unit =
     val database = db match
@@ -227,9 +199,8 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
 
   def findAllStartingWithID[M <: HLModel : ClassTag](id: String = itsaID): Seq[M] =
     optional:
-      val result = db.?.findAllByIdStartingWith(if id == "" then itsaID else id)
-      result.map(toModel)
-    .getOrElse(Seq())
+      db.?.findAllByIdStartingWith(if id == "" then itsaID else id).map(toModel)
+    ?? Seq()
 
 
   def findByID[M <: HLModel : ClassTag](id: String = itsaID): Option[M] =
@@ -264,7 +235,7 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
           serial = info.cpuSerial.getOrElse(""),
           os = info.os.getOrElse(""),
           model = info.cpuProduct.getOrElse(""),
-          description = info.cpuDescription,
+          description = info.genDesc,
         )
       case memory: Memory =>
         MemoryModel(size = DataSize.from(memory.size), description = memory.description.getOrElse(""))
@@ -278,19 +249,6 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
           performance = Percentage(100),
           connectionType = HardDriveConnectionType.NVME
         )
-      case hardDrive: Wiping =>
-        HardDriveModel(
-          model = hardDrive.model,
-          size = DataSize(0, "GiB"),
-          serial = hardDrive.serial,
-          description = hardDrive.description ?? "",
-          health = Percentage(100),
-          performance = Percentage(100),
-          connectionType = HardDriveConnectionType.NVME
-        )
-      //        var matchingDrive = hardwareGrabberService.drives.filter(hd =>
-      //          hd.model == hardDrive.model).headOption
-      //        println(matchingDrive)
 
       case media: Media =>
         MediaModel(description = media.description, handle = media.handle.getOrElse(""))
@@ -318,13 +276,14 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
   protected def createHardDrive(hardDriveModel: HardDriveModel): DiskCreator =
     DiskCreator(itsaID, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.connectionType.toString, "ATA Disk")
 
+
   protected def createInfo(infoModel: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): InfoCreator =
     val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum
     val processor = this.processor.getOrElse(hardwareGrabberService.processors.head)
     val creator = InfoCreator(cpuVendor = infoModel.vendor,
       itsaID = this.itsaID, cpuSerial = Some(processor.serial), totalMemory = s"$totalMemory GiB",
       cpuSpeed = processor.speed.toString, cpuDescription = processor.longDescription, cpuProduct = processor.name,
-      genDesc = "TODO", genId = "itsa-hwlogger", genProduct = "CPU", genSerial = infoModel.serial, genVendor = infoModel.vendor,
+      genDesc = "TODO", genId = genID, genProduct = "CPU", genSerial = infoModel.serial, genVendor = infoModel.vendor,
       cpuWidth = processor.width.toString, os = infoModel.os, cpuCores = processor.cores.toString, insertionDate = Timestamp.from(OffsetDateTime.now().toInstant), lastUpdated = Timestamp.from(OffsetDateTime.now().toInstant))
     this.processor = None
     creator
@@ -333,17 +292,9 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
   protected def createWiping(model: HardDriveModel): WipingCreator =
     // The description is too long. So the description in the DB will only be the first sentence.
     val description = model.description.split("\\.")(0) + "."
-    val newID =
-      if model.itsaID.toLowerCase.startsWith("no id") then
-        noIDIndex = Option((noIDIndex ?? 1L) + 1L)
-        noIDIndex.get.toString
-      else if model.itsaID.nonEmpty && model.itsaID.head.isLetterOrDigit then
-        model.itsaID
-      else
-        "NO ID1"
-    end newID
 
-    WipingCreator(hddID = newID,
+
+    WipingCreator(hddID = model.itsaID,
       serial = model.serial, model = model.model,
       insertionDate = OffsetDateTime.now, capacity = model.size.dbString,
       `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
@@ -354,8 +305,6 @@ trait CommonHLDatabase[T[_]](using ipFinderService: IPFinderService) extends HLD
     MediaCreator(itsaID, media.description, media.handle)
 end CommonHLDatabase
 
-
-import IPFinderService.given
 
 object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
 
@@ -379,13 +328,6 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
   end executeTasks
 
 
-  override def propertyNamGetterError(address: Option[InterfaceAddress]): Unit =
-    val errorMessage = address match
-      case Some(value) => s"Failed to find connection for database by client's IP address: ${value.getAddress.getHostAddress}!"
-      case None => "Failed find any IP addresses. Check internet connection!"
-    new Alert(AlertType.Error, errorMessage, ButtonType.OK):
-      title = "DB Connection Error"
-      showAndWait()
 end SimpleHLDatabaseService
 
 

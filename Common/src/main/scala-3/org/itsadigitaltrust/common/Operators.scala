@@ -19,7 +19,7 @@ object Operators:
       !seq.contains(item)
   end extension
   extension[T](option: Option[T])
-    def ??(default: T): T =
+    infix def ??(default: T): T =
       option.getOrElse(default)
 
 end Operators

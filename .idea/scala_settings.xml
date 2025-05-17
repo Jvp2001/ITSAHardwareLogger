@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaProjectSettings">
-    <option name="customScalatestSyntaxHighlighting" value="true" />
     <option name="intInjectionMapping">
       <map>
+        <entry key="css" value="CSS" />
         <entry key="html" value="HTML" />
         <entry key="java" value="JAVA" />
+        <entry key="js" value="JavaScript" />
         <entry key="json" value="JSON" />
         <entry key="json5" value="JSON5" />
         <entry key="md" value="Markdown" />
@@ -18,6 +19,6 @@
       </map>
     </option>
     <option name="migrateConfigurationsNotificationShown" value="true" />
-    <option name="showImplicitConversions" value="true" />
+    <option name="scala3DisclaimerShown" value="true" />
   </component>
 </project>

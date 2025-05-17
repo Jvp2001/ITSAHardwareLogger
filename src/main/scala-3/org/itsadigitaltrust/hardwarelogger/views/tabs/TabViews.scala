@@ -28,10 +28,10 @@ private[views] final class ProcessorTabView extends TabTableView[ProcessorModel,
   private val speedColumn = createAndAddColumn("Speed"): cellValue =>
     cellValue.speedProperty
 
-  private val shortDescriptionColumn = createAndAddColumn("Short Description"): cellValue =>
-    cellValue.shortDescriptionProperty
+//  private val shortDescriptionColumn = createAndAddColumn("Short Description"): cellValue =>
+//    cellValue.shortDescriptionProperty
 
-  private val longDescriptionColumn = createAndAddColumn("Long Description"): cellValue =>
+  private val longDescriptionColumn = createAndAddColumn("Description"): cellValue =>
     cellValue.longDescriptionProperty
 
   private val serialColumn = createAndAddColumn("Serial"): cellValue =>

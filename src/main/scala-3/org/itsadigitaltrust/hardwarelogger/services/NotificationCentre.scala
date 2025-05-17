@@ -31,13 +31,13 @@ enum NotificationChannel:
   case Reload
   case Save // This channel is used to push all the loaded data to the database.
   case DBError(msg: String)
+  
   case DBSuccess
   case FoundDuplicateRowsWithID
   case MarkRowsWithIDAsError
   case ShowDuplicateDriveWarning
   case ContinueWithDuplicateDrive
   case ProgramModeChanged
-  case RunTasks
   
 object SimpleNotificationCentre extends NotificationCentre[NotificationChannel]
 

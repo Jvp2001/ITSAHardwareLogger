@@ -12,22 +12,17 @@ import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
 
 
-class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with ProgramModeChangedDelegate:
+final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with ProgramModeChangedDelegate:
   root =>
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
 
-  private val tabs = ObservableBuffer[Tab]()
   stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
-  //  minWidth = Double.NegativeInfinity
-  //  minHeight = Double.NegativeInfinity
-  //  maxWidth = Double.NegativeInfinity
-  //  maxHeight = Double.NegativeInfinity
   prefWidth = 600.0
   prefHeight = 400.0
 
 
-  protected val menuBar = new MenuBar:
+  private val menuBar = new MenuBar:
     menus += new Menu("_View"):
       // Changes the program's mode
       items ++= Seq(
@@ -77,24 +72,17 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     margin = Insets(5.0, 0.0, 0.0, 0.0)
     spacing = 10.0
     children ++= Seq(idLabel, idTextField)
-    visible <== viewModel.isInNormalMode
 
-   
-  val topContainer = new VBox:
-    private val region = new Region:
+  private val topContainer = new VBox:
+    private val region = new Region():
       maxWidth = 10.0
-      visible <== viewModel.isInNormalMode
     alignment = CenterLeft
     prefHeight = 50.0
     prefWidth = 200.0
     spacing = 10.0
     children ++= Seq(region, idContainer, idErrorLabel)
-    visible <== viewModel.isInNormalMode
   end topContainer
-  viewModel.isInNormalMode.onChange: (op, oldValue, newValue) =>
-    contentBorderPane.top = if newValue then
-      topContainer
-    else null
+  contentBorderPane.top = topContainer
   private val tabPane = new TabPane:
     prefHeight = prefWidth.get
     prefWidth = 200.0
@@ -115,9 +103,7 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
     onAction = _ => viewModel.save()
     alignment = Center
     margin = Insets(0, 10.0, 0, 0)
-
     disable <== viewModel.validIDProperty
-
 
   private val centerButtonsContainer = new HBox:
     alignment = Center
@@ -127,8 +113,8 @@ class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootView
       prefWidth = 200.0
       prefHeight = prefWidth.get
       hgrow = Always
-
     children ++= Seq(reloadButton, saveButton)
+  end centerButtonsContainer
 
   contentBorderPane.center = new VBox:
     BorderPane.setAlignment(this, Center)

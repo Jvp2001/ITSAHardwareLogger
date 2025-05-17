@@ -5,6 +5,7 @@ import org.itsadigitaltrust.common.Maths.*
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
+import org.itsadigitaltrust.common.processes.Dmidecode
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.SimpleHLDatabaseService.findItsaIdBySerialNumber
@@ -26,10 +27,10 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
 
-  //  private val dmidecode =
-  //    val password = Base64.getDecoder.decode("TWlycm9yc0VkZ2UxOTA2MDE=")
-  //    Dmidecode(password.toString)
-  //
+    private val dmidecode =
+      val password = Base64.getDecoder.decode("TWlycm9yc0VkZ2UxOTA2MDE=")
+      Dmidecode(password.toString)
+
 
   // serial number was this: S1CTNSAG440003
   private val xml =
@@ -94,12 +95,12 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   protected def findDriveIdBySerialNumber(serial: String): Option[String]
 
   override def loadGeneralInfo(): Unit =
-    val serialNumber = hal.getComputerSystem.getSerialNumber
+    var serialNumber = hal.getComputerSystem.getSerialNumber
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
-    val id = findItsaIdBySerialNumber("HUB435096F").getOrElse("")
-    generalInfo = GeneralInfoModel("itsa-hwlogger", /*dmidecode.getKeywordValue("chassis-type")*/ "", model, vendor, /*serialNumber*/ "HUB435096F", os, itsaID = Some(id))
+    val id = findItsaIdBySerialNumber(serialNumber).getOrElse("")
+    generalInfo = GeneralInfoModel("itsa-hwlogger", description = /*dmidecode.getKeywordValue("chassis-type")*/ Dmidecode("password")("chassis-type"), model = model, vendor = vendor,  serial = /*serialNumber*/ serialNumber, os = os, itsaID = Some(id))
 
 
   override def loadHardDrives(): Unit =
