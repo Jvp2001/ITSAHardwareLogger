@@ -1,6 +1,5 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
-import org.itsadigitaltrust.hardwarelogger.backend.DataStoreLoader.PropertyFileName
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.funsuite.AnyFunSuite
 

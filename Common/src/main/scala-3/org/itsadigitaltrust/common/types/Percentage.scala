@@ -30,6 +30,9 @@ object Percentage:
   
     def asPercentage: Percentage =
       if s.endsWith("%") then
-        s
+        if s.startsWith("?") then
+          s.replace("?", "-1")
+        else
+          s
       else
         scala.sys.error("String must end with %")

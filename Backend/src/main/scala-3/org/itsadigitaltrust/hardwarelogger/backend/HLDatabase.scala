@@ -25,7 +25,9 @@ class HLDatabase private(dataSource: DataSource):
   private val connection: DataSource = dataSource
 
   private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
+
   private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
+
   private given transaction: Transactor = Transactor(connection)
 
 
@@ -50,7 +52,7 @@ class HLDatabase private(dataSource: DataSource):
   end getRepo
 
   def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLRepo[EC, E] =
-    val result = summon[ClassTag[EC]]match
+    val result = summon[ClassTag[EC]] match
       case c if c == classTag[MemoryCreator] => repos.memoryRepo
       case c if c == classTag[MediaCreator] => repos.mediaRepo
       case c if c == classTag[DiskCreator] => repos.diskRepo
@@ -58,8 +60,6 @@ class HLDatabase private(dataSource: DataSource):
       case c if c == classTag[WipingCreator] => repos.wipingRepo
     result.asInstanceOf[HLRepo[EC, E]]
   end getRepo
-
-
 
 
   private def getClassTagForEntityTypeEC[EC <: ItsaEC : ClassTag]: ClassTag[EntityFromEC[EC]] =
@@ -79,12 +79,10 @@ class HLDatabase private(dataSource: DataSource):
       case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
       case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
       case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
-      case c  if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
+      case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
 
     result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
   end getDbCodec
-
-
 
 
   def getLatestNoIDValue: Long =
@@ -102,6 +100,7 @@ class HLDatabase private(dataSource: DataSource):
 
   /**
    * Finds the itsaID by the PC's serial number
+   *
    * @param serial The serial number of the PC
    * @return [[Some]](String) if the itsaID was found, otherwise [[None]].
    */
@@ -125,25 +124,24 @@ class HLDatabase private(dataSource: DataSource):
         case _ => true
 
 
-  def findAllByIdStartingWith[EC <: ItsaEC : ClassTag ](id: String): Seq[EntityFromEC[EC]] =
+  def findAllByIdStartingWith[EC <: ItsaEC : ClassTag](id: String): Seq[EntityFromEC[EC]] =
     val transaction = Transactor(connection)
     transact(transaction):
       getRepo[EC, EntityFromEC[EC]].findAllByIdsStartingWith(id)
-
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
     val transaction = Transactor(connection)
 
     transact(transaction):
-      val nonErrorRows:Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
+      val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
       val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)
       val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
       if numberOfErrorRows > 0 then
-        val errorIndices = Range(numberOfErrorRows, allRows.size+1)
+        val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
         val newIDs = errorIndices.map: index =>
-          s"${if id(id.length-2) == '.' then id else s"$id.0" }-E$index"
-        val oldToNew =  nonErrorRows.map(_.id).zip(newIDs)
+          s"${if id(id.length - 2) == '.' then id else s"$id.0"}-E$index"
+        val oldToNew = nonErrorRows.map(_.id).zip(newIDs)
         oldToNew.foreach: item =>
           getRepo.replaceIDByPrimaryKey(item._1, item._2)
   end markAllRowsWithIDAsError
@@ -154,9 +152,11 @@ class HLDatabase private(dataSource: DataSource):
       repos.wipingRepo.insertAll(disks.iterator.to(Iterable))
 
 
-  def findWipingRecord(serial: String) : Option[Wiping] =
+  def findWipingRecord(serial: String): Option[Wiping] =
     given table: HLTableInfo[WipingCreator, Wiping] = tables.wipingTable
+
     given wipingCreatorCT: ClassTag[WipingCreator] = classTag[WipingCreator]
+
     transact(transaction):
       val result = repos.wipingRepo.findWipingRecord(serial)(using summon[DbCon])(using table)
       result
@@ -172,12 +172,12 @@ class HLDatabase private(dataSource: DataSource):
 
   def replaceAllRowsWithID[EC <: ItsaEC : ClassTag](old: String, `new`: String): Unit =
     given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
+
     transact(transaction):
       getRepo.replaceIdWith(old, `new`)(using summon[DbCon])
 
   def findWipingRecordID(serial: String): Option[String] =
     findWipingRecord(serial).map(_.hddID)
-
 
 
   def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
@@ -193,15 +193,11 @@ object HLDatabase:
     override def apply(x: DataStoreLoader.Error): Error =
       Error.LoaderError(x)
 
-  def apply(dbProperties: URL, connectionPropName: String ): Result[HLDatabase, DataStoreLoader.Error] =
+  def apply(dbProperties: URL, connectionPropName: String): Result[HLDatabase, DataStoreLoader.Error] =
     Result:
       DataStoreLoader(dbProperties.toURI, connectionPropName) match
-        case Success(value) =>
-          Result.success(new HLDatabase(value))
-        case common.Error(reason) =>
-          Result.error(reason)
-
-
+      case Result.Success(value) => new HLDatabase(value)
+      case Result.Error(error) => Result.error(error)
 
 
 

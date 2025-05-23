@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hardwarelogger
 
 import com.sun.javafx.PlatformUtil
 import org.itsadigitaltrust.common
-import common.{Error, Result, Success}
+import common.{PropertyFileReaderError, Result, Success}
 import core.ui.*
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.getClass
 import delegates.{ProgramMode, ProgramModeChangedDelegate}
@@ -33,8 +33,8 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
     setProgramMode()
     Platform.runLater:
       databaseService.connect(getClass, "db/db.properties") match
-        case Success(_) => ()
-        case Error(reason) =>
+        case Result.Success(_) => ()
+        case Result.Error(reason) =>
           new Alert(AlertType.Error, reason, ButtonType.OK).showAndWait()
 
 
@@ -55,7 +55,8 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
                 notificationCentre.publish(NotificationChannel.Reload)
         show()
     catch
-      case e: NumberFormatException =>
+ //     case _ => ()
+     case e: NumberFormatException =>
         e.printStackTrace()
   end start
 

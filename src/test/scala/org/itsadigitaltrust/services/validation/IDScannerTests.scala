@@ -17,7 +17,7 @@ class IDScannerTests extends AnyFunSuite:
     def loop(tokens: Seq[IDScanner.Token]): Seq[IDScanner.Token] =
       scanner.next() match
         case Token.Error(msg, at) =>
-          assert(false, s"Error at $at: $msg")
+          assert(false, s"PropertyFileReaderError at $at: $msg")
           Seq()
         case Token.End => tokens
         case t => loop(tokens :+ t)

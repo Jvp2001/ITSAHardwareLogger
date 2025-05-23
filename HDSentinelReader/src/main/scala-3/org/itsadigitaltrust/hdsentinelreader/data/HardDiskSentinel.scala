@@ -20,6 +20,7 @@ final case class HardDiskSummary(
                             @JacksonXmlProperty(localName = "Maximum_Temperature_ever_measured") maximumTemperatureEverMeasured: String,
                             @JacksonXmlProperty(localName = "Maximum_temperature_during_entire_lifespan") @JsonIgnore maximumTemperatureDuringEntireLifeSpan: String = "",
                             @JacksonXmlProperty(localName = "Minimum_Temperature_ever_measured") minimumTemperatureEverMeasured: String,
+                            @JacksonXmlProperty(localName = "Lifetime_writes") lifetimeWrites: String,
                             @JacksonXmlProperty(localName = "Daily_Average") dailyAverage: String,
                             @JacksonXmlProperty(localName = "Daily_Maximum") dailyMaximum: String,
                             @JacksonXmlProperty(localName = "Power_on_time") powerOnTime: String,

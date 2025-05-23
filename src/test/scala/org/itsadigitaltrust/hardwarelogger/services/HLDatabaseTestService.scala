@@ -30,6 +30,5 @@ object HLDatabaseTestService extends CommonHLDatabase[HardwareLoggerTask]:
 
     notificationCentre.publish(NotificationChannel.DBSuccess)
 
-  override def propertyNamGetterError(address: Option[InterfaceAddress]): Unit = ???
 
 

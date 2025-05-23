@@ -41,6 +41,7 @@ object Maths:
     def TB: DataSize = DataSize(long / (1000 ** 4), "TB")
 export Maths.*
 
+
 object StringExtensions:
   extension (s: String)
     def startWithIgnoreCase(string: String): Boolean =

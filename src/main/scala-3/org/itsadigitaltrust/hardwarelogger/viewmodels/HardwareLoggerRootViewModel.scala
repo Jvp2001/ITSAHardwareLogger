@@ -70,13 +70,17 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     end if
 
   notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
-    if ProgramMode.isInNormalMode then
-      optional:
+    optional:
+      if ProgramMode.isInNormalMode then
         val pcInfo = Option(hardwareGrabberService.generalInfo)
         val info = pcInfo.?
         val itsaId = info.itsaID.?
         idStringProperty.value = itsaId
         println(s"Itsa ID: $itsaId")
+      else 
+        idStringProperty.value = hardwareGrabberService.hardDrives.headOption.?.itsaID
+        
+    
 
   override def setup(): Unit =
     reload()
@@ -84,7 +88,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
-    isInNormalMode.value = mode == "Normal"
+     isInNormalMode.value = mode == "Normal"
   def save(): Unit =
     validateID(true)
 
@@ -106,7 +110,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
     val result = hardwareIDValidationService.validate(currentID.strip())
     result match
-      case org.itsadigitaltrust.common.Error(value) =>
+      case common.Result.Error(value) =>
         idErrorStringProperty.value = value.toString
         if showAlert then
           value match
@@ -115,7 +119,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
               idErrorAlert.showAndWait() match
                 case _ => idFieldFocusProperty.value = true
-      case Success(value) =>
+      case common.Result.Success(value) =>
         idErrorStringProperty.value = ""
         idStringProperty.value = value.toString
         databaseService.itsaID = idStringProperty.value
@@ -135,9 +139,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   private def findNonWipedDrives() =
     hardwareGrabberService.hardDrives.filterNot: hardDrive =>
-      databaseService.findWipingRecord(hardDrive.serial) match
-        case Some(_) => true
-        case None => false
+      databaseService.findWipingRecord(hardDrive.serial).isDefined
+      
 
 
   private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =

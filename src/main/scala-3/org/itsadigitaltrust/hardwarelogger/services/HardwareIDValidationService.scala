@@ -16,6 +16,7 @@ trait HardwareIDValidationService:
 end HardwareIDValidationService
 
 object HardwareIDValidationService:
+  import Result.{Success, Error}
   type ValidationResult = Result[ParsedResult, ValidationError]
   extension (result: ValidationResult)
     def toBoolean: Boolean =
@@ -51,6 +52,7 @@ class SimpleHardwareIDValidationService extends HardwareIDValidationService:
   private final val multiplier = 3
 
   override def validate(input: String): ValidationResult =
+    import Result.{Success, Error}
     Result:
       IDParser(input, ProgramMode.isInHardDriveMode) match
 

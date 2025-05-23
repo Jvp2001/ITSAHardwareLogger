@@ -25,15 +25,6 @@ object DataStoreLoader:
 
   import scala.compiletime.*
 
-  opaque type PropertyFileName = String
-
-  object PropertyFileName:
-    inline def apply(file: String): PropertyFileName =
-      inline if file == "" || file == null then error(codeOf(file) + " cannot be empty or null!")
-      //      else if file.split("/")(0) != "db.properties" then error (codeOf(file) + " must end with .properties!")
-      else file
-
-
   private type Prefix = "MYSQL" | "ORACEL"
 
 

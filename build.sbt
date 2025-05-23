@@ -45,8 +45,7 @@ lazy val common: Project = (project in file("Common"))
 
 lazy val commonDependencies = Seq(
   "com.augustnagro" %% "magnum" % "1.3.1",
-  "com.mysql" % "mysql-connector-j" % "9.2.0",
-  "com.softwaremill.ox" %% "core" % "0.5.13",
+  "com.mysql" % "mysql-connector-j" % "9.3.0",
 ).map(_ withJavadoc() withSources())
 
 lazy val hdsentinelreader = (project in file("HDSentinelReader")).

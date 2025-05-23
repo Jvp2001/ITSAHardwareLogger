@@ -11,7 +11,7 @@
 
 .text-field
 {
-    -fx-text-alignment: left ;
+    /*-fx-text-alignment: left ;*/
 }
 
 .error
@@ -23,7 +23,7 @@
 
 .hdsentinel-background
 {
-    -fx-background-color: befdbe;
+    -fx-background-color: #befdbe;
 }
 
 .hdsentinel-text

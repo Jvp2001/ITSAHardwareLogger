@@ -1,35 +1,36 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import com.fasterxml.jackson.dataformat.xml.annotation.{JacksonXmlElementWrapper, JacksonXmlProperty}
-import org.itsadigitaltrust.common.Maths.*
-import org.itsadigitaltrust.common.OSUtils
-import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
-import org.itsadigitaltrust.common.processes.Dmidecode
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.services.SimpleHLDatabaseService.findItsaIdBySerialNumber
-import org.itsadigitaltrust.hardwarelogger.tasks.{HLTaskGroupBuilder, HLTaskRunner, HardwareGrabberTask}
+import org.itsadigitaltrust.common
+import common.Maths.*
+import common.OSUtils
+import common.Operators.??
+import common.Types.{Percentage, asPercentage}
+import common.processes.Dmidecode
+
+import org.itsadigitaltrust.hardwarelogger
+import hardwarelogger.delegates.ProgramMode
+import hardwarelogger.models.*
+import hardwarelogger.services.SimpleHLDatabaseService
+import hardwarelogger.tasks.{HLTaskGroupBuilder, HLTaskRunner, HardwareGrabberTask}
+import hardwarelogger.core.given
+
 import org.itsadigitaltrust.hdsentinelreader.HDSentinelReader
 import org.itsadigitaltrust.hdsentinelreader.Types.XMLFile
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import oshi.SystemInfo
-import ox.{fork, supervised}
 
-import java.util.Base64
 import scala.jdk.CollectionConverters.*
 
 
 trait OshiHardwareGrabberService extends HardwareGrabberService:
 
+  given dbService: HLDatabaseService = scala.compiletime.deferred
+
   import org.itsadigitaltrust.hardwarelogger.models.HardDriveConnectionType.*
 
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
-
-    private val dmidecode =
-      val password = Base64.getDecoder.decode("TWlycm9yc0VkZ2UxOTA2MDE=")
-      Dmidecode(password.toString)
 
 
   // serial number was this: S1CTNSAG440003
@@ -99,15 +100,14 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
-    val id = findItsaIdBySerialNumber(serialNumber).getOrElse("")
-    generalInfo = GeneralInfoModel("itsa-hwlogger", description = /*dmidecode.getKeywordValue("chassis-type")*/ Dmidecode("password")("chassis-type"), model = model, vendor = vendor,  serial = /*serialNumber*/ serialNumber, os = os, itsaID = Some(id))
+    val id = dbService.findItsaIdBySerialNumber(serialNumber) ?? ""
+    generalInfo = GeneralInfoModel("itsa-hwlogger", description = /*dmidecode.getKeywordValue("chassis-type")*/ Dmidecode("chassis-type"), model = model, vendor = vendor,  serial = /*serialNumber*/ serialNumber, os = os, itsaID = Some(id))
 
 
   override def loadHardDrives(): Unit =
-    import org.itsadigitaltrust.hardwarelogger.services.SimpleHLDatabaseService.ecClassTag
     val hdSentinelReader =
       if OSUtils.onLinux then
-        HDSentinelReader[HardDiskSummary]("password")
+        HDSentinelReader[HardDiskSummary]()
       else
         HDSentinelReader[HardDiskSummary](xml)
     end hdSentinelReader
@@ -117,6 +117,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
       val drive = HardDriveModel(
+        
         hardDiskSummary.health.asPercentage,
         hardDiskSummary.performance.asPercentage,
         hardDiskSummary.totalSize.replace(" MB", "").toInt.GiB,
@@ -131,16 +132,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
         estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
       )
       drive
-
-
-
-
-  //    hardDrives = hal.getDiskStores.asScala.map: disk =>
-  //      val name = disk.getName
-  //      val size = disk.getSize
-  //      val model = disk.getModel
-  //      HardDriveModel(99.percent, 100.percent, size.GiB, model, disk.getSerial, NVME, isSSD = true)
-  //    .toList
+  end loadHardDrives
 
 
   override def loadMemory(): Unit =
@@ -161,6 +153,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
     val cores = hal.getProcessor.getPhysicalProcessorCount
     val freq = hal.getProcessor.getCurrentFreq
     processors = List(ProcessorModel(name, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
+  end loadProcessors
 
 
   override def loadMedia(): Unit =
@@ -168,19 +161,20 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
 end OshiHardwareGrabberService
 
-object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwareGrabberService:
+class OshiHardwareGrabberApplicationService(using db: HLDatabaseService) extends OshiHardwareGrabberService:
+  override given dbService: HLDatabaseService = db
 
   override protected def findDriveIdBySerialNumber(serial: String): Option[String] =
     val result =
       if ProgramMode.isInNormalMode then
-        databaseService.findItsaIdBySerialNumber(serial)
+        dbService.findItsaIdBySerialNumber(serial)
       else
-        Option(databaseService.findWipingRecord(serial).get.itsaID)
+        Option(dbService.findWipingRecord(serial).get.itsaID)
     end result
     result
 
   override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] =
-    databaseService.findItsaIdBySerialNumber(serial)
+    dbService.findItsaIdBySerialNumber(serial)
 
 
   override def load()(finished: () => Unit = () => ()): Unit =

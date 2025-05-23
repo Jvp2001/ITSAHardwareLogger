@@ -34,7 +34,8 @@ final case class HardDriveModel(
                                  description: String = "",
                                  actions: String = "No actions needed.",
                                  powerOnTime: String = "",
-                                 estimatedRemainingLifetime: String = ""
+                                 estimatedRemainingLifetime: String = "",
+                                 formFactor: String = ""
                                ) extends HLModel
 
 enum HardDriveConnectionType extends Enum[HardDriveConnectionType]:

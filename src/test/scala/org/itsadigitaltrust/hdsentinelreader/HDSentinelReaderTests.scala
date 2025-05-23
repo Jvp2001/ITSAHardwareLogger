@@ -37,9 +37,9 @@ class HDSentinelReaderTests extends AnyFunSuite:
     </Hard_Disk_Summary>
   </HDSentinel>
   test("Get XML output"):
-    val reader = if System.getProperty("os.name").toLowerCase.contains("linux") then
+    val reader = /*if System.getProperty("os.name").toLowerCase.contains("linux") then
       HDSentinelReader[HardDriveModel]("password")
-    else
+    else*/
       HDSentinelReader[HardDiskSummary](xml)
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
     println(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
