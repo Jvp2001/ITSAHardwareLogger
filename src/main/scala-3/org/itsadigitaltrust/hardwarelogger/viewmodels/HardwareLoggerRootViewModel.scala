@@ -2,9 +2,9 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
 import org.itsadigitaltrust.common
-import org.itsadigitaltrust.common.Operators.??
+import common.Operators.??
 import org.itsadigitaltrust.common.optional.?
-import org.itsadigitaltrust.common.{Success, optional}
+import org.itsadigitaltrust.common.{Result, optional}
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
@@ -70,17 +70,13 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     end if
 
   notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
-    optional:
-      if ProgramMode.isInNormalMode then
+    if ProgramMode.isInNormalMode then
+      optional:
         val pcInfo = Option(hardwareGrabberService.generalInfo)
         val info = pcInfo.?
         val itsaId = info.itsaID.?
         idStringProperty.value = itsaId
         println(s"Itsa ID: $itsaId")
-      else 
-        idStringProperty.value = hardwareGrabberService.hardDrives.headOption.?.itsaID
-        
-    
 
   override def setup(): Unit =
     reload()
@@ -88,7 +84,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
-     isInNormalMode.value = mode == "Normal"
+    isInNormalMode.value = mode == "Normal"
   def save(): Unit =
     validateID(true)
 
@@ -110,7 +106,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
     val result = hardwareIDValidationService.validate(currentID.strip())
     result match
-      case common.Result.Error(value) =>
+      case Result.Error(value) =>
         idErrorStringProperty.value = value.toString
         if showAlert then
           value match
@@ -119,7 +115,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
               idErrorAlert.showAndWait() match
                 case _ => idFieldFocusProperty.value = true
-      case common.Result.Success(value) =>
+      case Result.Success(value) =>
         idErrorStringProperty.value = ""
         idStringProperty.value = value.toString
         databaseService.itsaID = idStringProperty.value
@@ -139,8 +135,9 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   private def findNonWipedDrives() =
     hardwareGrabberService.hardDrives.filterNot: hardDrive =>
-      databaseService.findWipingRecord(hardDrive.serial).isDefined
-      
+      databaseService.findWipingRecord(hardDrive.serial) match
+        case Some(_) => true
+        case None => false
 
 
   private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =

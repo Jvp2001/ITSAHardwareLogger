@@ -16,13 +16,12 @@ trait HardwareIDValidationService:
 end HardwareIDValidationService
 
 object HardwareIDValidationService:
-  import Result.{Success, Error}
   type ValidationResult = Result[ParsedResult, ValidationError]
   extension (result: ValidationResult)
     def toBoolean: Boolean =
       result match
-        case Success(_) => true
-        case Error(_) => false
+        case Result.Success(_) => true
+        case Result.Error(_) => false
 
 
   enum ValidationError:
@@ -52,25 +51,24 @@ class SimpleHardwareIDValidationService extends HardwareIDValidationService:
   private final val multiplier = 3
 
   override def validate(input: String): ValidationResult =
-    import Result.{Success, Error}
     Result:
       IDParser(input, ProgramMode.isInHardDriveMode) match
 
-        case Error(value) =>
-          error(ParserError(value))
-        case Success(value) =>
+        case Result.Error(value) =>
+          Result.error(ParserError(value))
+        case Result.Success(value) =>
           val userCheckDigit = value.checkDigit.getOrElse("0").toInt
           val numberSeq: IndexedSeq[Char] =
             value.number match
               case Some(value) => value.iterator.toIndexedSeq
               case None =>
-                error(ValidationError.ParserError(IDParser.ParserError.MissingNumber))
+                Result.error(ValidationError.ParserError(IDParser.ParserError.MissingNumber))
           val oddTotal = calculateOddSum(numberSeq)
           val evenTotal = calculateEvenSum(numberSeq)
           val calculatedCheckDigit = (oddTotal + evenTotal * multiplier) % 10
 
           if userCheckDigit != calculatedCheckDigit then
-            error(ValidationError.IncorrectCheckDigit(s"$calculatedCheckDigit", s"$userCheckDigit"))
+            Result.error(ValidationError.IncorrectCheckDigit(s"$calculatedCheckDigit", s"$userCheckDigit"))
           else
             Result.success(value)
 

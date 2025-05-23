@@ -104,7 +104,9 @@ INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T
       <console name="External Itsahw" type="STANDARD" schema="mysql" session="Main"><![CDATA[select * from hwlogger.info order by id desc;
 select * from hwlogger.disks order by id desc;
 select * from hwlogger.wiping;
-select * from hwlogger.info order by id desc;]]></console>
+select * from hwlogger.info order by id desc;
+
+select * from hwlogger.info where itsaid = '72725.1';]]></console>
     </connection>
     <connection id="ba269de5-3e99-4e6d-9901-2998b359418f">
       <console name="Connection" type="STANDARD" schema="postgres" session="Main" />
@@ -114,7 +116,9 @@ select * from hwlogger.info order by id desc;]]></console>
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files />
+    <open-files>
+      <object connection-id="cc392073-c906-4319-a766-6683de9c4037" object-ref="consoles/External Itsahw" />
+    </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />

@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.*
-import Result.{Success, Error}
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.types.*
@@ -63,26 +62,30 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   private final val genID = "itsa-hwlogger"
 
   protected val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
+  private var noIDIndex: Option[Long] = None
 
   override def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
     def connectViaSpecificURL(connectionPropName: String): Result[Unit, String] =
       Result:
         try
           HLDatabase(klazz.getResource(dbPropsFilePath).toURI.toURL, connectionPropName) match
-            case Success(value) =>
-              Result.success(())
-            case Error(reason) =>
+            case Result.Success(value) =>
+              db = Some(value)
+              println("Connected to database.")
+              noIDIndex = Option(value.getLatestNoIDValue)
+              Result.Success(())
+            case Result.Error(reason) =>
+              Result.error(reason.toString)
         catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
     end connectViaSpecificURL
 
     Result:
       connectViaSpecificURL("db.office.url") match
-        case Success(value) => ()
-        case Error(reason) => connectViaSpecificURL("db.workshop.url") match
-          case Success(value) => ()
-          case Error(reason) => Result.error("Failed to connect to database!")
-  end connect
-  
+        case Result.Success(value) => ()
+        case Result.Error(reason) => connectViaSpecificURL("db.workshop.url") match
+          case Result.Success(value) => ()
+          case Result.Error(reason) => Result.error("Failed to connect to database!")
+
 
   override def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     val creator = createEC(model)
@@ -139,7 +142,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
         notificationCentre.publish(NotificationChannel.FoundDuplicateRowsWithID)
       else
         val duplicateDrives = checkForDuplicateDrives()
-        if duplicateDrives.headOption ?? "" ne "" then
+        if duplicateDrives.headOption.getOrElse("") ne "" then
           notificationCentre.publish(NotificationChannel.ShowDuplicateDriveWarning, duplicateDrives.head)
         else // if duplicateDrives.contains("") then
           save()
@@ -217,9 +220,9 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       case info: Info if classTag[M] == classTag[ProcessorModel] =>
         ProcessorModel(
           name = info.cpuProduct.get,
-          serial = info.cpuSerial ?? "",
-          cores = info.cpuCores.flatMap(_.toIntOption) ?? 2,
-          speed = info.cpuSpeed.toLongOption ?? 0,
+          serial = info.cpuSerial.getOrElse(""),
+          cores = info.cpuCores.map(_.toInt).getOrElse(2),
+          speed = info.cpuSpeed.toLong,
           width = info.cpuWidth.map(_.toInt).getOrElse(64),
           longDescription = info.cpuDescription,
           shortDescription = ""
@@ -228,27 +231,27 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
         GeneralInfoModel(
           computerID = info.genId,
           itsaID = info.itsaID,
-          vendor = info.cpuVendor ?? "",
-          serial = info.cpuSerial ?? "",
-          os = info.os ?? "",
-          model = info.cpuProduct ?? "",
+          vendor = info.cpuVendor.getOrElse(""),
+          serial = info.cpuSerial.getOrElse(""),
+          os = info.os.getOrElse(""),
+          model = info.cpuProduct.getOrElse(""),
           description = info.genDesc,
         )
       case memory: Memory =>
-        MemoryModel(size = DataSize.from(memory.size), description = memory.description ?? "")
+        MemoryModel(size = DataSize.from(memory.size), description = memory.description.getOrElse(""))
       case hardDrive: Disk =>
         HardDriveModel(
           model = hardDrive.model,
           size = DataSize(0, "GiB"),
           serial = hardDrive.serial,
-          description = hardDrive.description ?? "",
+          description = hardDrive.description.getOrElse(""),
           health = Percentage(100),
           performance = Percentage(100),
           connectionType = HardDriveConnectionType.NVME
         )
 
       case media: Media =>
-        MediaModel(description = media.description, handle = media.handle ?? "")
+        MediaModel(description = media.description, handle = media.handle.getOrElse(""))
       case _ => scala.sys.error("Unknown Type!")
     model.asInstanceOf[M]
 
@@ -294,8 +297,8 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     WipingCreator(hddID = model.itsaID,
       serial = model.serial, model = model.model,
       insertionDate = OffsetDateTime.now, capacity = model.size.dbString,
-      `type` =None, toUpdate = true, isSsd = model.`type` == "SSD",
-      description = model.`type`, health = model.health.toByte, formFactor = "")
+      `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
+      description = description, health = model.health.toByte, formFactor = "")
 
 
   private def createMedia(media: MediaModel): MediaCreator =
@@ -317,14 +320,10 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
   end apply
 
   override def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit =
-    optional:
-      HLTaskGroupBuilder(t => DatabaseTransactionTask(t))
 
-      .addAll(transactionQueue.asScala.map(db.?.insertOrUpdate))
-      .run("Saving to Database"): () =>
-        if transactionQueue.size() < 1 then
-          notificationCentre.publish(NotificationChannel.DBSuccess)
-
+    HLTaskRunner("Saving to Database", generateTaskFunctions() *)(t => DatabaseTransactionTask(t)): () =>
+      if transactionQueue.size() < 1 then
+        notificationCentre.publish(NotificationChannel.DBSuccess)
 
   end executeTasks
 

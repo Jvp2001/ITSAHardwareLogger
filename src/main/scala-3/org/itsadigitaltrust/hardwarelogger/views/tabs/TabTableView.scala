@@ -57,8 +57,6 @@ class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewMo
 
   vgrow = Always
   items = viewModel.data
-  viewModel.data.onChange: (op, seq) =>
-    println (s"${this.getClass.getSimpleName} data is changed to \n$seq\nView row data is now \n${items.size}")
   tableMenuButtonVisible = true
 
 
