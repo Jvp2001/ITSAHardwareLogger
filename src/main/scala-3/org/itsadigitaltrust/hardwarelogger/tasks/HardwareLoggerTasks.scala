@@ -10,6 +10,6 @@ sealed class HardwareLoggerTask[R](override val name: String)(function: TaskFunc
 
 final class HardwareGrabberTask[R](function: TaskFunction[R]) extends HardwareLoggerTask[R]("HardwareGrabberTask")(function)
 
-final class DatabaseTransactionTask(function: TaskFunction[Unit]) extends HardwareLoggerTask[Unit]("DatabaseTransactionTask")(function)
+final class HLDatabaseTransactionTask(function: TaskFunction[Unit]) extends HardwareLoggerTask[Unit]("DatabaseTransactionTask")(function)
 
 

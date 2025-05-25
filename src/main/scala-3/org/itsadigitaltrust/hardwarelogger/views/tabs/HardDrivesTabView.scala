@@ -11,7 +11,7 @@ import scalafx.application.Platform
 import scalafx.scene.control.cell.CheckBoxTableCell
 
 private given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
-class HardDriveTableView extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
+class HardDriveTableView(using itsaID: String = "") extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
   rowDelegate = Some(viewModel)
   requestFocus()
 

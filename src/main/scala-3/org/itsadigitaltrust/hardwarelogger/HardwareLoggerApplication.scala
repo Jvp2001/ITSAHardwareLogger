@@ -8,6 +8,7 @@ import common.Result
 import core.ui.*
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.getClass
 import delegates.{ProgramMode, ProgramModeChangedDelegate}
+import org.itsadigitaltrust.hardwarelogger.tasks.HLTaskRunner
 import services.NotificationChannel.ProgramModeChanged
 import services.{NotificationCentre, NotificationChannel, ServicesModule}
 import views.HardwareLoggerRootView
@@ -33,10 +34,15 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
   override def start(): Unit =
     setProgramMode()
     Platform.runLater:
-      databaseService.connect(getClass, "db/db.properties") match
-        case Result.Success(_) => ()
-        case Result.Error(reason) =>
-          new Alert(AlertType.Error, reason, ButtonType.OK).showAndWait()
+       databaseService.connectAsync(getClass,  "db/db.properties"):
+          case Result.Success(_) => ()
+          case Result.Error(err) => new Alert(AlertType.Error, "Could not connect to database!"):
+            contentText = "Failed to connect to the database; please check your intranet connection, and try again!"
+          .showAndWait()
+        
+              
+          
+        
 
 
     try
@@ -48,7 +54,7 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
         title <==> titleProperty
         scene = new Scene(1020, 720):
           root = new HardwareLoggerRootView
-//            menuBar.useSystemMenuBar =  true
+          //            menuBar.useSystemMenuBar =  true
           onKeyPressed = (event: KeyEvent) =>
             val code = event.code
             if code == KeyCode.F5 then

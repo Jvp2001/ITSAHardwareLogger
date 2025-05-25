@@ -7,7 +7,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowView
 import scalafx.beans.property.StringProperty
 
 
-final class HardDrivesTabViewModel extends TabTableViewModel[HardDriveModel, HardDriveTableRowViewModel](HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel]:
+final class HardDrivesTabViewModel(using itsaID: String = "") extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel]:
   val powerOnTime: StringProperty = StringProperty("0")
   val estimatedLifeTime: StringProperty = StringProperty("0")
   val description: StringProperty = StringProperty("")

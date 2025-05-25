@@ -1,12 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-
-
-class OshiHardwareGrabberTestService(using db: HLDatabaseService) extends TestServicesModule, OshiHardwareGrabberService:
-  given dbService: HLDatabaseService = db
-  
+object OshiHardwareGrabberTestService extends OshiHardwareGrabberService, TestServicesModule:
   override protected def findDriveIdBySerialNumber(serial: String): Option[String] =
-    dbService.findItsaIdBySerialNumber(serial)
+    databaseService.findItsaIdBySerialNumber(serial)
 
   
 

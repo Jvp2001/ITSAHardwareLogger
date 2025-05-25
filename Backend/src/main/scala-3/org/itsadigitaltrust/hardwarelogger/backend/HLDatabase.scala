@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.backend
 
 import javax.sql.DataSource
 import com.augustnagro.magnum
-import com.augustnagro.magnum.{DbCodec, DbCon, DbTx, Transactor, transact as magTransact}
+import com.augustnagro.magnum.{DbCodec, DbCon, DbTx, SqlException, Transactor, transact as magTransact}
 import com.mysql.cj.MysqlConnection
 import com.mysql.cj.jdbc.{ConnectionImpl, MysqlDataSource}
 import org.itsadigitaltrust.common
@@ -14,24 +14,23 @@ import org.itsadigitaltrust.hardwarelogger.backend.entities.{Wiping, WipingCreat
 import java.net.URL
 import java.sql.Connection
 import scala.compiletime.{summonInline, uninitialized}
+import scala.concurrent.Future
 import scala.reflect
 import scala.reflect.{ClassTag, classTag}
 
 
-class HLDatabase private(dataSource: DataSource)(using errorHandler: Throwable => Unit):
+class HLDatabase private(dataSource: DataSource):
 
   import HLDatabase.Error
   import tables.given
 
-  
-  private val connection: DataSource = dataSource 
 
-  private given connectionConfig: Connection = new ConnectionImpl
-  
+  private val connection: DataSource = dataSource
+
+
   private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
 
   private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
-
 
 
   private inline def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
@@ -76,24 +75,33 @@ class HLDatabase private(dataSource: DataSource)(using errorHandler: Throwable =
   end getClassTagForEntityTypeEC
 
   private def getDbCodec[EC <: ItsaEC : ClassTag] =
-    val result = summon[ClassTag[EC]] match
-      case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
-      case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
-      case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
-      case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
-      case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
-      case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
-
-    result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
+    summon[DbCodec[EntityFromEC[EC]]]
+  //    val result = summon[ClassTag[EC]] match
+  //      case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
+  //      case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
+  //      case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
+  //      case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
+  //      case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
+  //      case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
+  //
+  //
+  //    result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
   end getDbCodec
 
+
+  def testConnection(): Boolean = 
+    try
+      dataSource.getConnection.isValid(2)
+    catch
+      case _: SqlException => false
   
+
+
   def transact[T](connection: DataSource)(f: DbTx ?=> T): T =
-    try 
+    try
       magTransact(connection)(f)
     catch
-      case t: Throwable => 
-        errorHandler(t)
+      case t: Throwable =>
         null.asInstanceOf[T]
 
   def getLatestNoIDValue: Long =
@@ -126,8 +134,7 @@ class HLDatabase private(dataSource: DataSource)(using errorHandler: Throwable =
       repo.insertOrUpdate(creator)(using summon[DbCon])
 
   def doesDriveExists(creator: DiskCreator): Boolean =
-    val transaction = Transactor(connection)
-    transact(transaction):
+    transact(connection):
       repos.diskRepo.sameDriveWithSerialNumber(creator.serial) match
         case Nil => false
         case _ => true
@@ -139,7 +146,7 @@ class HLDatabase private(dataSource: DataSource)(using errorHandler: Throwable =
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
-    
+
     transact(connection):
       val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
       val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)
@@ -194,16 +201,27 @@ class HLDatabase private(dataSource: DataSource)(using errorHandler: Throwable =
 object HLDatabase:
   enum Error:
     case LoaderError(error: DataSourceLoader.Error)
+    case ConnectionError
 
   given Conversion[DataSourceLoader.Error, Error] with
     override def apply(x: DataSourceLoader.Error): Error =
       Error.LoaderError(x)
 
-  def apply(dbProperties: URL, connectionPropName: String): Result[HLDatabase, DataSourceLoader.Error] =
+  def apply(dbProperties: URL, testConnection: Boolean = true): Result[HLDatabase, Error] =
     Result:
-      DataSourceLoader(dbProperties.toURI, connectionPropName) match
-      case Result.Success(value) => new HLDatabase(value)
-      case Result.Error(error) => Result.error(error)
+      DataSourceLoader(dbProperties.toURI) match
+        case Result.Success(value) =>
+          val db = new HLDatabase(value)
+          if testConnection && db.testConnection() then
+            db
+          else
+            Result.error(Error.ConnectionError)
+        case org.itsadigitaltrust.common.Result.Error(error) => Result.error(Error.LoaderError(error))
+
+
+
+
+
 
 
 

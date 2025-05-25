@@ -1,6 +1,6 @@
 package org.itsadigitaltrust.services.validation
 
-import org.itsadigitaltrust.common.{PropertyFileReaderError, Result}
+import org.itsadigitaltrust.common.{Error, Success}
 import org.itsadigitaltrust.hardwarelogger.services.SimpleHardwareIDValidationService
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -10,11 +10,11 @@ class IDValidationTests extends AnyFunSuite:
     val id = "92807.0"
     val result = validator.validate(id)
 
-    assert(result.getClass == classOf[Result.Success[?]])
+    assert(result.getClass == classOf[Success[?]])
 
   test("Valid Four Digit Id"):
     val id = "2476.9"
     val result = validator.validate(id)
 
-    assert(result.getClass == classOf[Result.Success[?]])
+    assert(result.getClass == classOf[Success[?]])
 

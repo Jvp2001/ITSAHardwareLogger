@@ -33,7 +33,7 @@ import org.itsadigitaltrust.hardwarelogger.models.MediaModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 
-final class MediaTableRowViewModel(model: MediaModel) extends TableRowViewModel[MediaModel](model):
+final class MediaTableRowViewModel(model: MediaModel)(using itsaID: String = "") extends TableRowViewModel[MediaModel](model):
   def descriptionProperty: StringProperty =
     wrapper.field("description", _.description, "")(StringProperty.apply)
 

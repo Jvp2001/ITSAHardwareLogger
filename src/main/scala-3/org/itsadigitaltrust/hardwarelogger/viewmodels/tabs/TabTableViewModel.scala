@@ -10,7 +10,7 @@ import scalafx.collections.*
 
 import scala.runtime.{AbstractFunction1, AbstractPartialFunction}
 
-class TabTableViewModel[M, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadData: HardwareGrabberService => Seq[M]) extends ViewModel with ServicesModule:
+class TabTableViewModel[M, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadData: HardwareGrabberService => Seq[M])(using itsaID: String = "") extends ViewModel with ServicesModule:
 
   type RowViewModel = VM
   val data: ObservableBuffer[VM] = ObservableBuffer()

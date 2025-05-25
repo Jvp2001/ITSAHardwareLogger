@@ -77,7 +77,8 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
         val itsaId = info.itsaID.?
         idStringProperty.value = itsaId
         println(s"Itsa ID: $itsaId")
-
+  
+    
   override def setup(): Unit =
     reload()
 
@@ -92,8 +93,6 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       val notWipedDrives = findNonWipedDrives()
       if notWipedDrives.nonEmpty then
         showDrivesNotWipedAlert(notWipedDrives)
-      if idErrorStringProperty.isEmpty.get then
-        databaseService.itsaID = idStringProperty.get()
     notificationCentre.publish(Save)
   end save
 
@@ -118,7 +117,6 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       case Result.Success(value) =>
         idErrorStringProperty.value = ""
         idStringProperty.value = value.toString
-        databaseService.itsaID = idStringProperty.value
   end validateID
 
   def reload(): Unit =

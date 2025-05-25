@@ -11,9 +11,6 @@ import java.util.Properties
 import javax.sql.DataSource
 import scala.util.{Failure, Using, boundary}
 
-trait URLPropertyNameGetter:
-  def get(properties: Properties): Option[String]
-
 
 final class HLSqlDataSource extends MysqlDataSource
   
@@ -31,7 +28,7 @@ object DataSourceLoader:
   private type Prefix = "MYSQL" | "ORACEL"
 
 
-  def apply(configFile: URI, connectionPropName: String): Result[MysqlDataSource, Error] =
+  def apply(configFile: URI): Result[MysqlDataSource, Error] =
     Result:
       val dataSource = MysqlDataSource()
       val file = new File(configFile)
@@ -46,7 +43,7 @@ object DataSourceLoader:
         case util.Success(_) => ()
       
         Map[String, (MysqlDataSource, String) => Unit](
-         connectionPropName -> ((ds: MysqlDataSource, v: String) =>
+         "db.url" -> ((ds: MysqlDataSource, v: String) =>
           ds.setURL(v)
           ),
         "db.username" -> ((ds, v) =>
@@ -61,6 +58,7 @@ object DataSourceLoader:
         else
           prop._2(dataSource, props.getProperty(prop._1))
 
+      Seq(dataSource.setLoginTimeout, dataSource.setConnectTimeout, dataSource.setSocketTimeout).foreach(_(1))
       Result.success(dataSource)
 
 

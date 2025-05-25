@@ -2,7 +2,9 @@ package org.itsadigitaltrust.hardwarelogger.models
 
 
 import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
+import org.itsadigitaltrust.common.types.DataSizeType.DataSize
 import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
+
 import scala.annotation.experimental
 
 sealed trait HLModel

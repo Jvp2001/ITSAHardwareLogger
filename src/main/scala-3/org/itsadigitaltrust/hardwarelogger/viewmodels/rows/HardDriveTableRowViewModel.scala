@@ -10,7 +10,7 @@ import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import java.lang
 
 
-final case class HardDriveTableRowViewModel(model: HardDriveModel) extends TableRowViewModel[HardDriveModel](model):
+final case class HardDriveTableRowViewModel(model: HardDriveModel)(using itsaID: String = "") extends TableRowViewModel[HardDriveModel](model):
 
   override protected val modeToSaveIn: ProgramMode | "both" = "both"
   
