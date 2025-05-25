@@ -7,7 +7,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 private given[T]: Conversion[T, Seq[T]] with
   override def apply(x: T): Seq[T] = Seq(x)
 
-private[views] final class GeneralInfoTabView extends TabTableView[GeneralInfoModel, GeneralInfoTableRowViewModel](using TabTableViewModel(GeneralInfoTableRowViewModel.apply, _.generalInfo)):
+private[views] final class GeneralInfoTabView extends TabTableView(using TabTableViewModel(GeneralInfoTableRowViewModel.apply, _.generalInfo)):
   private val computerIDColumn = createAndAddColumn("Computer ID"): cellValue =>
     cellValue.computerIDProperty
 
@@ -19,6 +19,8 @@ private[views] final class GeneralInfoTabView extends TabTableView[GeneralInfoMo
 
   private val vendorColumn = createAndAddColumn("Vendor"): cellValue =>
     cellValue.vendorProperty
+  private val serial = createAndAddColumn("Serial"): cellValue =>
+    cellValue.serialProperty
 
 
 private[views] final class ProcessorTabView extends TabTableView[ProcessorModel, ProcessorTableRowViewModel](using TabTableViewModel(ProcessorTableRowViewModel.apply, _.processors)):

@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger
 
 
+import com.mysql.cj.exceptions.CJCommunicationsException
 import com.sun.javafx.PlatformUtil
 import org.itsadigitaltrust.common
 import common.Result
@@ -57,6 +58,8 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
     catch
       case e: NumberFormatException =>
         e.printStackTrace()
+      case e: java.net.ConnectException =>
+        new Alert(AlertType.Error, "Failed to connect the database! Check internet connect!", ButtonType.OK).showAndWait()
   end start
 
   override def stopApp(): Unit =

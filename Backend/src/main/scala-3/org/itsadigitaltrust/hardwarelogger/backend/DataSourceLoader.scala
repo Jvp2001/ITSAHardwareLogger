@@ -14,7 +14,10 @@ import scala.util.{Failure, Using, boundary}
 trait URLPropertyNameGetter:
   def get(properties: Properties): Option[String]
 
-object DataStoreLoader:
+
+final class HLSqlDataSource extends MysqlDataSource
+  
+object DataSourceLoader:
   enum Error:
     case PropertyNotFound(name: String)
     case FileNotFound(name: String)

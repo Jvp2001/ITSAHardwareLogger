@@ -1,6 +1,6 @@
 package org.itsadigitaltrust.services.validation
 
-import org.itsadigitaltrust.common.{PropertyFileReaderError, Result.Success}
+import org.itsadigitaltrust.common.{PropertyFileReaderError, Result}
 import org.itsadigitaltrust.hardwarelogger.services.SimpleHardwareIDValidationService
 import org.scalatest.funsuite.AnyFunSuite
 

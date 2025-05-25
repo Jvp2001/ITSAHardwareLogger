@@ -1,16 +1,17 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
+import com.mysql.cj.exceptions.CJCommunicationsException
 import org.itsadigitaltrust.common.*
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.types.*
-import org.itsadigitaltrust.hardwarelogger.backend.{DataStoreLoader, HLDatabase, URLPropertyNameGetter}
+import org.itsadigitaltrust.hardwarelogger.backend.{DataSourceLoader, HLDatabase, URLPropertyNameGetter}
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.tasks.{DatabaseTransactionTask, HLTaskGroupBuilder, HLTaskRunner, HardwareLoggerTask, TaskExecutor}
 import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.control.Alert.AlertType
 
-import java.net.{Inet4Address, InterfaceAddress}
+import java.net.{ConnectException, Inet4Address, InterfaceAddress, SocketException}
 import java.sql.Timestamp
 import java.time.OffsetDateTime
 import java.util.concurrent.LinkedBlockingQueue
@@ -71,12 +72,15 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
           HLDatabase(klazz.getResource(dbPropsFilePath).toURI.toURL, connectionPropName) match
             case Result.Success(value) =>
               db = Some(value)
-              println("Connected to database.")
               noIDIndex = Option(value.getLatestNoIDValue)
               Result.Success(())
             case Result.Error(reason) =>
               Result.error(reason.toString)
-        catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
+        catch
+          case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
+          case _: ConnectException => Result.error(s"Cannot Connect to database! Check internet connection!")
+          case _: CJCommunicationsException => Result.error(s"Cannot Connect to database! Check internet connection!")
+          case _: SocketException => Result.error(s"Cannot Connect to database! Check internet connection!")
     end connectViaSpecificURL
 
     Result:
@@ -238,7 +242,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
           description = info.genDesc,
         )
       case memory: Memory =>
-        MemoryModel(size = DataSize.from(memory.size), description = memory.description.getOrElse(""))
+        MemoryModel(size = DataSize.from(memory.size) ?? DataSize(0, "GB"), description = memory.description.getOrElse(""))
       case hardDrive: Disk =>
         HardDriveModel(
           model = hardDrive.model,

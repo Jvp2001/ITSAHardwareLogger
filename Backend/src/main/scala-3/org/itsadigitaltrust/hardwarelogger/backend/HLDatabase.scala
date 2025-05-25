@@ -1,8 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
 import javax.sql.DataSource
-import com.augustnagro.magnum.*
-import com.mysql.cj.jdbc.MysqlDataSource
+import com.augustnagro.magnum
+import com.augustnagro.magnum.{DbCodec, DbCon, DbTx, Transactor, transact as magTransact}
+import com.mysql.cj.MysqlConnection
+import com.mysql.cj.jdbc.{ConnectionImpl, MysqlDataSource}
 import org.itsadigitaltrust.common
 import common.*
 import org.itsadigitaltrust.common.Operators.??
@@ -10,28 +12,29 @@ import org.itsadigitaltrust.hardwarelogger.backend.backend.*
 import org.itsadigitaltrust.hardwarelogger.backend.entities.{Wiping, WipingCreator}
 
 import java.net.URL
-import java.sql.{PreparedStatement, ResultSet, SQLException}
+import java.sql.Connection
 import scala.compiletime.{summonInline, uninitialized}
-import scala.concurrent.Future
 import scala.reflect
 import scala.reflect.{ClassTag, classTag}
 
 
-class HLDatabase private(dataSource: DataSource):
+class HLDatabase private(dataSource: DataSource)(using errorHandler: Throwable => Unit):
 
   import HLDatabase.Error
   import tables.given
 
-  private val connection: DataSource = dataSource
+  
+  private val connection: DataSource = dataSource 
 
+  private given connectionConfig: Connection = new ConnectionImpl
+  
   private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
 
   private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
 
-  private given transaction: Transactor = Transactor(connection)
 
 
-  def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
+  private inline def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
     val result = classTag[EC] match
       case c if c == classTag[MemoryCreator] => tables.memoryTable
       case c if c == classTag[MediaCreator] => tables.mediaTable
@@ -41,7 +44,7 @@ class HLDatabase private(dataSource: DataSource):
     result.asInstanceOf[HLTableInfo[EC, E]]
 
 
-  def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): HLRepo[EC, E] =
+  private inline def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): HLRepo[EC, E] =
     val result = creator.getClass match
       case c if c == classOf[MemoryCreator] => repos.memoryRepo
       case c if c == classOf[MediaCreator] => repos.mediaRepo
@@ -51,7 +54,7 @@ class HLDatabase private(dataSource: DataSource):
     result.asInstanceOf[HLRepo[EC, E]]
   end getRepo
 
-  def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLRepo[EC, E] =
+  private inline def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLRepo[EC, E] =
     val result = summon[ClassTag[EC]] match
       case c if c == classTag[MemoryCreator] => repos.memoryRepo
       case c if c == classTag[MediaCreator] => repos.mediaRepo
@@ -84,9 +87,17 @@ class HLDatabase private(dataSource: DataSource):
     result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
   end getDbCodec
 
+  
+  def transact[T](connection: DataSource)(f: DbTx ?=> T): T =
+    try 
+      magTransact(connection)(f)
+    catch
+      case t: Throwable => 
+        errorHandler(t)
+        null.asInstanceOf[T]
 
   def getLatestNoIDValue: Long =
-    transact(Transactor(connection)):
+    transact(connection):
       val value = repos.wipingRepo.getLatestNoIDValue(using summon[DbCon])
 
 
@@ -105,15 +116,13 @@ class HLDatabase private(dataSource: DataSource):
    * @return [[Some]](String) if the itsaID was found, otherwise [[None]].
    */
   def findItsaIdBySerialNumber(serial: String): Option[String] =
-    val transaction = Transactor(connection)
-    transact(transaction):
+    transact(connection):
       val result = repos.infoRepo.findItsaIdBySerialNumber(serial)
       result
 
   def insertOrUpdate[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): Unit =
     val repo = getRepo[EC, E](creator)
-    val transaction = Transactor(connection)
-    transact(transaction):
+    transact(connection):
       repo.insertOrUpdate(creator)(using summon[DbCon])
 
   def doesDriveExists(creator: DiskCreator): Boolean =
@@ -125,15 +134,13 @@ class HLDatabase private(dataSource: DataSource):
 
 
   def findAllByIdStartingWith[EC <: ItsaEC : ClassTag](id: String): Seq[EntityFromEC[EC]] =
-    val transaction = Transactor(connection)
-    transact(transaction):
+    transact(connection):
       getRepo[EC, EntityFromEC[EC]].findAllByIdsStartingWith(id)
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
-    val transaction = Transactor(connection)
-
-    transact(transaction):
+    
+    transact(connection):
       val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
       val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)
       val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
@@ -148,7 +155,7 @@ class HLDatabase private(dataSource: DataSource):
 
 
   def addWipingRecords(disks: WipingCreator*): Unit =
-    transact(Transactor(connection)):
+    transact(connection):
       repos.wipingRepo.insertAll(disks.iterator.to(Iterable))
 
 
@@ -157,7 +164,7 @@ class HLDatabase private(dataSource: DataSource):
 
     given wipingCreatorCT: ClassTag[WipingCreator] = classTag[WipingCreator]
 
-    transact(transaction):
+    transact(connection):
       val result = repos.wipingRepo.findWipingRecord(serial)(using summon[DbCon])(using table)
       result
   end findWipingRecord
@@ -173,7 +180,7 @@ class HLDatabase private(dataSource: DataSource):
   def replaceAllRowsWithID[EC <: ItsaEC : ClassTag](old: String, `new`: String): Unit =
     given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
 
-    transact(transaction):
+    transact(connection):
       getRepo.replaceIdWith(old, `new`)(using summon[DbCon])
 
   def findWipingRecordID(serial: String): Option[String] =
@@ -181,21 +188,20 @@ class HLDatabase private(dataSource: DataSource):
 
 
   def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
-    transaction.connectionConfig
-    transact(transaction):
+    transact(connection):
       getRepo.findAllByID(id)(using summon[DbCon], getDbCodec).headOption
 
 object HLDatabase:
   enum Error:
-    case LoaderError(error: DataStoreLoader.Error)
+    case LoaderError(error: DataSourceLoader.Error)
 
-  given Conversion[DataStoreLoader.Error, Error] with
-    override def apply(x: DataStoreLoader.Error): Error =
+  given Conversion[DataSourceLoader.Error, Error] with
+    override def apply(x: DataSourceLoader.Error): Error =
       Error.LoaderError(x)
 
-  def apply(dbProperties: URL, connectionPropName: String): Result[HLDatabase, DataStoreLoader.Error] =
+  def apply(dbProperties: URL, connectionPropName: String): Result[HLDatabase, DataSourceLoader.Error] =
     Result:
-      DataStoreLoader(dbProperties.toURI, connectionPropName) match
+      DataSourceLoader(dbProperties.toURI, connectionPropName) match
       case Result.Success(value) => new HLDatabase(value)
       case Result.Error(error) => Result.error(error)
 
