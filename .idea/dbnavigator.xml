@@ -177,7 +177,7 @@ INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="root@localhost" />
+          <session-user value="itsa@twocolumnlayout.zapto.org" />
         </database>
         <properties>
           <auto-commit value="true" />
