@@ -2,6 +2,7 @@ package org.itsadigitaltrust.common
 
 import scala.collection.generic.{IsMap, IsSeq}
 import scala.collection.mutable
+import scala.util.chaining.scalaUtilChainingOps
 
 
 
@@ -22,6 +23,9 @@ object Operators:
     infix def ??(default: T): T =
       option.getOrElse(default)
 
+  extension[A](a: A)
+    def |>[B](f: A => B): B =
+      a.pipe(f)
 end Operators
 
 

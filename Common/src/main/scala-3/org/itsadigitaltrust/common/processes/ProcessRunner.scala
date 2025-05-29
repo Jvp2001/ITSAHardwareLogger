@@ -8,7 +8,6 @@ extension (sc: StringContext)
     val sudoPasswordInputCommand = s"echo ${config.sudoPassword} | sudo -S "
     val input =
       val res = sc.s(args*)
-      println(res)
       if !res.startsWith(sudoPasswordInputCommand) then
         f"$sudoPasswordInputCommand $res"
       else

@@ -24,21 +24,22 @@ end extension
 
 object Maths:
 
-  import scala.compiletime.ops.int.*
 
   extension (double: Double)
     @targetName("pow")
     infix def **(raiseBy: Double): Double =
       Math.pow(double, raiseBy).toLong
     def KiB: DataSize = DataSize(double / 1024, "KiB")
-    def MiB: DataSize = DataSize(double / (1024 ** 2), "MiB")
-    def GiB: DataSize = DataSize(double / (1024 ** 3), "GiB")
-    def TiB: DataSize = DataSize(double / (1024 ** 4), "TiB")
+    def MiB: DataSize = DataSize(double / 1.049e6, "MiB")
+    def GiB: DataSize = DataSize(double / 1074e9, "GiB")
+    def TiB: DataSize = DataSize(double / 1.1e+12, "TiB")
 
-    def KB: DataSize = DataSize(double / 1000, "KB")
-    def MB: DataSize = DataSize(double / (1000 ** 2), "MB")
-    def GB: DataSize = DataSize(double / (1000 ** 3), "GB")
-    def TB: DataSize = DataSize(double / (1000 ** 4), "TB")
+    def KB: DataSize = DataSize(double * 1e-3, "KB")
+    def MB: DataSize = DataSize(double * 1e-6, "MB")
+    def GB: DataSize = DataSize(double * 1e-9, "GB")
+    def TB: DataSize = DataSize(double * 1e-4, "TB")
+end Maths
+
 export Maths.*
 
 

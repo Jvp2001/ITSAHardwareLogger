@@ -4,6 +4,7 @@ package org.itsadigitaltrust.hardwarelogger.models
 import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
 import org.itsadigitaltrust.common.types.DataSizeType.DataSize
 import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
+import org.itsadigitaltrust.hdsentinelreader.data.HDSentinelInterfaceTypeName
 
 import scala.annotation.experimental
 
@@ -39,8 +40,15 @@ final case class HardDriveModel(
                                  estimatedRemainingLifetime: String = ""
                                ) extends HLModel
 
-enum HardDriveConnectionType extends Enum[HardDriveConnectionType]:
-  case SATA, NVME, PATA, SCSI, SAS, UNKNOWN
+enum HardDriveConnectionType(name: HDSentinelInterfaceTypeName) extends Enum[HardDriveConnectionType]:
+  case SATA extends HardDriveConnectionType("S-ATA II") 
+  case NVME extends HardDriveConnectionType("NVMe")
+  case PATA extends HardDriveConnectionType("IDE/ATA")
+  case SCSI extends HardDriveConnectionType("SCSI")
+  case SAS extends HardDriveConnectionType("SAS")
+  case UNKNOWN extends HardDriveConnectionType("UNKNOWN")
+end HardDriveConnectionType
+
 
 final case class MediaModel(description: String, handle: String) extends HLModel
 

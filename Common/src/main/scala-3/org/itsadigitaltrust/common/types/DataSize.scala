@@ -2,8 +2,16 @@ package org.itsadigitaltrust.common.types
 
 object DataSizeType:
 
-  type DataSizeUnit = "KB" | "MB" | "GB" | "TB" | "KiB" | "MiB" | "GiB" | "TiB"
-  private val sizeMap: Map[DataSizeUnit, Double] = Map("KB" -> 1000, "MB" -> 1_000_000, "GB" -> 1_000_000_000, "TB" -> 10_000_000_000L, "KiB" -> 1074, "MiB" -> 1_074_000, "GiB" -> 1_074_000_000, "TiB" -> 1.1e+12)
+  type DataSizeUnit = "B" | "KB" | "MB" | "GB" | "TB" | "KiB" | "MiB" | "GiB" | "TiB"
+  private val sizeMap: Map[DataSizeUnit, Double] = Map(
+    "KB" -> 1000,
+    "MB" -> 1_000_000,
+    "GB" -> 1_000_000_000,
+    "TB" -> 10_000_000_000L,
+    "KiB" -> 1074,
+    "MiB" -> 1_074_000,
+    "GiB" -> 1_074_000_000,
+    "TiB" -> 1.1e+12)
   opaque type DataSize = (Double, DataSizeUnit)
   extension (ds: DataSize)
     def value: Double = ds._1
@@ -13,8 +21,14 @@ object DataSizeType:
       s"$value $unit"
     def toDouble: Double = value
     def toBytes: Double = sizeMap(unit) * value
-    def to(size: DataSizeUnit): DataSize =
-      DataSize(toBytes, size)
+    def toSize(size: DataSizeUnit): DataSize =
+      val currentUnit =  unit
+      val newValue = (currentUnit, size) match
+        case ("B", "KB") => value * 1e-1
+        case ()
+        
+    
+          
     def +(rhs: DataSize): DataSize =
       DataSize(toBytes + rhs.toBytes, unit)
     def -(rhs: DataSize): DataSize =

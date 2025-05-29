@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.hdsentinelreader
 
+import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
+
 import java.io.File
 import java.net.{URI, URL}
 
@@ -22,6 +24,6 @@ object Types:
         scala.compiletime.error("Must end with .xml!")
     def from(file: String): XMLFile = file
 
-    
+    export data.HDSentinelInterfaceTypeName
 
 export Types.*

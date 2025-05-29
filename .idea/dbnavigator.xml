@@ -43,6 +43,7 @@
 
 
 
+
 select * from itsahw.disks;
 
 select * from itsahw.disks where itsaid like '85%';
@@ -53,6 +54,13 @@ select * from itsahw.info where itsaid like '85977%';
 
 select * from wiping ;
 
+select itsaid, hdd_id from disks,wiping where itsaid = hdd_id;
+select itsaid,itsaid from disks,info where itsaid = itsaid;
+
+
+
+
+ 
 
 select * from info where itsaid like '85977%';
 
@@ -107,7 +115,9 @@ INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files />
+    <open-files>
+      <object connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" object-ref="consoles/itsahw" />
+    </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />

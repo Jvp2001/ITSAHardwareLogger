@@ -2,10 +2,12 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 import com.fasterxml.jackson.dataformat.xml.annotation.{JacksonXmlElementWrapper, JacksonXmlProperty}
 import org.itsadigitaltrust.common.Maths.*
-import org.itsadigitaltrust.common.OSUtils
+import org.itsadigitaltrust.common.{OSUtils, optional}
 import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
-import org.itsadigitaltrust.common.processes.Dmidecode
+import org.itsadigitaltrust.common.optional.?
+import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk}
+import org.itsadigitaltrust.common.types.DataSizeType.DataSize
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.SimpleHLDatabaseService.findItsaIdBySerialNumber
@@ -27,6 +29,18 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
 
+  given Conversion[String, HardDriveConnectionType] = s =>
+    if s.startsWith("S-ATA") then
+      HardDriveConnectionType.SATA
+    else if s.contains("IDE") then
+      HardDriveConnectionType.PATA
+    else if s.contains("SCSI") then
+      HardDriveConnectionType.SCSI
+    else if s.toLowerCase.contains("nvme") then
+      HardDriveConnectionType.NVME
+    else
+      HardDriveConnectionType.UNKNOWN
+  end given
 
 
   // serial number was this: S1CTNSAG440003
@@ -97,7 +111,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
     val id = findItsaIdBySerialNumber(serialNumber).getOrElse("")
-    generalInfo = GeneralInfoModel("itsa-hwlogger", description = /*dmidecode.getKeywordValue("chassis-type")*/ Dmidecode("chassis-type"), model = model, vendor = vendor,  serial = /*serialNumber*/ serialNumber, os = os, itsaID = Some(id))
+    generalInfo = GeneralInfoModel("itsa-hwlogger", description = /*dmidecode.getKeywordValue("chassis-type")*/ Dmidecode("chassis-type"), model = model, vendor = vendor, serial = /*serialNumber*/ serialNumber, os = os, itsaID = Some(id))
 
 
   override def loadHardDrives(): Unit =
@@ -111,23 +125,26 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
     val hardDiskSummaries: Seq[HardDiskSummary] =
       hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+    val lsblk = Lsblk()
 
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
-      val drive = HardDriveModel(
-        hardDiskSummary.health.asPercentage,
-        hardDiskSummary.performance.asPercentage,
-        hardDiskSummary.totalSize.replace(" MB", "").toInt.GiB,
-        hardDiskSummary.hardDiskModelId,
-        hardDiskSummary.hardDiskSerialNumber,
-        itsaID = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber) ?? "",
-        connectionType = SATA,
-        `type` = "SSD",
-        actions = hardDiskSummary.tip,
-        description = hardDiskSummary.description,
-        powerOnTime = hardDiskSummary.powerOnTime,
-        estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
-      )
-      drive
+      optional:
+        val drive = HardDriveModel(
+          hardDiskSummary.health.asPercentage,
+          hardDiskSummary.performance.asPercentage,
+          DataSize.from(hardDiskSummary.totalSize).?.toSize("TB"),
+          hardDiskSummary.hardDiskModelId,
+          hardDiskSummary.hardDiskSerialNumber,
+          itsaID = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber) ?? "",
+          connectionType = hardDiskSummary.interfaceType,
+          `type` = if lsblk(hardDiskSummary.hardDiskDevice).?.rota then "HDD" else "SSD",
+          actions = hardDiskSummary.tip,
+          description = hardDiskSummary.description,
+          powerOnTime = hardDiskSummary.powerOnTime,
+          estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
+        )
+        drive
+      .get
 
 
 

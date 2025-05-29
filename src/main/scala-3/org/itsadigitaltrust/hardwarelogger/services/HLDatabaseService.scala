@@ -286,15 +286,14 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   end createInfo
 
   protected def createWiping(model: HardDriveModel): WipingCreator =
-    // The description is too long. So the description in the DB will only be the first sentence.
-    val description = model.description.split("\\.")(0) + "."
+
 
 
     WipingCreator(hddID = model.itsaID,
       serial = model.serial, model = model.model,
       insertionDate = OffsetDateTime.now, capacity = model.size.dbString,
       `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
-      description = description, health = model.health.toByte, formFactor = "")
+      description = model.connectionType.toString, health = model.health.toByte, formFactor = "")
 
 
   private def createMedia(media: MediaModel, itsaID: String): MediaCreator =

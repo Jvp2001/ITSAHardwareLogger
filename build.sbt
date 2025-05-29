@@ -3,19 +3,27 @@ import sbt.Keys.libraryDependencies
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.6.4"
+ThisBuild / scalaVersion := "3.7.0"
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", _*) => MergeStrategy.discard
   case _ => MergeStrategy.first
 }
 
-lazy val javaFXDeps = Seq("win", "mac", "linux").flatMap { osName =>
+
+lazy val javaFXDeps = {
+  // Determine OS version of JavaFX binaries
+  lazy val osName = System.getProperty("os.name") match {
+    case n if n.startsWith("Linux") => "linux"
+    case n if n.startsWith("Mac") => "mac"
+    case n if n.startsWith("Windows") => "win"
+    case _ => throw new Exception("Unknown platform!")
+  }
   Seq("base", "controls")
-    .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier "win")
+    .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier osName)
 }
 
 lazy val scalaFXDeps = Seq(
-  "org.scalafx" %% "scalafx" % "23.0.1-R34",
+  "org.scalafx" % "scalafx_3" % "23.0.1-R34",
   "org.scalafx" %% "scalafx-extras" % "0.11.0",
 )
 
@@ -46,6 +54,7 @@ lazy val common: Project = (project in file("Common"))
 lazy val commonDependencies = Seq(
   "com.augustnagro" %% "magnum" % "1.3.1",
   "com.mysql" % "mysql-connector-j" % "9.3.0",
+  "org.apache.commons" % "commons-text" % "1.13.1"
 ).map(_ withJavadoc() withSources())
 
 lazy val hdsentinelreader = (project in file("HDSentinelReader")).
@@ -53,9 +62,9 @@ lazy val hdsentinelreader = (project in file("HDSentinelReader")).
     name := "HDSentinelReader",
 
       libraryDependencies ++= Seq(
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.18.3",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.18.3",
-        "org.scala-lang.modules" %% "scala-xml" % "2.3.0",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.19.0",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.19.0",
+        "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
       ).map(_ withJavadoc() withSources()),
     scalacOptions += "-experimental"
   ).dependsOn(common)
@@ -65,7 +74,7 @@ lazy val backend = (project in file("Backend"))
     name := "Backend",
     libraryDependencies ++= commonDependencies,
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    unmanagedSourceDirectories in Test += file("tests")
+    Test / unmanagedSourceDirectories += file("tests")
   ).dependsOn(common)
 
 

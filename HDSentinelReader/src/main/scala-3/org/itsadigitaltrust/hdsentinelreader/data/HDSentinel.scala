@@ -3,10 +3,10 @@ package org.itsadigitaltrust.hdsentinelreader.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
-
+type HDSentinelInterfaceTypeName = "IDE/ATA" | "S-ATA II" | "SCSI" | "NVMe" | "SAS" | "UNKNOWN" 
 final case class HardDiskSummary(
                             @JacksonXmlProperty(localName = "Hard_Disk_Number") hardDiskNumber: Int,
-                            @JacksonXmlProperty(localName = "Interface") interfaceType: String,
+                            @JacksonXmlProperty(localName = "Interface") interfaceType: HDSentinelInterfaceTypeName,
                             @JacksonXmlProperty(localName = "Disk_Controller") diskController: String,
                             @JacksonXmlProperty(localName = "Disk_Location") diskLocation: String,
                             @JacksonXmlProperty(localName = "Hard_Disk_Model_ID") hardDiskModelId: String,
