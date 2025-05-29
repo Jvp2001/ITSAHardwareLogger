@@ -22,6 +22,9 @@
       <assistant-state connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
+      <assistant-state connection-id="cc392073-c906-4319-a766-6683de9c4037" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
+        <messages />
+      </assistant-state>
       <assistant-state connection-id="200779e2-f5bc-429d-b1e3-7634037eaed9" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
@@ -38,7 +41,8 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
-      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select * from itsahw.disks where itsaid like '85'%;
+      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main">select * from itsahw.disks where itsaid like '85'%;
+
 
 
 
@@ -102,10 +106,15 @@ CREATE TABLE `wiping` (
 --
 
 
-INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'40939.1','CZC33201TV','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 15:31:38','nothing selected',NULL,'2012-10-11 15:31:38'),(2,'itsa-hwlogger','Desktop Computer','HP dx2000 MT(DZ199T)',NULL,'40938.0','HUB435096F','1024 MB','CPU','2.8 GHz','Intel(R) Pentium(R) 4 CPU 2.80GHz','Intel Corp.','0000-0F34-0000-0000-0000-0000','32','2012-10-11 15:35:23','nothing selected',NULL,'2012-10-11 15:35:23'),(3,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41224.9','CZC33817ND','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 17:33:47','nothing selected',NULL,'2012-10-11 17:33:47'),(4,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41217.9','CZC3370H3N','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 17:37:24','nothing selected',NULL,'2012-10-11 17:37:24'),(5,'itsa-hwlogger','Mini Tower Computer','HP Compaq dc5100 MT(PW097ET) ()',NULL,'41221.6','CZC6073ZZ9','','Logical CPU','2.8 GHz','','','','64','2012-10-11 17:31:11','nothing selected',NULL,'2012-10-11 17:31:11'),(6,'itsa-hwlogger','Desktop Computer','HP d230 MT(DQ357T)',NULL,'40960.1','CZC3450YT6','493 MB','CPU','2.667 GHz','Intel(R) Pentium(R) 4 CPU 2.66GHz','Intel Corp.','','32','2012-10-11 18:04:57','nothing selected',NULL,'2012-10-11 18:04:57'),(7,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41218.0','CZC3370H3V','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 18:27:06','nothing selected',NULL,'2012-10-11 18:27:06'),(8,'itsa-hwlogger','Desktop Computer','SG3-120UK (XC836EA#ABU)',NULL,'39256.3','CZC03667MG','2048 MB','','2.7 GHz','','','','','2012-10-10 17:47:23','nothing selected',NULL,'2012-10-10 17:47:23'),(9,'itsa-hwlogger','Desktop Computer','MS-7528 (To Be Filled By O.E.M.)',NULL,'41158.1','To Be Filled By O.E.M.','1024 MB','','3.05 GHz','','','0000-0F62-0000-0000-0000-0000','','2012-10-10 17:57:31','nothing selected',NULL,'2012-10-10 17:57:31'),(10,'itsa-hwlogger','Tower Computer','Precision WorkStation T3400 ()',NULL,'34295.9','1GH654J','4096 MB','','3 GHz','','','0000-06FB-0000-0000-0000-0000','','2012-10-10 18:21:32','nothing selected',NULL,'2012-10-10 18:21:32'),(11,'itsa-hwlogger','Desktop Computer','HP Compaq dx2300 Microtower (GD996ET#ABU)',NULL,'41154.7','CZC7323321','2048 MB','','1.8 GHz','','','0000-06F2-0000-0000-0000-0000','','2012-10-10 18:22:27','ubuntu',NULL,'2012-10-10 18:22:27'),(12,'itsa-hwlogger','Mini Tower Computer','Optiplex GX280',NULL,'41231.9','DGN181J','512 MB','CPU','3.2 GHz','Intel(R) Pentium(R) 4 CPU 3.20GHz','Intel Corp.','0000-0F34-0000-0000-0000-0000','32','2012-10-10 18:53:24','nothing selected',NULL,'2012-10-10 18:53:24'),(13,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41223.8','CZC33817NX','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 14:44:26','nothing selected',NULL,'2012-10-11 14:44:26');]]></console>
+INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'40939.1','CZC33201TV','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 15:31:38','nothing selected',NULL,'2012-10-11 15:31:38'),(2,'itsa-hwlogger','Desktop Computer','HP dx2000 MT(DZ199T)',NULL,'40938.0','HUB435096F','1024 MB','CPU','2.8 GHz','Intel(R) Pentium(R) 4 CPU 2.80GHz','Intel Corp.','0000-0F34-0000-0000-0000-0000','32','2012-10-11 15:35:23','nothing selected',NULL,'2012-10-11 15:35:23'),(3,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41224.9','CZC33817ND','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 17:33:47','nothing selected',NULL,'2012-10-11 17:33:47'),(4,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41217.9','CZC3370H3N','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 17:37:24','nothing selected',NULL,'2012-10-11 17:37:24'),(5,'itsa-hwlogger','Mini Tower Computer','HP Compaq dc5100 MT(PW097ET) ()',NULL,'41221.6','CZC6073ZZ9','','Logical CPU','2.8 GHz','','','','64','2012-10-11 17:31:11','nothing selected',NULL,'2012-10-11 17:31:11'),(6,'itsa-hwlogger','Desktop Computer','HP d230 MT(DQ357T)',NULL,'40960.1','CZC3450YT6','493 MB','CPU','2.667 GHz','Intel(R) Pentium(R) 4 CPU 2.66GHz','Intel Corp.','','32','2012-10-11 18:04:57','nothing selected',NULL,'2012-10-11 18:04:57'),(7,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41218.0','CZC3370H3V','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 18:27:06','nothing selected',NULL,'2012-10-11 18:27:06'),(8,'itsa-hwlogger','Desktop Computer','SG3-120UK (XC836EA#ABU)',NULL,'39256.3','CZC03667MG','2048 MB','','2.7 GHz','','','','','2012-10-10 17:47:23','nothing selected',NULL,'2012-10-10 17:47:23'),(9,'itsa-hwlogger','Desktop Computer','MS-7528 (To Be Filled By O.E.M.)',NULL,'41158.1','To Be Filled By O.E.M.','1024 MB','','3.05 GHz','','','0000-0F62-0000-0000-0000-0000','','2012-10-10 17:57:31','nothing selected',NULL,'2012-10-10 17:57:31'),(10,'itsa-hwlogger','Tower Computer','Precision WorkStation T3400 ()',NULL,'34295.9','1GH654J','4096 MB','','3 GHz','','','0000-06FB-0000-0000-0000-0000','','2012-10-10 18:21:32','nothing selected',NULL,'2012-10-10 18:21:32'),(11,'itsa-hwlogger','Desktop Computer','HP Compaq dx2300 Microtower (GD996ET#ABU)',NULL,'41154.7','CZC7323321','2048 MB','','1.8 GHz','','','0000-06F2-0000-0000-0000-0000','','2012-10-10 18:22:27','ubuntu',NULL,'2012-10-10 18:22:27'),(12,'itsa-hwlogger','Mini Tower Computer','Optiplex GX280',NULL,'41231.9','DGN181J','512 MB','CPU','3.2 GHz','Intel(R) Pentium(R) 4 CPU 3.20GHz','Intel Corp.','0000-0F34-0000-0000-0000-0000','32','2012-10-10 18:53:24','nothing selected',NULL,'2012-10-10 18:53:24'),(13,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T)',NULL,'41223.8','CZC33817NX','','CPU','2.4 GHz','Intel(R) Pentium(R) 4 CPU 2.40GHz','Intel Corp.','','32','2012-10-11 14:44:26','nothing selected',NULL,'2012-10-11 14:44:26');</console>
     </connection>
     <connection id="cc392073-c906-4319-a766-6683de9c4037">
-      <console name="External Itsahw" type="STANDARD" schema="mysql" session="Main" />
+      <console name="External Itsahw" type="STANDARD" schema="mysql" session="Main">select * from hwlogger.info order by id desc;
+select * from hwlogger.disks order by id desc;
+select * from hwlogger.wiping;
+select * from hwlogger.info order by id desc;
+
+select * from hwlogger.info where itsaid = '72725.1';</console>
     </connection>
     <connection id="ba269de5-3e99-4e6d-9901-2998b359418f">
       <console name="Connection" type="STANDARD" schema="postgres" session="Main" />
@@ -138,11 +147,11 @@ INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />
@@ -183,11 +192,11 @@ INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T
           <tns-folder value="" />
           <tns-profile value="" />
           <type value="USER_PASSWORD" />
-          <user value="itsa" />
+          <user value="root" />
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="itsa@twocolumnlayout.zapto.org" />
+          <session-user value="root@localhost" />
         </database>
         <properties>
           <auto-commit value="true" />
@@ -608,9 +617,11 @@ INSERT INTO `info` VALUES (1,'itsa-hwlogger','Tower Computer','HP d330 uT(DF385T
           <content-type name="DTD" enabled="true" />
           <content-type name="HTML" enabled="true" />
           <content-type name="XHTML" enabled="true" />
+          <content-type name="CSS" enabled="true" />
           <content-type name="Java" enabled="true" />
           <content-type name="SQL" enabled="true" />
           <content-type name="PL/SQL" enabled="true" />
+          <content-type name="JavaScript" enabled="true" />
           <content-type name="JSON" enabled="true" />
           <content-type name="JSON5" enabled="true" />
           <content-type name="Groovy" enabled="true" />

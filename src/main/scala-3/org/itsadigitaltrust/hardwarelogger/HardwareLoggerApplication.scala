@@ -22,6 +22,7 @@ import scala.compiletime.uninitialized
 object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeChangedDelegate:
 
 
+
   private val titleProperty: StringProperty = StringProperty("Hardware Logger")
 
   def setProgramMode(): Unit =

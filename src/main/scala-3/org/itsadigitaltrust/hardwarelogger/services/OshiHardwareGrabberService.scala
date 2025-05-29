@@ -184,14 +184,7 @@ end OshiHardwareGrabberService
 
 object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwareGrabberService:
 
-  override protected def findDriveIdBySerialNumber(serial: String): Option[String] =
-    val result =
-      if ProgramMode.isInNormalMode then
-        databaseService.findItsaIdBySerialNumber(serial)
-      else
-        Option(databaseService.findWipingRecord(serial).get.itsaID)
-    end result
-    result
+  override protected def findDriveIdBySerialNumber(serial: XMLFile): Option[XMLFile] = ???
 
   override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] =
     databaseService.findItsaIdBySerialNumber(serial)

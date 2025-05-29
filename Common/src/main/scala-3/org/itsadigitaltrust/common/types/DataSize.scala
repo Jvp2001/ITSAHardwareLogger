@@ -22,10 +22,50 @@ object DataSizeType:
     def toDouble: Double = value
     def toBytes: Double = sizeMap(unit) * value
     def toSize(size: DataSizeUnit): DataSize =
-      val currentUnit =  unit
+      val currentUnit =  ds._2
       val newValue = (currentUnit, size) match
         case ("B", "KB") => value * 1e-1
-        case ()
+        case ("B", "MB") => value * 1e-6
+        case ("B", "GB") => value * 1e-9
+        case ("B", "TB") => value * 1e-12
+        case ("KB", "B") => value * 1e1
+        case ("KB", "MB") => value * 1e-3
+        case ("KB", "GB") => value * 1e-6
+        case ("KB", "TB") => value * 1e-9
+        case ("MB", "B") => value * 1e6
+        case ("MB", "KB") => value * 1e3
+        case ("MB", "GB") => value * 1e-3
+        case ("MB", "TB") => value * 1e-6
+        case ("GB", "B") => value * 1e9
+        case ("GB", "KB") => value * 1e6
+        case ("GB", "MB") => value * 1e3
+        case ("GB", "TB") => value * 1e-3
+        case ("TB", "B") => value * 1e12
+        case ("TB", "KB") => value * 1e9
+        case ("TB", "MB") => value * 1e6
+        case ("TB", "GB") => value * 1e3
+        case ("KiB", "B") => value * 1024
+        case ("KiB", "MiB") => value * 1e-3
+        case ("KiB", "GiB") => value * 1e-6
+        case ("KiB", "TiB") => value * 1e-9
+        case ("MiB", "B") => value * 1_048_576
+        case ("MiB", "KiB") => value * 1024
+        case ("MiB", "GiB") => value * 1e-3
+        case ("MiB", "TiB") => value * 1e-6
+        case ("GiB", "B") => value * 1_073_741_824
+        case ("GiB", "KiB") => value * 1_048_576
+        case ("GiB", "MiB") => value * 1024
+        case ("GiB", "TiB") => value * 1e-3
+        case ("TiB", "B") => value * 1_099_511_627_776l
+        case ("TiB", "KiB") => value * 1_073_741_824
+        case ("TiB", "MiB") => value * 1_048_576
+        case ("TiB", "GiB") => value * 1024
+        case _ => throw new IllegalArgumentException(s"Cannot convert from $currentUnit to $size")
+      end newValue
+      DataSize(newValue, size)
+    end toSize
+
+    
         
     
           
