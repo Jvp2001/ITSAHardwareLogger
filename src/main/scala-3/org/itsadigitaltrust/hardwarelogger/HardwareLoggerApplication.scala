@@ -22,7 +22,6 @@ import scala.compiletime.uninitialized
 object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeChangedDelegate:
 
 
-
   private val titleProperty: StringProperty = StringProperty("Hardware Logger")
 
   def setProgramMode(): Unit =
@@ -35,15 +34,15 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
   override def start(): Unit =
     setProgramMode()
     Platform.runLater:
-       databaseService.connectAsync(getClass,  "db/db.properties"):
-          case Result.Success(_) => ()
-          case Result.Error(err) => new Alert(AlertType.Error, "Could not connect to database!"):
-            contentText = "Failed to connect to the database; please check your intranet connection, and try again!"
-          .showAndWait()
-        
-              
-          
-        
+      databaseService.connect(getClass, "db/db.properties")
+    //          case Result.Success(_) => ()
+    //          case Result.Error(err) => new Alert(AlertType.Error, "Could not connect to database!"):
+    //            contentText = "Failed to connect to the database; please check your intranet connection, and try again!"
+    //          .showAndWait()
+
+
+
+
 
 
     try

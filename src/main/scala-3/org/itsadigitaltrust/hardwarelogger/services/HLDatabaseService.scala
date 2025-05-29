@@ -30,7 +30,7 @@ trait HLDatabaseService:
 
   def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String]
 
-  def connectAsync(klazz: Class[?], dbPropsFilePath: String)(finished: Result[Unit, String] => Unit): Unit = connect(klazz, dbPropsFilePath)
+  def connectAsync(klazz: Class[?], dbPropsFilePath: String)(finished: Result[Unit, String] => Unit = _ => ()): Unit = connect(klazz, dbPropsFilePath)
 
   def findItsaIdBySerialNumber(serial: String): Option[String]
 
@@ -105,7 +105,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
   override def findWipingRecord(serial: String): Option[Disk] =
     optional:
-      val database = db.get
+      val database = db.?
       val record = database.findWipingRecord(serial)
       Disk(record.?.id, record.?.hddID, record.?.model, record.?.capacity.?, record.?.serial, record.?.`type`.?, record.?.description.?)
 
@@ -121,15 +121,16 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
 
   protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using itsaID: String)(using notificationCentre: NotificationCentre[NotificationChannel])(using HardwareGrabberService): Unit =
-    def checkForDuplicateDrives(): Iterable[String] =
-      transactionQueue.asScala
-        .filter(c => c.isInstanceOf[DiskCreator])
-        .map(_.asInstanceOf[DiskCreator])
-        .map: drive =>
-          if db.get.doesDriveExists(drive) then
-            drive.serial
-          else
-            ""
+    def checkForDuplicateDrives(): Option[Iterable[String]] =
+      optional:
+        transactionQueue.asScala
+          .filter(c => c.isInstanceOf[DiskCreator])
+          .map(_.asInstanceOf[DiskCreator])
+          .map: drive =>
+            if db.?.doesDriveExists(drive) then
+              drive.serial
+            else
+              ""
     end checkForDuplicateDrives
 
     def hasAnyDuplicateRows: Boolean =

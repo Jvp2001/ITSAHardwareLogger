@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.delegates
 
+import org.itsadigitaltrust.common.optional
+import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.hardwarelogger.services.{NotificationCentre, NotificationChannel, ServicesModule}
 import scalafx.beans.property.*
 import scalafx.Includes.{*, given}
@@ -8,7 +10,9 @@ import scalafx.beans.property
 type ProgramMode = "Normal" | "HardDrive"
 trait ProgramModeChangedDelegate extends ServicesModule:
   notificationCentre.subscribe(NotificationChannel.ProgramModeChanged): (key, arg) =>
-    onProgramModeChanged(arg.asInstanceOf[ProgramMode])
+    optional:
+      val mode = arg.asInstanceOf[Option[String]]
+      onProgramModeChanged(mode.?.asInstanceOf[ProgramMode])
 
   def onProgramModeChanged(mode: ProgramMode): Unit = ()
 

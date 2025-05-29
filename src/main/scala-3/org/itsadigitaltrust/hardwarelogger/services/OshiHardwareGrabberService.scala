@@ -110,7 +110,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")
-    val id = findItsaIdBySerialNumber(serialNumber).getOrElse("")
+    val id = findItsaIdBySerialNumber(serialNumber) ?? ""
     generalInfo = GeneralInfoModel("itsa-hwlogger", description = /*dmidecode.getKeywordValue("chassis-type")*/ Dmidecode("chassis-type"), model = model, vendor = vendor, serial = /*serialNumber*/ serialNumber, os = os, itsaID = Some(id))
 
 
@@ -129,15 +129,21 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
       optional:
+        val hdType: HardDriveType =
+          if OSUtils.onLinux then
+            if lsblk(hardDiskSummary.hardDiskDevice).?.rota then "HDD" else "SSD"
+          else "SSD"
+
         val drive = HardDriveModel(
           hardDiskSummary.health.asPercentage,
           hardDiskSummary.performance.asPercentage,
           DataSize.from(hardDiskSummary.totalSize).?.toSize(DataSizeUnit.TB),
           hardDiskSummary.hardDiskModelId,
           hardDiskSummary.hardDiskSerialNumber,
-          itsaID = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber) ?? "",
+          itsaID = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber) ??  findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber).?
+,
           connectionType = hardDiskSummary.interfaceType,
-          `type` = if lsblk(hardDiskSummary.hardDiskDevice).?.rota then "HDD" else "SSD",
+          `type` =  hdType,
           actions = hardDiskSummary.tip,
           description = hardDiskSummary.description,
           powerOnTime = hardDiskSummary.powerOnTime,
@@ -159,7 +165,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
   override def loadMemory(): Unit =
     memory = hal.getMemory.getPhysicalMemory.asScala.map: memory =>
-      val size = memory.getCapacity.MiB
+      val size = memory.getCapacity.GB
       val description = memory.getManufacturer
       MemoryModel(size, description)
     .toList

@@ -24,6 +24,7 @@ final case class GeneralInfoModel(
 
 end GeneralInfoModel
 
+type HardDriveType = "SSD" | "HHD" | "HDD"
 
 final case class HardDriveModel(
                                  health: Percentage,
@@ -33,7 +34,7 @@ final case class HardDriveModel(
                                  serial: String,
                                  connectionType: HardDriveConnectionType,
                                  itsaID: String = "NOT LOGGED",
-                                 `type`: "SSD" | "HHD" | "HDD" = "SSD",
+                                 `type`: HardDriveType = "SSD",
                                  description: String = "",
                                  actions: String = "No actions needed.",
                                  powerOnTime: String = "",

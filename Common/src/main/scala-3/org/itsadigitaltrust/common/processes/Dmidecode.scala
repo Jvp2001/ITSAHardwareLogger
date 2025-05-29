@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.common.processes
 
+import org.itsadigitaltrust.common.OSUtils
+
 object Dmidecode:
   type Keyword =
     "bios-vendor" |
@@ -30,4 +32,7 @@ object Dmidecode:
       "processor-frequency"
 
   def apply(keyword: Keyword)(using config: ProcessConfig): String =
-    sudo"dmidecode -s $keyword"
+    if OSUtils.onLinux then
+      sudo"dmidecode -s $keyword"
+    else
+      ""

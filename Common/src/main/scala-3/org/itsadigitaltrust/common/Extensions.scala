@@ -1,10 +1,8 @@
 package org.itsadigitaltrust.common
 
+import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
+
 import scala.annotation.targetName
-import scala.collection.IndexedSeqOps
-import scala.collection.generic.IsSeq
-import scala.util.boundary
-import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit
 
 extension [T](coll: IndexedSeq[T])
   def filterByIndices(predicate: Int => Boolean): Seq[T] =
@@ -26,21 +24,21 @@ end extension
 object Maths:
 
 
-  extension (double: Double)
+  extension (long: Long)
     @targetName("pow")
-    infix def **(raiseBy: Double): Double =
-      Math.pow(double, raiseBy)
-    def KiB: DataSize = DataSize(double, DataSizeUnit.KiB)
-    def MiB: DataSize = DataSize(double, DataSizeUnit.MiB)
-    def GiB: DataSize = DataSize(double, DataSizeUnit.GiB)
-    def TiB: DataSize = DataSize(double, DataSizeUnit.TiB)
-    def PiB: DataSize = DataSize(double, DataSizeUnit.PiB)
-    def KB: DataSize = DataSize(double, DataSizeUnit.KB)
-    def MB: DataSize = DataSize(double, DataSizeUnit.MB)
-    def GB: DataSize = DataSize(double, DataSizeUnit.GB)
-    def TB: DataSize = DataSize(double, DataSizeUnit.TB)
-    def PB: DataSize = DataSize(double, DataSizeUnit.PB)
-    def B: DataSize = DataSize(double, DataSizeUnit.B)
+    infix def **(raiseBy: Long): Long =
+      Math.pow(long, raiseBy).toLong
+    def KiB: DataSize = DataSize(long, DataSizeUnit.KiB)
+    def MiB: DataSize = DataSize(long, DataSizeUnit.MiB)
+    def GiB: DataSize = DataSize(long, DataSizeUnit.GiB)
+    def TiB: DataSize = DataSize(long, DataSizeUnit.TiB)
+    def PiB: DataSize = DataSize(long, DataSizeUnit.PiB)
+    def KB: DataSize = DataSize(long, DataSizeUnit.KB)
+    def MB: DataSize = DataSize(long, DataSizeUnit.MB)
+    def GB: DataSize = DataSize(long, DataSizeUnit.GB)
+    def TB: DataSize = DataSize(long, DataSizeUnit.TB)
+    def PB: DataSize = DataSize(long, DataSizeUnit.PB)
+    def B: DataSize = DataSize(long, DataSizeUnit.B)
 end Maths
 
 export Maths.*
