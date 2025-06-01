@@ -4,7 +4,7 @@ import org.itsadigitaltrust.hardwarelogger.models.GeneralInfoModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 
-final class GeneralInfoTableRowViewModel(model: GeneralInfoModel)(using itsaID: String = "") extends TableRowViewModel[GeneralInfoModel](model):
+final class GeneralInfoTableRowViewModel(model: GeneralInfoModel)(using itsaID: String) extends TableRowViewModel[GeneralInfoModel](model):
   def computerIDProperty: StringProperty =
     wrapper.field("computerID", _.computerID, "")(StringProperty.apply)
 

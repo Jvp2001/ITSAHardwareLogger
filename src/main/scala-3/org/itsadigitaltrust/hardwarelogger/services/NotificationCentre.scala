@@ -5,7 +5,7 @@ import org.itsadigitaltrust.hardwarelogger.services.NotificationCentre
 
 import scala.collection.mutable
 
-type NotificationCallback[ME] = (key: ME, args: Seq[Any]) => Unit
+type NotificationCallback[ME] = (key: ME, args: Option[Any]) => Unit
 
 trait NotificationCentre[ME]:
   
@@ -21,12 +21,12 @@ trait NotificationCentre[ME]:
     notifications(key) = notifications(key) :+ callback
 
 
-  def publish(key: ME, args: Any*): Unit =
+  def publish(key: ME, arg: Option[Any] = None): Unit =
     if key notIn notifications then
       notifications(key) = Vector()
 
     notifications(key).foreach: callback =>
-      callback(key, args)
+      callback(key, arg)
 
 enum NotificationChannel:
   case Reload

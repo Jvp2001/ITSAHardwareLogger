@@ -7,12 +7,12 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowView
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, TabTableViewModel}
 import scalafx.beans.property.{BooleanProperty, DoubleProperty, ObjectProperty, StringProperty}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.views.View
 import scalafx.application.Platform
 import scalafx.scene.control.cell.CheckBoxTableCell
 
-private given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
-class HardDriveTableView(using itsaID: String = "") extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
-  rowDelegate = Some(viewModel)
+class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewModel ) extends TabTableView( using tabViewModel, itsaID):
+  
   requestFocus()
 
 
@@ -47,8 +47,9 @@ class HardDriveTableView(using itsaID: String = "") extends TabTableView[HardDri
 end HardDriveTableView
 
 
-class HardDrivesTabView extends VBox with TabDelegate:
-
+class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with View[HardDrivesTabViewModel]:
+  override given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
+  
   private val tableView = new HardDriveTableView()
   children += tableView
   children += new VBox():
@@ -74,7 +75,7 @@ class HardDrivesTabView extends VBox with TabDelegate:
     private val estimatedLifeTimeLabel = new Label("Estimated reaming lifetime:"):
       styleClass ++= List("name-label", "hdsentinel-text")
     private val estimatedLifeTimeValueLabel = new Label:
-      text <== viewModel.estimatedLifeTime
+      text <== viewModel    .estimatedLifeTime
       styleClass ++= List("value-label", "hdsentinel-text")
 
     addRow(0, powerOnTimeNameLabel, powerOnTimeValueLabel)

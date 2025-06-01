@@ -2,9 +2,12 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.*
 import org.itsadigitaltrust.common.optional.?
+import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit
 import org.itsadigitaltrust.hardwarelogger.backend.HLDatabase
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.types.*
+import org.itsadigitaltrust.hardwarelogger.delegates
+import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.tasks.{HLDatabaseTransactionTask, HLTaskGroupBuilder, HLTaskRunner, HardwareLoggerTask, TaskExecutor}
 import org.scalafx.extras.BusyWorker
@@ -42,15 +45,15 @@ trait HLDatabaseService:
 
   def findByID[M <: HLModel : ClassTag](itsaID: String): Option[M]
 
-  def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String): Seq[M]
+  def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String): Seq[Option[M]]
 
   def findWipingRecord(serial: String): Option[Disk]
 
   def addWipingRecords(drives: HardDriveModel*): Unit
 
-  def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String = "")(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
+  def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
-  def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String = "")(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
+  def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit
 
   def stop(): Unit
 end HLDatabaseService
@@ -83,14 +86,14 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       catch case _: NullPointerException => Result.error(s"Cannot find file $dbPropsFilePath")
 
 
-  override final def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String = "")(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
+  override final def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     val creator = createEC(model)
     //    if !transactionQueue.contains(creator) then
     transactionQueue.add(creator)
 
     checkAndSave()
 
-  override def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String = "")(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
+  override def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String)(using NotificationCentre[NotificationChannel], HardwareGrabberService): Unit =
     transactionQueue.addAll(models.map(createEC).asJavaCollection)
     checkAndSave()
 
@@ -117,7 +120,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     override def apply(x: U): Option[U] = Some(x)
 
 
-  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using itsaID: String = "")(using notificationCentre: NotificationCentre[NotificationChannel])(using HardwareGrabberService): Unit =
+  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using itsaID: String)(using notificationCentre: NotificationCentre[NotificationChannel])(using HardwareGrabberService): Unit =
     def checkForDuplicateDrives(): Iterable[String] =
       transactionQueue.asScala
         .filter(c => c.isInstanceOf[DiskCreator])
@@ -129,7 +132,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
             ""
     end checkForDuplicateDrives
 
-    def hasAnyDuplicateRows(using itsaID: String = ""): Boolean =
+    def hasAnyDuplicateRows: Boolean =
       findAllStartingWithID[M](itsaID).nonEmpty
 
 
@@ -161,11 +164,17 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
     val result = classTag[M] match
       case ct if ct == classTag[HardDriveModel] =>
-        classTag[DiskCreator]
+        if delegates.ProgramMode.mode == "HardDrive" then
+          classTag[WipingCreator]
+        else
+          classTag[DiskCreator]
       case ct if ct == classTag[MediaModel] =>
         classTag[MediaCreator]
       case ct if ct == classTag[MemoryModel] =>
         classTag[MemoryCreator]
+      case ct if ct == classTag[GeneralInfoModel] || ct == classTag[ProcessorModel] =>
+        classTag[InfoCreator]
+
       case _ =>
         classTag[InfoCreator]
     result.asInstanceOf[ClassTag[ItsaEC]]
@@ -193,16 +202,22 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     optional:
       db.?.markAllRowsWithIDAsError(id)
 
-  def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String): Seq[M] =
+  def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String): Seq[Option[M]] =
     optional:
-      db.?.findAllByIdStartingWith(itsaID).map(toModel)
+      try
+        val result = db.?.findAllByIdStartingWith(itsaID)
+        val models = result.map(s => s.map(toModel)).?
+        models
+      catch
+        case _: Throwable =>
+          Seq()
     ?? Seq()
 
 
   def findByID[M <: HLModel : ClassTag](itsaID: String): Option[M] =
     optional:
       val result = db.?.findByID(itsaID).?
-      toModel(result)
+      toModel(result).?
 
 
   override final def stop(): Unit = ()
@@ -211,50 +226,51 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   protected var processor: Option[ProcessorModel] = None
 
 
-  protected def toModel[E <: ItsaEntity, M <: HLModel : ClassTag](entity: E): M =
-    val model = entity match
-      case info: Info if classTag[M] == classTag[ProcessorModel] =>
-        ProcessorModel(
-          name = info.cpuProduct.get,
-          serial = info.cpuSerial ?? "",
-          cores = info.cpuCores.map(_.toInt).getOrElse(2),
-          speed = info.cpuSpeed.toLong,
-          width = info.cpuWidth.map(_.toInt).getOrElse(64),
-          longDescription = info.cpuDescription,
-          shortDescription = ""
-        )
-      case info: Info =>
-        GeneralInfoModel(
-          computerID = info.genId,
-          itsaID = info.itsaID,
-          vendor = info.cpuVendor ?? "",
-          serial = info.cpuSerial ?? "",
-          os = info.os ?? "",
-          model = info.cpuProduct ?? "",
-          description = info.genDesc,
-        )
-      case memory: Memory =>
-        MemoryModel(size = DataSize.from(memory.size) ?? DataSize(0, "MB"), description = memory.description ?? "")
-      case hardDrive: Disk =>
-        HardDriveModel(
-          model = hardDrive.model,
-          size = DataSize(0, "GiB"),
-          serial = hardDrive.serial,
-          description = hardDrive.description ?? "",
-          health = Percentage(100),
-          performance = Percentage(100),
-          connectionType = HardDriveConnectionType.NVME
-        )
-
-      case media: Media =>
-        MediaModel(description = media.description, handle = media.handle ?? "")
-      case _ => scala.sys.error("Unknown Type!")
-    model.asInstanceOf[M]
-
+  protected def toModel[E <: ItsaEntity, M <: HLModel : ClassTag](e: E): Option[M] =
+    optional:
+      val entity = e
+      val model = entity match
+        case info: Info if classTag[M] == classTag[ProcessorModel] =>
+          ProcessorModel(
+            name = info.cpuProduct.get,
+            serial = info.cpuSerial ?? "",
+            cores = info.cpuCores.map(_.toInt).getOrElse(2),
+            speed = info.cpuSpeed.toLong,
+            width = info.cpuWidth.map(_.toInt).getOrElse(64),
+            longDescription = info.cpuDescription,
+            shortDescription = ""
+          )
+        case info: Info =>
+          GeneralInfoModel(
+            computerID = info.genId,
+            itsaID = info.itsaID,
+            vendor = info.cpuVendor ?? "",
+            serial = info.cpuSerial ?? "",
+            os = info.os ?? "",
+            model = info.cpuProduct ?? "",
+            description = info.genDesc,
+          )
+        case memory: Memory =>
+          MemoryModel(size = DataSize.from(memory.size) ?? DataSize(0, DataSizeUnit.MB), description = memory.description ?? "")
+        case hardDrive: Disk =>
+          HardDriveModel(
+            model = hardDrive.model,
+            size = DataSize(0, DataSizeUnit.GB),
+            serial = hardDrive.serial,
+            description = hardDrive.description ?? "",
+            health = Percentage(100),
+            performance = Percentage(100),
+            connectionType = HardDriveConnectionType.NVME
+          )
+        case media: Media =>
+          MediaModel(description = media.description, handle = media.handle ?? "")
+        case _ => scala.sys.error("Unknown Type!")
+      end model
+      model.asInstanceOf[M]
   end toModel
 
 
-  protected def createEC[M <: HLModel](model: M)(using itsaID: String = "")(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
+  protected def createEC[M <: HLModel](model: M)(using itsaID: String)(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
     model match
       case memory: MemoryModel => createMemory(memory, itsaID)
       case hardDriveModel: HardDriveModel => createHardDrive(hardDriveModel, itsaID)
@@ -286,11 +302,9 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   end createInfo
 
   protected def createWiping(model: HardDriveModel): WipingCreator =
-
-
-
+    val serial = if model.serial != "?" then model.serial else ""
     WipingCreator(hddID = model.itsaID,
-      serial = model.serial, model = model.model,
+      serial = serial, model = model.model,
       insertionDate = OffsetDateTime.now, capacity = model.size.dbString,
       `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
       description = model.connectionType.toString, health = model.health.toByte, formFactor = "")
@@ -343,7 +357,7 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
         Result:
           if result.length == 1 then
             finished(Result.success(()))
-          else 
+          else
             finished(Result.error("Could not connect to Database!"))
 
 

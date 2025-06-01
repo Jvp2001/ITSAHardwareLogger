@@ -10,7 +10,7 @@ object Types:
   export types.DataSize.*
   export types.Percentage.*
 
-  export types.{DataSize, Percentage, dbString, toDouble, toString, value, unit}
+  export types.{DataSize, Percentage}
   
 
 export Types.*

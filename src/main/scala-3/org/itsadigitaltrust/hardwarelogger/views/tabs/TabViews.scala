@@ -7,7 +7,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 private given[T]: Conversion[T, Seq[T]] with
   override def apply(x: T): Seq[T] = Seq(x)
 
-private[views] final class GeneralInfoTabView(using itsaID: String = "") extends TabTableView[GeneralInfoModel, GeneralInfoTableRowViewModel](using TabTableViewModel(GeneralInfoTableRowViewModel.apply, _.generalInfo)):
+private[views] final class GeneralInfoTabView(using itsaID: String) extends TabTableView[GeneralInfoModel, GeneralInfoTableRowViewModel](using TabTableViewModel(GeneralInfoTableRowViewModel.apply, _.generalInfo)):
   private val computerIDColumn = createAndAddColumn("Computer ID"): cellValue =>
     cellValue.computerIDProperty
 
@@ -21,7 +21,7 @@ private[views] final class GeneralInfoTabView(using itsaID: String = "") extends
     cellValue.vendorProperty
 
 
-private[views] final class ProcessorTabView(using itsaID: String = "") extends TabTableView[ProcessorModel, ProcessorTableRowViewModel](using TabTableViewModel(ProcessorTableRowViewModel.apply, _.processors)):
+private[views] final class ProcessorTabView(using itsaID: String) extends TabTableView[ProcessorModel, ProcessorTableRowViewModel](using TabTableViewModel(ProcessorTableRowViewModel.apply, _.processors)):
   private val nameColumn = createAndAddColumn("Chip Type"): cellValue =>
     println(s"Name: ${cellValue.nameProperty.get}")
     cellValue.nameProperty
@@ -43,7 +43,7 @@ private[views] final class ProcessorTabView(using itsaID: String = "") extends T
   private val coresColumn = createAndAddColumn("Cores"): cellValue =>
     cellValue.coresProperty
 
-private[views] final class MediaTabView(using itsaID: String = "") extends TabTableView[MediaModel, MediaTableRowViewModel](using TabTableViewModel(MediaTableRowViewModel.apply, _.media)):
+private[views] final class MediaTabView(using itsaID: String) extends TabTableView[MediaModel, MediaTableRowViewModel](using TabTableViewModel(MediaTableRowViewModel.apply, _.media)):
   private val descriptionColumn = createAndAddColumn("Description"): cellValue =>
     cellValue.descriptionProperty
 

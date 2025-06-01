@@ -11,7 +11,7 @@ trait ViewModel:
   def setup(): Unit = ()
 
 
-trait TableRowViewModel[M](model: M)(using itsaID: String = "") extends ViewModel with ServicesModule:
+trait TableRowViewModel[M](model: M)(using itsaID: String) extends ViewModel with ServicesModule:
   protected val wrapper: ModelWrapper[M] = ModelWrapper(model)
   protected val modeToSaveIn: ProgramMode | "both" = "Normal"
   notificationCentre.subscribe(Save): (key, _) =>

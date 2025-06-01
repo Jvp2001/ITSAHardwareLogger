@@ -15,7 +15,7 @@ object types:
       case MemoryCreator => Memory
       case DiskCreator => Disk
       case WipingCreator => Wiping
-      case HLEntityCreator | HLEntityWithItsaID => HLEntity
+      case HLEntityCreator | HLEntityWithItsaID => Nothing
   type ECFromEntity[E <: ItsaEntity] =
     E match
       case Media => MediaCreator
@@ -23,7 +23,7 @@ object types:
       case Memory => MemoryCreator
       case Disk => DiskCreator
       case Wiping => WipingCreator
-      case HLEntity => HLEntityCreator
+      case HLEntity => Nothing
   type EntityClassTagFromEC[EC <: ItsaEC] = ClassTag[EntityFromEC[EC]]
 
 

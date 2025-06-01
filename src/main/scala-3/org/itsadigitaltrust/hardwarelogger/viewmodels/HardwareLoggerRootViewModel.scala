@@ -29,12 +29,11 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
   val idErrorStringProperty: StringProperty = StringProperty("")
   val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
 
-
   private var wasDuplicateIDWarningAlreadyShown = false
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
 
-
+  validIDProperty <== idErrorStringProperty.isNotEmpty
 
   hardwareIDValidationService.validate(idStringProperty.get)
   idStringProperty.onChange: (observable, oldValue, newValue) =>
@@ -43,12 +42,14 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     else
       validateID()
 
+
+
   notificationCentre.subscribe(DBSuccess): (key, _) =>
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
     wasDuplicateIDWarningAlreadyShown = false
 
-  notificationCentre.subscribe(ShowDuplicateDriveWarning): (key, args: Seq[Any]) =>
-    val serial = args.head.asInstanceOf[String]
+  notificationCentre.subscribe(ShowDuplicateDriveWarning): (key, arg: Any) =>
+    val serial = arg.asInstanceOf[String]
     new Alert(Warning, "Duplicate Drive Found!", ButtonType.Yes, ButtonType.No):
       contentText = s"A drive with the serial number '$serial' already exists. Do you want to continue?"
       showAndWait() match
@@ -93,7 +94,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       val notWipedDrives = findNonWipedDrives()
       if notWipedDrives.nonEmpty then
         showDrivesNotWipedAlert(notWipedDrives)
-    notificationCentre.publish(Save)
+    notificationCentre.publish(Save, Option(idStringProperty.value))
   end save
 
 

@@ -10,7 +10,7 @@ import scalafx.Includes.*
 import scalafx.beans.property.IntegerProperty
 
 
-final class MemoryTabView(using itsaID: String = "") extends VBox:
+final class MemoryTabView(using itsaID: String) extends VBox:
   given viewModel: MemoryTabViewModel = new MemoryTabViewModel
 
   private val totalMemLabel = new Label:

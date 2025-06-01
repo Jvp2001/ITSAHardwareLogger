@@ -4,6 +4,7 @@ import scala.annotation.targetName
 import scala.collection.IndexedSeqOps
 import scala.collection.generic.IsSeq
 import scala.util.boundary
+import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit
 
 extension [T](coll: IndexedSeq[T])
   def filterByIndices(predicate: Int => Boolean): Seq[T] =
@@ -28,16 +29,18 @@ object Maths:
   extension (double: Double)
     @targetName("pow")
     infix def **(raiseBy: Double): Double =
-      Math.pow(double, raiseBy).toLong
-    def KiB: DataSize = DataSize(double / 1024, "KiB")
-    def MiB: DataSize = DataSize(double / 1.049e6, "MiB")
-    def GiB: DataSize = DataSize(double / 1074e9, "GiB")
-    def TiB: DataSize = DataSize(double / 1.1e+12, "TiB")
-
-    def KB: DataSize = DataSize(double * 1e-3, "KB")
-    def MB: DataSize = DataSize(double * 1e-6, "MB")
-    def GB: DataSize = DataSize(double * 1e-9, "GB")
-    def TB: DataSize = DataSize(double * 1e-4, "TB")
+      Math.pow(double, raiseBy)
+    def KiB: DataSize = DataSize(double, DataSizeUnit.KiB)
+    def MiB: DataSize = DataSize(double, DataSizeUnit.MiB)
+    def GiB: DataSize = DataSize(double, DataSizeUnit.GiB)
+    def TiB: DataSize = DataSize(double, DataSizeUnit.TiB)
+    def PiB: DataSize = DataSize(double, DataSizeUnit.PiB)
+    def KB: DataSize = DataSize(double, DataSizeUnit.KB)
+    def MB: DataSize = DataSize(double, DataSizeUnit.MB)
+    def GB: DataSize = DataSize(double, DataSizeUnit.GB)
+    def TB: DataSize = DataSize(double, DataSizeUnit.TB)
+    def PB: DataSize = DataSize(double, DataSizeUnit.PB)
+    def B: DataSize = DataSize(double, DataSizeUnit.B)
 end Maths
 
 export Maths.*

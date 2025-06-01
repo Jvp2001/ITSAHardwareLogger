@@ -65,13 +65,7 @@ class HLDatabase private(dataSource: DataSource):
 
 
   private def getClassTagForEntityTypeEC[EC <: ItsaEC : ClassTag]: ClassTag[EntityFromEC[EC]] =
-    val result = summon[ClassTag[EC]].getClass match
-      case c if c == classOf[Memory] => summon[ClassTag[Memory]]
-      case c if c == classOf[Media] => summon[ClassTag[Media]]
-      case c if c == classOf[Disk] => summon[ClassTag[Disk]]
-      case c if c == classOf[Info] => summon[ClassTag[Info]]
-      case c if c == classOf[Wiping] => summon[ClassTag[Wiping]]
-    result.asInstanceOf[ClassTag[EntityFromEC[EC]]]
+    summon[ClassTag[EntityClassTagFromEC[EC]]].asInstanceOf[ClassTag[EntityFromEC[EC]]]
   end getClassTagForEntityTypeEC
 
   private def getDbCodec[EC <: ItsaEC : ClassTag] =
@@ -140,24 +134,25 @@ class HLDatabase private(dataSource: DataSource):
         case _ => true
 
 
-  def findAllByIdStartingWith[EC <: ItsaEC : ClassTag](id: String): Seq[EntityFromEC[EC]] =
+  def findAllByIdStartingWith[EC <: ItsaEC : ClassTag](id: String): Option[Seq[EntityFromEC[EC]]] =
     transact(connection):
-      getRepo[EC, EntityFromEC[EC]].findAllByIdsStartingWith(id)
+      val repo = getRepo[EC, EntityFromEC[EC]]
+      repo.findAllByIdsStartingWith(id)
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
-
-    transact(connection):
-      val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
-      val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id)
-      val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
-      if numberOfErrorRows > 0 then
-        val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
-        val newIDs = errorIndices.map: index =>
-          s"${if id(id.length - 2) == '.' then id else s"$id.0"}-E$index"
-        val oldToNew = nonErrorRows.map(_.id).zip(newIDs)
-        oldToNew.foreach: item =>
-          getRepo.replaceIDByPrimaryKey(item._1, item._2)
+    optional:
+      transact(connection):
+        val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
+        val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id).?
+        val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
+        if numberOfErrorRows > 0 then
+          val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
+          val newIDs = errorIndices.map: index =>
+            s"${if id(id.length - 2) == '.' then id else s"$id.0"}-E$index"
+          val oldToNew = nonErrorRows.map(_.id).zip(newIDs)
+          oldToNew.foreach: item =>
+            getRepo.replaceIDByPrimaryKey(item._1, item._2)
   end markAllRowsWithIDAsError
 
 

@@ -4,7 +4,7 @@ import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 
-final class ProcessorTableRowViewModel(model: ProcessorModel)(using itsaID: String = "") extends TableRowViewModel[ProcessorModel](model):
+final class ProcessorTableRowViewModel(model: ProcessorModel)(using itsaID: String) extends TableRowViewModel[ProcessorModel](model):
   def nameProperty: StringProperty =
     println(s"Name Prop val: ${model.name}")
     wrapper.field("name", _.name, "")(StringProperty.apply)

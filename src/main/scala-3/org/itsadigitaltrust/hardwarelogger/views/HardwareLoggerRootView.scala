@@ -58,8 +58,7 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     text <==> viewModel.idStringProperty
     onAction = _ =>
       viewModel.save()
-
-
+  
   private val idErrorLabel = new Label:
     styleClass += "error"
     padding = Insets(0, 0, 0, 35.0)
@@ -142,11 +141,12 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
   onProgramModeChanged(ProgramMode.mode)
 
+  given itsaID: String = viewModel.idStringProperty.get
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     mode match
       case "HardDrive" =>
         tabPane.tabs = Seq(
-          createTab("HDD", new HardDrivesTabView)
+          createTab("HDD", new HardDrivesTabView(using viewModel.idStringProperty.get))
         )
         ProgramMode.isHardDriveMode.value = true
         ProgramMode.isModeNormal.value = false

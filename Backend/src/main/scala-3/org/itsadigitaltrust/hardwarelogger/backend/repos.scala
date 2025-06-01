@@ -42,10 +42,10 @@ private[backend] object repos:
     end findAllByID
 
 
-    private[backend] def findAllByIdsStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
+    private[backend] def findAllByIdsStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Option[Seq[EntityFromEC[EC]]] =
 
-      val frag = sql"select * from $table where itsaid like '85977%'"
-      frag.query.run()
+      val frag = sql"select * from $table where itsaid like '$id%'"
+      Option(frag.query.run())
 
     private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
       val scalaName = (idScalaName, old)

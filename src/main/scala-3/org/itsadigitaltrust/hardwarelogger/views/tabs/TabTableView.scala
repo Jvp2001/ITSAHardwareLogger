@@ -12,6 +12,8 @@ import scalafx.scene.Cursor
 
 
 class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T], itsaID: String) extends TableView[T]:
+  val vm: TabTableViewModel[M, T] = viewModel
+  def getViewModel = viewModel
   var rowDelegate: Option[TableRowDelegate[T]] = None
   var showHandCursorOnHover: Boolean = false
   val reordableColumns: Boolean = false

@@ -7,7 +7,7 @@ import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk}
-import org.itsadigitaltrust.common.types.DataSizeType.DataSize
+import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.SimpleHLDatabaseService.findItsaIdBySerialNumber
@@ -132,7 +132,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
         val drive = HardDriveModel(
           hardDiskSummary.health.asPercentage,
           hardDiskSummary.performance.asPercentage,
-          DataSize.from(hardDiskSummary.totalSize).?.toSize("TB"),
+          DataSize.from(hardDiskSummary.totalSize).?.toSize(DataSizeUnit.TB),
           hardDiskSummary.hardDiskModelId,
           hardDiskSummary.hardDiskSerialNumber,
           itsaID = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber) ?? "",
@@ -184,7 +184,14 @@ end OshiHardwareGrabberService
 
 object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwareGrabberService:
 
-  override protected def findDriveIdBySerialNumber(serial: XMLFile): Option[XMLFile] = ???
+  override protected def findDriveIdBySerialNumber(serial: String): Option[String] =
+    val result =
+      if ProgramMode.isInNormalMode then
+        databaseService.findItsaIdBySerialNumber(serial)
+      else
+        Option(databaseService.findWipingRecord(serial).get.itsaID)
+    end result
+    result
 
   override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] =
     databaseService.findItsaIdBySerialNumber(serial)

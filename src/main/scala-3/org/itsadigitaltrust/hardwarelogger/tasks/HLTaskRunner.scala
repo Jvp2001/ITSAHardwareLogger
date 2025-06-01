@@ -13,15 +13,22 @@ trait TaskExecutor[T[_]]:
 
 object HLTaskRunner extends ServicesModule:
   def run[T[_] <: ItemTask[?], U](title: String, taskFuncs: TaskFunction[U]*)(ctor: => TaskFunction[U] => T[U])(finished: () => Unit = () => ()): Unit =
-    val busyWorker = new BusyWorker(title, Seq())
-    busyWorker.doTask("Start"): () =>
-      val batchRunnerWithProgress = new BatchRunnerWithProgress[U](title, None, true):
-        override def createTasks(): Seq[ItemTask[U]] =
-          taskFuncs.map(ctor).map(_.asInstanceOf[ItemTask[U]])
-      batchRunnerWithProgress.run()
-    busyWorker.busy.onChange: (_, _, newValue) =>
-      if !newValue then
-        finished()
+    try
+      val busyWorker = new BusyWorker(title, Seq())
+      busyWorker.doTask("Start"): () =>
+        val batchRunnerWithProgress = new BatchRunnerWithProgress[U](title, None, true):
+          override def createTasks(): Seq[ItemTask[U]] =
+            taskFuncs.map(ctor).map(_.asInstanceOf[ItemTask[U]])
+        batchRunnerWithProgress.run()
+      busyWorker.busy.onChange: (_, _, newValue) =>
+        if !newValue then
+          finished()
+    catch
+      case e: NumberFormatException =>
+        Platform.runLater: () =>
+          println(s"Error in HLTaskRunner: ${e.getMessage}")
+          e.printStackTrace()
+          finished()
 
 
   def apply[T[_] <: ItemTask[?], U](title: String, args: (() => U)*)(ctor: TaskFunction[U] => T[U])(finished: () => Unit = () => ()): Unit =
@@ -29,7 +36,7 @@ object HLTaskRunner extends ServicesModule:
 
 end HLTaskRunner
 
-final class HLTaskGroupBuilder[T[_] <: ItemTask[?], U](ctor: => TaskFunction[U] => T[U]) :
+final class HLTaskGroupBuilder[T[_] <: ItemTask[?], U](ctor: => TaskFunction[U] => T[U]):
   private val tasks = mutable.ArrayBuffer[TaskFunction[U]]()
 
   def addAll(funcs: => U*): HLTaskGroupBuilder[T, U] =
@@ -42,4 +49,4 @@ final class HLTaskGroupBuilder[T[_] <: ItemTask[?], U](ctor: => TaskFunction[U] 
     this
 
   def run(title: String)(finished: () => Unit = () => ()): Unit =
-    HLTaskRunner(title, tasks.toSeq*)(ctor)(finished)
+    HLTaskRunner(title, tasks.toSeq *)(ctor)(finished)
