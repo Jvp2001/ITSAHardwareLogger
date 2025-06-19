@@ -18,5 +18,10 @@ extension (sc: StringContext)
     val parts = input.split("\\|")
     (parts.head #| parts.tail.mkString).!!
   end sudo
+  inline def proc(args: String*): String =
+    val input = sc.s(args*)
+    input.!!
+  end proc
+
 end extension
 

@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.delegates
 
+import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.optional
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.hardwarelogger.services.{NotificationCentre, NotificationChannel, ServicesModule}
@@ -12,7 +13,7 @@ trait ProgramModeChangedDelegate extends ServicesModule:
   notificationCentre.subscribe(NotificationChannel.ProgramModeChanged): (key, arg) =>
     optional:
       val mode = arg.asInstanceOf[Option[String]]
-      onProgramModeChanged(mode.?.asInstanceOf[ProgramMode])
+      onProgramModeChanged((mode ?? "Normal").asInstanceOf[ProgramMode])
 
   def onProgramModeChanged(mode: ProgramMode): Unit = ()
 

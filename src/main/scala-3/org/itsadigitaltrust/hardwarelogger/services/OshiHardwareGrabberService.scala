@@ -8,6 +8,8 @@ import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk}
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
+import org.itsadigitaltrust.common.types.FrequencyType.Frequency
+import org.itsadigitaltrust.common.types.FrequencyUnit
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.SimpleHLDatabaseService.findItsaIdBySerialNumber
@@ -129,21 +131,29 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
       optional:
+        val driveId = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber)
+        val serialId = findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber)
+        val id = (driveId, serialId) match
+          case (Some(dId), None) => dId
+          case (None, Some(sId)) => sId
+          case (Some(dId), Some(_)) => dId
+          case _ => ""
         val hdType: HardDriveType =
           if OSUtils.onLinux then
             if lsblk(hardDiskSummary.hardDiskDevice).?.rota then "HDD" else "SSD"
           else "SSD"
 
+        val totalSize = hardDiskSummary.totalSize.split(" ")(0).toDoubleOption ?? 0D
+        val dataSize = DataSize(totalSize / 1e3D, DataSizeUnit.GB)
         val drive = HardDriveModel(
           hardDiskSummary.health.asPercentage,
           hardDiskSummary.performance.asPercentage,
-          DataSize.from(hardDiskSummary.totalSize).?.toSize(DataSizeUnit.TB),
+          dataSize,
           hardDiskSummary.hardDiskModelId,
           hardDiskSummary.hardDiskSerialNumber,
-          itsaID = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber) ??  findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber).?
-,
+          itsaID = id,
           connectionType = hardDiskSummary.interfaceType,
-          `type` =  hdType,
+          `type` = hdType,
           actions = hardDiskSummary.tip,
           description = hardDiskSummary.description,
           powerOnTime = hardDiskSummary.powerOnTime,
@@ -151,36 +161,37 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
         )
         drive
       .get
+  end loadHardDrives
 
-
-
-
-  //    hardDrives = hal.getDiskStores.asScala.map: disk =>
-  //      val name = disk.getName
-  //      val size = disk.getSize
-  //      val model = disk.getModel
-  //      HardDriveModel(99.percent, 100.percent, size.GiB, model, disk.getSerial, NVME, isSSD = true)
-  //    .toList
 
 
   override def loadMemory(): Unit =
-    memory = hal.getMemory.getPhysicalMemory.asScala.map: memory =>
-      val size = memory.getCapacity.GB
-      val description = memory.getManufacturer
-      MemoryModel(size, description)
-    .toList
+    memory =
+      hal.getMemory.getPhysicalMemory.asScala.map: memory =>
+        val size = memory.getCapacity.GiB
+        val description = memory.getManufacturer
+        MemoryModel(size, description, memory.getMemoryType)
+      .toList
+  end loadMemory
+
 
 
   override def loadProcessors(): Unit =
-
-    val pi = hal.getProcessor.getProcessorIdentifier
+    val proc = hal.getProcessor
+    val pi = proc.getProcessorIdentifier
     val name = pi.getName
     val desc = pi.getFamily
     val width = if pi.isCpu64bit then 64 else 32
     val longDesc = pi.getVendor
     val cores = hal.getProcessor.getPhysicalProcessorCount
+    val threads = proc.getLogicalProcessorCount
     val freq = hal.getProcessor.getCurrentFreq
-    processors = List(ProcessorModel(name, freq.sum / freq.length, desc, longDesc, pi.getProcessorID, width, cores))
+    val avgFreq = freq.sum / freq.length
+    val maxFreq = proc.getMaxFreq
+    val freqToUse = if maxFreq != -1 then maxFreq else avgFreq
+    val frequency = Frequency(freqToUse, FrequencyUnit.GHz)
+    processors = List(ProcessorModel(name, frequency, desc, longDesc, pi.getProcessorID, width, cores, threads))
+  end loadProcessors
 
 
   override def loadMedia(): Unit =

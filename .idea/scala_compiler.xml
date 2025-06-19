@@ -7,9 +7,8 @@
     <option name="experimental" value="true" />
     <option name="explainTypeErrors" value="true" />
     <option name="continuations" value="true" />
-    <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.AutoTable,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Backend.main,ITSAHardwareLogger.Backend.test,ITSAHardwareLogger.Common,ITSAHardwareLogger.Common.main,ITSAHardwareLogger.Common.test,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.Macros,ITSAHardwareLogger.autoTable,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.main~1,macros.test,macros.test~1" />
-    <profile name="sbt 2" modules="ITSAHardwareLogger.main,ITSAHardwareLogger.test">
+    <profile name="sbt 1" modules="ITSAHardwareLogger.AutoTable,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Backend.main,ITSAHardwareLogger.Backend.test,ITSAHardwareLogger.Common,ITSAHardwareLogger.Common.main,ITSAHardwareLogger.Common.test,ITSAHardwareLogger.Issue Reporter,ITSAHardwareLogger.Macros,ITSAHardwareLogger.ReportedIssue Reporter,ITSAHardwareLogger.autoTable,Macros,Macros.main,Macros.test,itsahardwarelogger_7108,macros,macros.main,macros.main~1,macros.test,macros.test~1" />
+    <profile name="sbt 2" modules="ITSAHardwareLogger,ITSAHardwareLogger.main,ITSAHardwareLogger.test">
       <parameters>
         <parameter value="-experimental" />
         <parameter value="-groups" />
@@ -17,7 +16,7 @@
         <parameter value="-experimental" />
       </parameters>
     </profile>
-    <profile name="sbt 3" modules="ITSAHardwareLogger.HDSentinelReader.main,ITSAHardwareLogger.HDSentinelReader.test">
+    <profile name="sbt 3" modules="ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.HDSentinelReader.main,ITSAHardwareLogger.HDSentinelReader.test">
       <parameters>
         <parameter value="-experimental" />
       </parameters>

@@ -3,11 +3,19 @@
 /*{*/
 /*    -fx-font-size: 22px;*/
 /*}*/
+
+
+
 .label
 {
     -fx-font-size: 14px;
 }
 
+
+.large-text
+{
+    -fx-font-size: 18px;
+}
 
 .text-field
 {
@@ -35,5 +43,14 @@
 {
     -fx-font-weight: bold;
 
+
+}
+
+.text-area .content { -fx-cursor: default ; }
+
+
+.memory-label
+{
+    -fx-font-style: bold;
 
 }

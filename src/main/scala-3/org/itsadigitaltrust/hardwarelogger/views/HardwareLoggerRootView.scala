@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 
+import jp.uphy.javafx.console
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate, TabDelegate}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TableRowViewModel, ViewModel}
@@ -18,28 +19,41 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
   stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
-  prefWidth = 600.0
-  prefHeight = 400.0
+  prefWidth = 1020.0
+  prefHeight = 768.0
 
 
+  private given consoleView: ItsaDebugView = new ItsaDebugView(using viewModel.issueReporterService)
+
+  private val viewMenu = new Menu("_View"):
+      new Menu("Mode"):
+        items ++= Seq(
+          new CheckMenuItem("Normal"):
+            onAction = _ => ProgramMode.mode = "Normal"
+            selected <==> ProgramMode.isModeNormal
+          ,
+          new CheckMenuItem("HardDrive"):
+            onAction = _ =>
+              ProgramMode.mode = "HardDrive"
+              selected <==> ProgramMode.isHardDriveMode
+          ,
+        )
+  end viewMenu
   private val menuBar = new MenuBar:
-    menus += new Menu("_View"):
-      // Changes the program's mode
+    useSystemMenuBar = true
+    private val helpMenu = new Menu("_Help"):
       items ++= Seq(
-        new Menu("Mode"):
-          items ++= Seq(
-            new CheckMenuItem("Normal"):
-              onAction = _ => ProgramMode.mode = "Normal"
-              selected <==> ProgramMode.isModeNormal
-            ,
-            new CheckMenuItem("HardDrive"):
-              onAction = _ =>
-                ProgramMode.mode = "HardDrive"
-                selected <==> ProgramMode.isHardDriveMode
-            ,
-          )
-
+        new MenuItem("Report"):
+          onAction = _ => ItsaDebugView.report(viewModel.issueReporterService.report)
+          ,
       )
+    menus ++= Seq(
+      viewMenu,
+      helpMenu
+    )
+  end menuBar
+
+
 
   top = menuBar
   private val contentBorderPane = new BorderPane()
@@ -58,7 +72,7 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     text <==> viewModel.idStringProperty
     onAction = _ =>
       viewModel.save()
-  
+
   private val idErrorLabel = new Label:
     styleClass += "error"
     padding = Insets(0, 0, 0, 35.0)
@@ -89,6 +103,12 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     alignmentInParent = Pos.Center
     vgrow = Always
 
+  private val reconnectButton = new Button:
+    text = "Reconnect"
+    onAction = _ => viewModel.reconnect()
+    alignment = Center
+    margin = Insets(0, 20.0, 0, 0)
+
 
   private val reloadButton = new Button:
     text = "Reload"
@@ -112,7 +132,7 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
       prefWidth = 200.0
       prefHeight = prefWidth.get
       hgrow = Always
-    children ++= Seq(reloadButton, saveButton)
+    children ++= Seq(reconnectButton, reloadButton, saveButton)
   end centerButtonsContainer
 
   contentBorderPane.center = new VBox:
@@ -141,7 +161,9 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
   onProgramModeChanged(ProgramMode.mode)
 
+
   given itsaID: String = viewModel.idStringProperty.get
+
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     mode match
       case "HardDrive" =>
@@ -162,7 +184,12 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
         )
         ProgramMode.isHardDriveMode.value = false
         ProgramMode.isModeNormal.value = true
+    end match
+    tabPane.tabs += createTab("Debug",
+      consoleView)
+  end onProgramModeChanged
 
+end HardwareLoggerRootView
 
 
 

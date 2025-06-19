@@ -9,8 +9,8 @@ final class ProcessorTableRowViewModel(model: ProcessorModel)(using itsaID: Stri
     println(s"Name Prop val: ${model.name}")
     wrapper.field("name", _.name, "")(StringProperty.apply)
 
-  def speedProperty: LongProperty =
-    wrapper.field[Long, LongProperty, LongProperty]("speed", _.speed, 0L)(LongProperty.apply)
+  def speedProperty: StringProperty =
+    wrapper.field("frequency", _.frequency.dbString.replaceFirst("(E|e)\\d", ""), "0 GHz")(StringProperty.apply)
 
   def shortDescriptionProperty: StringProperty =
     wrapper.field("shortDescription", _.shortDescription, "")(StringProperty.apply)
@@ -26,3 +26,7 @@ final class ProcessorTableRowViewModel(model: ProcessorModel)(using itsaID: Stri
 
   def coresProperty: IntegerProperty =
     wrapper.field[Int, IntegerProperty, IntegerProperty]("cores", _.cores, 0)(IntegerProperty.apply)
+
+  def threadsProperty: IntegerProperty =
+    wrapper.field[Int, IntegerProperty, IntegerProperty]("threads", _.threads, 0)(IntegerProperty.apply)
+

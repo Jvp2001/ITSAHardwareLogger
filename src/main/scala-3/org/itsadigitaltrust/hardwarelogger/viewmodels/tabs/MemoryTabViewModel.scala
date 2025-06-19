@@ -15,9 +15,9 @@ final class MemoryTabViewModel(using itsaID: String) extends TabTableViewModel[M
 
   data.onChange: (source, change) =>
     totalMemoryProperty.value = source.map: datum =>
-      datum.sizeProperty.value.split(" ").head.toLong
+      datum.sizeProperty.value.split(" ").head.toDouble
     .sum
-    .toString + "GiB"
+    .toString + " GB"
 
 
 

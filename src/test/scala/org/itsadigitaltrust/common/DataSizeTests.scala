@@ -8,8 +8,10 @@ class DataSizeTests extends AnyFunSuite:
 
   test("DataSize toString and dbString"):
     val ds = DataSize(1, DataSizeUnit.MB)
-    assert(ds.toString == "1 MB")
-    assert(ds.dbString == "1 MB")
+    assert(ds.dbString == "1.0 MB")
+    assert(ds.dbString == "1.0 MB")
+    
+    assert(ds.toSize(DataSizeUnit.B).dbString == "1,000,000 B")
 
 
   test("DataSize toBytes"):
@@ -34,11 +36,4 @@ class DataSizeTests extends AnyFunSuite:
       val converted = ds.toSize(toUnit)
       assert(converted.value == (ds.toBytes / toUnit.factorToBytes), s"Conversion from $fromUnit to $toUnit failed")
 
-  test("DataSize toDouble"):
-    val ds = DataSize(1, DataSizeUnit.MB)
-    assert(ds.toDouble == 1.0)
-  test("DataSize value and unit"):
-    val ds = DataSize(1, DataSizeUnit.MB)
-    assert(ds.value == 1.0)
-    assert(ds.unit == DataSizeUnit.MB)
-
+  

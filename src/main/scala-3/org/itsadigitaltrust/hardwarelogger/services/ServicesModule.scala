@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 
+
 trait ServicesModule:
   given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberApplicationService
 
@@ -9,3 +10,6 @@ trait ServicesModule:
   given notificationCentre: NotificationCentre[NotificationChannel] = SimpleNotificationCentre
 
   given databaseService: HLDatabaseService = SimpleHLDatabaseService
+  
+  given issueReporterService: IssueReporterService = StandardIssueReporterService()
+  
