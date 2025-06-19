@@ -12,6 +12,7 @@ import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem}
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
 
+import org.itsadigitaltrust.hardwarelogger.services.given
 
 final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with ProgramModeChangedDelegate:
   root =>
@@ -26,7 +27,7 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
   private given consoleView: ItsaDebugView = new ItsaDebugView(using viewModel.issueReporterService)
 
   private val viewMenu = new Menu("_View"):
-      new Menu("Mode"):
+      private val modeMenu = new Menu("Mode"):
         items ++= Seq(
           new CheckMenuItem("Normal"):
             onAction = _ => ProgramMode.mode = "Normal"
@@ -38,6 +39,9 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
               selected <==> ProgramMode.isHardDriveMode
           ,
         )
+      end modeMenu
+      items += modeMenu
+
   end viewMenu
   private val menuBar = new MenuBar:
     useSystemMenuBar = true
@@ -122,7 +126,7 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     onAction = _ => viewModel.save()
     alignment = Center
     margin = Insets(0, 10.0, 0, 0)
-    disable <== viewModel.validIDProperty
+    disable <== !viewModel.validIDProperty
 
   private val centerButtonsContainer = new HBox:
     alignment = Center

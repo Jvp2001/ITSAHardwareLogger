@@ -25,7 +25,7 @@
 .error
 {
     -fx-text-fill: red;
-    -fx-font-size: 12px;
+    -fx-font-size: 14px;
     -fx-start-margin: 10px;
 }
 
@@ -51,6 +51,6 @@
 
 .memory-label
 {
-    -fx-font-style: bold;
+    -fx-font-weight: bold;
 
 }

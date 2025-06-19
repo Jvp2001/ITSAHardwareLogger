@@ -1,8 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.{OSUtils, optional}
-import org.itsadigitaltrust.common.optional.?
+import org.itsadigitaltrust.common.OSUtils
+
 import org.itsadigitaltrust.common.processes.proc
 import org.itsadigitaltrust.hardwarelogger.issuereporter.Description
 import org.itsadigitaltrust.hardwarelogger.services.Issue
@@ -68,15 +68,14 @@ object Dialogs:
   end createConfirmationAlert
 
   def saveDialog[C](dialogTitle: String, contents: C, fileTypes: String*)(save: (File, C) => Unit): Unit =
-    optional:
       val fileChooser = new scalafx.stage.FileChooser:
         title = dialogTitle
         private val filters = fileTypes.map(ft => scalafx.stage.FileChooser.ExtensionFilter(ft, s"*$ft"))
         filters.map(_.delegate).foreach(extensionFilters.add)
-      val file = fileChooser.showSaveDialog(null)
-      if file != null then
-        save(file, contents)
-    ?? ()
+      val file = Option(fileChooser.showSaveDialog(null))
+      file match
+        case Some(value) => save(value, contents)
+        case None => ()
   end saveDialog
 
   def saveTextFile(title: String, contents: String): Unit =

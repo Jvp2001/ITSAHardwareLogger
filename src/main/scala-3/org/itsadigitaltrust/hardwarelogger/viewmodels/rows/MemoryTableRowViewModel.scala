@@ -7,6 +7,7 @@ import org.itsadigitaltrust.common.types.*
 import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit.GB
 
 import scala.math.Numeric.Implicits.infixNumericOps
+import org.itsadigitaltrust.hardwarelogger.services.given
 
 final class MemoryTableRowViewModel(model: MemoryModel)(using itsaID: String) extends TableRowViewModel[MemoryModel](model):
 

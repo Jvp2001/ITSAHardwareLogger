@@ -2,6 +2,7 @@ package org.itsadigitaltrust.common
 
 import scala.collection.generic.{IsMap, IsSeq}
 import scala.collection.mutable
+import scala.reflect.ClassTag
 import scala.util.chaining.scalaUtilChainingOps
 
 
@@ -19,20 +20,19 @@ object Operators:
     infix def notIn[V](seq: MapType[T, V]): Boolean =
       !seq.contains(item)
   end extension
-  extension[T](option: Option[T])
+
+  extension[T : ClassTag ](option: Option[T] | T)
     infix def ??(default: T): T =
-      option.getOrElse(default)
+      option match
+        case opt:Option[T] => opt.getOrElse(default)
+        case t:T => if t == null then default else t
 
-  extension[T](n: Null)
-    infix def ??(other: T): T =
-      other
-  extension[T](value: T | Option[T])
-    infix def ??(other: T): T =
-      val result = value match
-        case t: T => Option(t)
-        case option:Option[T] => option
-      result.getOrElse(other)
+    infix def ??(other: Option[T]): Option[T] =
+      option match
+        case opt: Option[T] => opt.orElse(other)
+        case t: T => if t == null then other else Some(t)
 
+  end extension
   extension[A](a: A)
     def |>[B](f: A => B): B =
       a.pipe(f)
@@ -45,4 +45,4 @@ end Operators
 
 
 
-export Operators.*
+export Operators.{??, in, notIn, <=>, |>}

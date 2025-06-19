@@ -13,6 +13,8 @@ object Types:
   export types.DataSizeType
   export Percentage.*
 
+  type PrimitiveType = String | Float | Long | Double | Short | Boolean
+
   
 
 export Types.*

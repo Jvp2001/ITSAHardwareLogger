@@ -9,9 +9,10 @@ import core.ui.*
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.getClass
 import delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.core.HardwareLoggerDefaultUncaughtExceptionHandler
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, NotificationName}
 import org.itsadigitaltrust.hardwarelogger.tasks.HLTaskRunner
-import services.NotificationChannel.ProgramModeChanged
-import services.{NotificationCentre, NotificationChannel, ServicesModule}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.ProgramModeChanged
+import services.ServicesModule
 import views.HardwareLoggerRootView
 import scalafx.application.JFXApp3.PrimaryStage
 import scalafx.application.{JFXApp3, Platform}
@@ -35,7 +36,6 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
   override def start(): Unit =
     setProgramMode()
     Thread.setDefaultUncaughtExceptionHandler(HardwareLoggerDefaultUncaughtExceptionHandler())
-    
 
     stage = new PrimaryStage:
       minWidth = 1024
@@ -49,13 +49,15 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
           val code = event.code
           if code == KeyCode.F5 then
             hardwareGrabberService.load(): () =>
-              notificationCentre.publish(NotificationChannel.Reload)
+              notificationCentre.post(NotificationName.Reload, None, None)
       show()
 
   end start
 
   override def stopApp(): Unit =
     databaseService.stop()
+
+    notificationCentre.close()
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     titleProperty.value = ProgramMode.mode match
