@@ -3,14 +3,18 @@ import sbt.Keys.libraryDependencies
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.7.0"
+ThisBuild / scalaVersion := "3.7.1"
+Compile / mainClass := Some("org.itsadigitaltrust.hardwarelogger.$HardwareLoggerApplication")
+
+// Allow java sources
+
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", _*) => MergeStrategy.discard
   case _ => MergeStrategy.first
 }
 
 lazy val javaFXDeps = Seq("win", "mac", "linux").flatMap { osName =>
-  Seq("base", "controls")
+  Seq("base", "controls", "graphics")
     .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier osName)
 }
 
@@ -26,26 +30,30 @@ lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps)
 lazy val root = (project in file("."))
   .settings(
     assembly / assemblyJarName := "ITSAHardwareLogger.jar",
+    assembly / mainClass := Some("org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication"),
+    assembly / resourceDirectory := file("src/main/resources"),
     name := "ITSAHardwareLogger",
+
 
     libraryDependencies ++= uiDependencies,
     libraryDependencies += "com.github.oshi" % "oshi-core" % "6.8.2",
     libraryDependencies ++= commonDependencies,
     scalacOptions += "-experimental"
 
-  ).dependsOn(common, backend, hdsentinelreader)
+  ).dependsOn(common, backend, hdsentinelreader, issueReporter)
 
 
-lazy val common: Project = (project in file("Common"))
+lazy val common = (project in file("Common"))
   .settings(
     name := "Common",
-    libraryDependencies ++= commonDependencies ++ Seq(  "org.apache.commons" % "commons-text" % "1.13.1")
+    libraryDependencies ++= commonDependencies
 
   )
 
 lazy val commonDependencies = Seq(
   "com.augustnagro" %% "magnum" % "1.3.1",
   "com.mysql" % "mysql-connector-j" % "9.3.0",
+  "org.apache.commons" % "commons-text" % "1.13.1"
 ).map(_ withJavadoc() withSources())
 
 lazy val hdsentinelreader = (project in file("HDSentinelReader")).
@@ -65,27 +73,19 @@ lazy val backend = (project in file("Backend"))
     name := "Backend",
     libraryDependencies ++= commonDependencies,
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    unmanagedSourceDirectories in Test += file("tests")
+    Test / unmanagedSourceDirectories += file("tests")
   ).dependsOn(common)
 
 
 
-//libraryDependencies ++= {
-//  // Determine an OS version of JavaFX binaries
-//  lazy val osName = System.getProperty("os.name") match {
-//    case n if n.startsWith("Linux") => "linux"
-//    case n if n.startsWith("Mac") => "mac"
-//    case n if n.startsWith("Windows") => "win"
-//    case _ => throw new Exception("Unknown platform!")
-//  }
-//  lazy val classifiers =Seq("win", "linux", "mac")
-//    classifiers.map { osName =>
-//
-//        Seq("base", "controls", "fxml", "graphics", "media", "swing", "web")
-//          .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier osName).map(_.withJavadoc() withSources())
-//    }
-//}
 
+lazy val issueReporter = (project in file("IssueReporter"))
+  .settings(
+    name := "ReportedIssue Reporter",
+    libraryDependencies ++= Seq(
+      "org.kohsuke" % "github-api" % "1.327"
+    ).map(_ withSources() withJavadoc())
+  ).dependsOn(common)
 
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
@@ -95,6 +95,8 @@ ThisProject / scalacOptions ++= Seq(
   "-Xwiki-syntax",
   "-experimental"
 )
+
+
 
 
 

@@ -23,9 +23,24 @@ object Operators:
     infix def ??(default: T): T =
       option.getOrElse(default)
 
+  extension[T](n: Null)
+    infix def ??(other: T): T =
+      other
+  extension[T](value: T | Option[T])
+    infix def ??(other: T): T =
+      val result = value match
+        case t: T => Option(t)
+        case option:Option[T] => option
+      result.getOrElse(other)
+
   extension[A](a: A)
     def |>[B](f: A => B): B =
       a.pipe(f)
+
+
+  extension[T <: Comparable[T]](lhs: T)
+    def <=>(rhs: T): Int =
+      lhs.compareTo(rhs)
 end Operators
 
 

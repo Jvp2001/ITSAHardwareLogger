@@ -5,6 +5,7 @@ import org.itsadigitaltrust.hardwarelogger.models.{HardDriveConnectionType, Hard
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 import org.itsadigitaltrust.common.percent
+import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 
 import java.lang
@@ -21,7 +22,7 @@ final case class HardDriveTableRowViewModel(model: HardDriveModel)(using itsaID:
     wrapper.field("Performance", _.health, 100.percent)(ObjectProperty.apply)
     
   def sizeProperty: StringProperty =
-    wrapper.field("Size", _.size.dbString, "0 GB")(StringProperty.apply)
+    wrapper.field("Size", _.size.toSize(DataSizeUnit.GB).dbString, "0 GB")(StringProperty.apply)
     
   def modelProperty: StringProperty =
     wrapper.field("model", _.model, "")(StringProperty.apply)

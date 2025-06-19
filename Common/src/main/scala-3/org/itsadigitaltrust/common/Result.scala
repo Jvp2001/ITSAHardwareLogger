@@ -2,12 +2,26 @@ package org.itsadigitaltrust.common
 import scala.languageFeature.implicitConversions
 import scala.util.boundary
 
-sealed trait Result[+T, +E]:
+sealed trait Result[+T, +E] extends Matchable, Product, Equals:
   def toEither: Either[E, T] =
     this match
       case Success(value) => util.Right(value)
       case Error(reason) => util.Left(reason)
 
+  def failureOr[U >: T](f: T => U): Result[U, E] =
+    this match
+      case Success(value) => Result.Success(f(value))
+      case error@Error(_) => error
+
+  def toOption: Option[T] =
+    this match
+      case Success(value) => Option(value)
+      case Error(reason) => None
+
+  def success: T =
+    this match
+      case Success(value) => value
+      case Error(reason) => scala.sys.error(reason.toString)
   def mapSuccess[R](f: T => R): Result[R, E] =
       Result.fromEither.apply(this.toEither.map(f))
 

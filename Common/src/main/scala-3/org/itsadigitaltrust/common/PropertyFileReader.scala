@@ -30,19 +30,25 @@ object PropertyFileName:
     error(s"${codeOf(file)}must end with .properties")
     //      else if file.split("/")(0) != "db.properties" then error (codeOf(file) + " must end with .properties!")
     else file
+
+  def from(fileName: Option[String]): Option[PropertyFileName] =
+
+    optional:
+      if !fileName.?.endsWith(".properties") then s"${fileName.?}.properties" else fileName.?
+
+
 end PropertyFileName
 
 enum PropertyFileReaderError:
-  case FileNotFound(fileName: PropertyFileName)
+  case FileNotFound(fileName: String)
   case PropertyNotFound(propertyName: String)
-  case InvalidCast(propertyName: String, valueTypeName: String)
 
 
 class PropertyFileReader:
 
   import PropertyFileReader.!
 
-  private val props: Properties = new Properties()
+  val props: Properties = new Properties()
 
   def read(file: PropertyFileName): ![PropertyFileReader] =
     Using(new FileInputStream(file.toString)): fis =>
@@ -50,7 +56,7 @@ class PropertyFileReader:
     match
       case scala.util.Success(_) => Result.success(this)
       case scala.util.Failure(exception) => exception match
-        case _: FileNotFoundException => Result.error(PropertyFileReaderError.FileNotFound(file))
+        case _: FileNotFoundException => Result.error(PropertyFileReaderError.FileNotFound(file.toString))
 
 
   def get(key: String): ![String] =
@@ -77,6 +83,19 @@ object PropertyFileReader:
       val reader = new PropertyFileReader()
       reader.read(file)
 
+  def from (propsFile: String): Result[PropertyFileReader, PropertyFileReaderError] =
+    Result:
+
+      val reader  = new PropertyFileReader()
+      optional:
+        val fileName = PropertyFileName.from(Option(propsFile))
+        reader.read(fileName.?)
+      .match
+        case Some(r) => r
+        case None => Result.error(PropertyFileReaderError.FileNotFound(propsFile))
+
+
+  end from
   inline def apply[F <: String & Singleton](inline file: F): Result[PropertyFileReader, PropertyFileReaderError] =
 
     Result:

@@ -11,9 +11,10 @@ import scala.math.Numeric.Implicits.infixNumericOps
 final class MemoryTableRowViewModel(model: MemoryModel)(using itsaID: String) extends TableRowViewModel[MemoryModel](model):
 
   def sizeProperty: StringProperty =
-    wrapper.field("size", _.size.toSize(DataSizeUnit.GiB).dbString, "0 GiB")(StringProperty.apply)
-
-
+    wrapper.field("size", _.size.dbString.replace("i", ""), "0 GB")(StringProperty.apply)
 
   def descriptionProperty: StringProperty =
     wrapper.field("description", _.description, "")(StringProperty.apply)
+
+  def typeProperty: StringProperty =
+    wrapper.field("type", _.`type`,"")(StringProperty.apply)

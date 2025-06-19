@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.models
 
 import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
 import org.itsadigitaltrust.common.types.DataSizeType.DataSize
+import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
 import org.itsadigitaltrust.hdsentinelreader.data.HDSentinelInterfaceTypeName
 
@@ -53,16 +54,17 @@ end HardDriveConnectionType
 
 final case class MediaModel(description: String, handle: String) extends HLModel
 
-final case class MemoryModel(size: DataSize, description: String) extends HLModel
+final case class MemoryModel(size: DataSize, description: String, `type`: String = "") extends HLModel
 
 final case class ProcessorModel(
                                  name: String,
-                                 speed: Long,
+                                 frequency: Frequency,
                                  shortDescription: String,
                                  longDescription: String,
                                  serial: String,
                                  width: Int = 0,
-                                 cores: Int = 0
+                                 cores: Int = 0,
+                                 threads: Int = 0
                                ) extends HLModel
 
 

@@ -8,6 +8,7 @@ import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
 import scalafx.Includes.*
 import scalafx.beans.property.IntegerProperty
+import scalafx.scene.text.FontWeight
 
 
 final class MemoryTabView(using itsaID: String) extends VBox:
@@ -16,9 +17,11 @@ final class MemoryTabView(using itsaID: String) extends VBox:
   private val totalMemLabel = new Label:
     text = "Total Memory"
     margin = Insets(0.0, 10.0, 0.0, 10.0)
+    styleClass ++= Seq("memory-label", "large-text")
 
   private val totalMemValueLabel = new Label:
     text <== viewModel.totalMemoryProperty
+    styleClass ++= Seq("memory-label", "large-text")
 
 
   private val totalMemoryContainer = new HBox:
@@ -26,6 +29,8 @@ final class MemoryTabView(using itsaID: String) extends VBox:
     prefWidth = 200.0
     margin = Insets(10.0, 0, 0, 0)
     children = Seq(totalMemLabel, totalMemValueLabel)
+    styleClass += "total-memory-container"
+
 
 
   private val tableView = new TabTableView[MemoryModel, MemoryTableRowViewModel]()
@@ -41,6 +46,9 @@ final class MemoryTabView(using itsaID: String) extends VBox:
 
   private val descriptionColumn = tableView.createAndAddColumn("Description"): cellValue =>
     cellValue.descriptionProperty
+
+  private val typeColumn = tableView.createAndAddColumn("Type"): cellValue =>
+    cellValue.typeProperty
 
 
   spacing = 10.0

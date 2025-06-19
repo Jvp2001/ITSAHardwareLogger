@@ -1,29 +1,21 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.*
-import org.itsadigitaltrust.common.optional.?
-import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit
-import org.itsadigitaltrust.hardwarelogger.backend.HLDatabase
-import org.itsadigitaltrust.hardwarelogger.backend.entities.*
-import org.itsadigitaltrust.hardwarelogger.backend.types.*
+import org.itsadigitaltrust.hardwarelogger.backend.*
 import org.itsadigitaltrust.hardwarelogger.delegates
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.tasks.{HLDatabaseTransactionTask, HLTaskGroupBuilder, HLTaskRunner, HardwareLoggerTask, TaskExecutor}
+import org.itsadigitaltrust.hardwarelogger.tasks.*
+import org.itsadigitaltrust.common.types.*
 import org.scalafx.extras.BusyWorker
 import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.batch.{BatchRunnerWithProgress, ItemTask}
-import scalafx.scene.control.{Alert, ButtonType}
-import scalafx.scene.control.Alert.AlertType
 
-import java.net.{ConnectException, Inet4Address, InterfaceAddress}
 import java.sql.Timestamp
 import java.time.OffsetDateTime
 import java.util.concurrent.LinkedBlockingQueue
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.reflect.{ClassTag, classTag}
-import scala.util.boundary
 
 
 trait HLDatabaseService:
@@ -77,7 +69,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   override final def connect(klazz: Class[?], dbPropsFilePath: String): Result[Unit, String] =
     Result:
       try
-        HLDatabase(klazz.getResource(dbPropsFilePath).toURI.toURL) match
+        HLDatabase(klazz.getResource(dbPropsFilePath).toURI) match
           case Result.Success(value) =>
             db = Option(value)
             Result.Success(())
@@ -107,7 +99,10 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     optional:
       val database = db.?
       val record = database.findWipingRecord(serial)
-      Disk(record.?.id, record.?.hddID, record.?.model, record.?.capacity.?, record.?.serial, record.?.`type`.?, record.?.description.?)
+      if record.isEmpty || record == null then
+        null
+      else
+        Disk(record.?.id, record.?.hddID, record.?.model, record.?.capacity.?, record.?.serial, record.?.`type`.?, record.?.description.?)
 
 
   def addWipingRecords(drives: HardDriveModel*): Unit =
@@ -142,7 +137,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
         notificationCentre.publish(NotificationChannel.FoundDuplicateRowsWithID)
       else
         val duplicateDrives = checkForDuplicateDrives()
-        if duplicateDrives.headOption.getOrElse("") ne "" then
+        if duplicateDrives.getOrElse("") ne "" then
           notificationCentre.publish(NotificationChannel.ShowDuplicateDriveWarning, duplicateDrives.head)
         else // if duplicateDrives.contains("") then
           save()
@@ -162,6 +157,8 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   end generateTaskFunctions
 
 
+  //Q: What scala type represents this: () => Unit?
+  //
   given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
     val result = classTag[M] match
       case ct if ct == classTag[HardDriveModel] =>
@@ -236,7 +233,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
             name = info.cpuProduct.get,
             serial = info.cpuSerial ?? "",
             cores = info.cpuCores.map(_.toInt).getOrElse(2),
-            speed = info.cpuSpeed.toLong,
+            frequency = Frequency(info.cpuSpeed.toLong, FrequencyUnit.GHz),
             width = info.cpuWidth.map(_.toInt).getOrElse(64),
             longDescription = info.cpuDescription,
             shortDescription = ""
@@ -252,7 +249,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
             description = info.genDesc,
           )
         case memory: Memory =>
-          MemoryModel(size = DataSize.from(memory.size) ?? DataSize(0, DataSizeUnit.MB), description = memory.description ?? "")
+          MemoryModel(size = DataSize.from(memory.size) ?? DataSize(), description = memory.description ?? "")
         case hardDrive: Disk =>
           HardDriveModel(
             model = hardDrive.model,
@@ -280,7 +277,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       case processorModel: ProcessorModel =>
         processor = processorModel
         createInfo(hardwareGrabberService.generalInfo, itsaID)
-      case _ => scala.sys.error("Unknown Type!")
+      case null => scala.sys.error("Unknown Type!")
 
 
   protected def createMemory(memoryModel: MemoryModel, itsaID: String): MemoryCreator =
@@ -294,9 +291,9 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum
     val processor = this.processor.getOrElse(hardwareGrabberService.processors.head)
     val creator = InfoCreator(cpuVendor = infoModel.vendor,
-      itsaID = itsaID, cpuSerial = Some(processor.serial), totalMemory = s"$totalMemory GiB",
-      cpuSpeed = processor.speed.toString, cpuDescription = processor.longDescription, cpuProduct = processor.name,
-      genDesc = "TODO", genId = genID, genProduct = "CPU", genSerial = infoModel.serial, genVendor = infoModel.vendor,
+      itsaID = itsaID, cpuSerial = Some(processor.serial), totalMemory = s"$totalMemory GB",
+      cpuSpeed = processor.frequency.toString, cpuDescription = processor.longDescription, cpuProduct = processor.name,
+      genDesc = "", genId = genID, genProduct = "CPU", genSerial = infoModel.serial, genVendor = infoModel.vendor,
       cpuWidth = processor.width.toString, os = infoModel.os, cpuCores = processor.cores.toString, insertionDate = Timestamp.from(OffsetDateTime.now().toInstant), lastUpdated = Timestamp.from(OffsetDateTime.now().toInstant))
     this.processor = None
     creator
@@ -322,9 +319,9 @@ object SimpleHLDatabaseService extends CommonHLDatabase[HardwareLoggerTask]:
     notificationCentre.subscribe(NotificationChannel.ContinueWithDuplicateDrive): (key, _) =>
       save()
 
-
     notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
       transactionQueue.clear()
+
     this
   end apply
 

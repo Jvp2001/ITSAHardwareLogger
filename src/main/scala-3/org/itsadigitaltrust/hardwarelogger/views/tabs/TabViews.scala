@@ -34,14 +34,18 @@ private[views] final class ProcessorTabView(using itsaID: String) extends TabTab
   private val longDescriptionColumn = createAndAddColumn("Description"): cellValue =>
     cellValue.longDescriptionProperty
 
-  private val serialColumn = createAndAddColumn("Serial"): cellValue =>
-    cellValue.serialProperty
+//  private val serialColumn = createAndAddColumn("Serial"): cellValue =>
+//    cellValue.serialProperty
 
-  private val widthColumn = createAndAddColumn("Width"): cellValue =>
-    cellValue.widthProperty
+//  private val widthColumn = createAndAddColumn("Width"): cellValue =>
+//    cellValue.widthProperty
 
   private val coresColumn = createAndAddColumn("Cores"): cellValue =>
     cellValue.coresProperty
+
+  private val threadsColumn = createAndAddColumn("Threads"): cellValue =>
+    cellValue.threadsProperty
+
 
 private[views] final class MediaTabView(using itsaID: String) extends TabTableView[MediaModel, MediaTableRowViewModel](using TabTableViewModel(MediaTableRowViewModel.apply, _.media)):
   private val descriptionColumn = createAndAddColumn("Description"): cellValue =>

@@ -2,21 +2,20 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
 import org.itsadigitaltrust.common
-import common.Operators.??
+import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.optional.?
 import org.itsadigitaltrust.common.{Result, optional}
-import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.{databaseService, getClass}
+
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
-import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{ContinueWithDuplicateDrive, DBSuccess, Reload, Save, ShowDuplicateDriveWarning}
+import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{ContinueWithDuplicateDrive, DBSuccess, Save, ShowDuplicateDriveWarning}
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationChannel, ServicesModule}
+import org.itsadigitaltrust.hardwarelogger.views.Dialogs
 import scalafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationCentre, NotificationChannel, ServicesModule}
-import scalafx.application.Platform
-import scalafx.beans.binding.Bindings
-import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Alert.AlertType.{Information, Warning}
+import scalafx.scene.control.{Alert, ButtonType}
 
 import scala.util.boundary
 
@@ -29,11 +28,14 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
   val idErrorStringProperty: StringProperty = StringProperty("")
   val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
 
+
+
   private var wasDuplicateIDWarningAlreadyShown = false
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
 
   validIDProperty <== idErrorStringProperty.isNotEmpty or idStringProperty.isNotEmpty
+
 
   hardwareIDValidationService.validate(idStringProperty.get)
   idStringProperty.onChange: (observable, oldValue, newValue) =>
@@ -84,6 +86,15 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     reload()
 
 
+
+  def reconnect(): Unit =
+    databaseService.connectAsync(getClass, "db/db.properties"):
+      case Result.Success(_) => ()
+      case Result.Error(err) =>
+        new Alert(AlertType.Error, "Could not connect to database!"):
+          contentText = "Failed to connect to the database; please check your intranet connection, and try again!"
+        .showAndWait()
+  end reconnect
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
     isInNormalMode.value = mode == "Normal"
@@ -131,7 +142,6 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     isInNormalMode.value = mode == "Normal"
     reload()
 
-
   private def findNonWipedDrives() =
     hardwareGrabberService.hardDrives.filterNot: hardDrive =>
       databaseService.findWipingRecord(hardDrive.serial) match
@@ -164,5 +174,9 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
           case _ => ()
   end showDrivesNotWipedAlert
 
+   
+  
+  def saveConsoleOutput(contents: String): Unit =
+    Dialogs.saveTextFile("Save Debug Info", contents)
 
 end HardwareLoggerRootViewModel

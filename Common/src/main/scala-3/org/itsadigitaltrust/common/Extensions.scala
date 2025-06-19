@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.common
 
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
+import org.itsadigitaltrust.common.types.FrequencyType.{Frequency, FrequencyUnit}
 
 import scala.annotation.targetName
 
@@ -24,10 +25,10 @@ end extension
 object Maths:
 
 
-  extension (long: Long)
+  extension (long: Double)
     @targetName("pow")
-    infix def **(raiseBy: Long): Long =
-      Math.pow(long, raiseBy).toLong
+    infix def **(raiseBy: Double): Double =
+      Math.pow(long, raiseBy)
     def KiB: DataSize = DataSize(long, DataSizeUnit.KiB)
     def MiB: DataSize = DataSize(long, DataSizeUnit.MiB)
     def GiB: DataSize = DataSize(long, DataSizeUnit.GiB)
@@ -39,6 +40,12 @@ object Maths:
     def TB: DataSize = DataSize(long, DataSizeUnit.TB)
     def PB: DataSize = DataSize(long, DataSizeUnit.PB)
     def B: DataSize = DataSize(long, DataSizeUnit.B)
+
+
+    def Hz: Frequency = Frequency(long, FrequencyUnit.Hz)
+    def kHz: Frequency = Frequency(long, FrequencyUnit.kHz)
+    def MHz: Frequency = Frequency(long, FrequencyUnit.MHz)
+
 end Maths
 
 export Maths.*
