@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.{Result, optional}
+import org.itsadigitaltrust.common.Result
 import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, GitHubIssueReporter, IssueReportStatus, ReportedIssue}
 
@@ -20,7 +20,7 @@ trait IssueReporterService:
 class StandardIssueReporterService extends IssueReporterService:
   import org.itsadigitaltrust.hardwarelogger.core.issueReporterDefaults
   lazy val issueReporter: GitHubIssueReporter =
-    GitHubIssueReporter(getClass.getResource("IssuesReporter.properties").toURI.getPath)
+    GitHubIssueReporter(null)
 
   override def report(name: String, description: String): Option[String] =
       issueReporter.report(ReportedIssue(name, Description(description))) match

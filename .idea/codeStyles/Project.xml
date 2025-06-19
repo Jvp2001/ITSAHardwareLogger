@@ -1,7 +1,53 @@
 <component name="ProjectCodeStyleConfiguration">
   <code_scheme name="Project" version="173">
+    <DBN-PSQL>
+      <case-options enabled="true">
+        <option name="KEYWORD_CASE" value="lower" />
+        <option name="FUNCTION_CASE" value="lower" />
+        <option name="PARAMETER_CASE" value="lower" />
+        <option name="DATATYPE_CASE" value="lower" />
+        <option name="OBJECT_CASE" value="preserve" />
+      </case-options>
+      <formatting-settings enabled="false" />
+    </DBN-PSQL>
+    <DBN-SQL>
+      <case-options enabled="true">
+        <option name="KEYWORD_CASE" value="lower" />
+        <option name="FUNCTION_CASE" value="lower" />
+        <option name="PARAMETER_CASE" value="lower" />
+        <option name="DATATYPE_CASE" value="lower" />
+        <option name="OBJECT_CASE" value="preserve" />
+      </case-options>
+      <formatting-settings enabled="false">
+        <option name="STATEMENT_SPACING" value="one_line" />
+        <option name="CLAUSE_CHOP_DOWN" value="chop_down_if_statement_long" />
+        <option name="ITERATION_ELEMENTS_WRAPPING" value="chop_down_if_not_single" />
+      </formatting-settings>
+    </DBN-SQL>
     <ScalaCodeStyleSettings>
+      <option name="importLayout">
+        <array>
+          <option value="org.itsadigitaltrust.common" />
+          <option value="_______ blank line _______" />
+          <option value="org.itsadigitaltrust.hardwarelogger" />
+          <option value="_______ blank line _______" />
+          <option value="org.itsadigitaltrust.backend" />
+          <option value="_______ blank line _______" />
+          <option value="base package imports" />
+          <option value="_______ blank line _______" />
+          <option value="all other imports" />
+          <option value="_______ blank line _______" />
+          <option value="java" />
+          <option value="javax" />
+          <option value="scala" />
+        </array>
+      </option>
       <option name="MULTILINE_STRING_CLOSING_QUOTES_ON_NEW_LINE" value="true" />
     </ScalaCodeStyleSettings>
+    <codeStyleSettings language="Scala">
+      <option name="BRACE_STYLE" value="2" />
+      <option name="CLASS_BRACE_STYLE" value="2" />
+      <option name="METHOD_BRACE_STYLE" value="2" />
+    </codeStyleSettings>
   </code_scheme>
 </component>

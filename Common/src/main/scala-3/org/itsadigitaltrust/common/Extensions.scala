@@ -3,7 +3,10 @@ package org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.{Frequency, FrequencyUnit}
 
+import java.net.URI
 import scala.annotation.targetName
+import scala.reflect.{ClassTag, classTag}
+import scala.util.Try
 
 extension [T](coll: IndexedSeq[T])
   def filterByIndices(predicate: Int => Boolean): Seq[T] =
@@ -56,5 +59,7 @@ object StringExtensions:
     def startWithIgnoreCase(string: String): Boolean =
       s.toLowerCase.startsWith(string)
 
+    inline def loadAsResource[T : ClassTag]: Try[URI] =
+      Try(classTag[T].runtimeClass.getResource(s).toURI)
 end StringExtensions
 export StringExtensions.*

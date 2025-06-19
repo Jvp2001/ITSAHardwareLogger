@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
+import org.itsadigitaltrust.hardwarelogger.services.given
 
 final class ProcessorTableRowViewModel(model: ProcessorModel)(using itsaID: String) extends TableRowViewModel[ProcessorModel](model):
   def nameProperty: StringProperty =

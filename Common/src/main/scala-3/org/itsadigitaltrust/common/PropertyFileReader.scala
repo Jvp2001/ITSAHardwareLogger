@@ -1,48 +1,23 @@
 package org.itsadigitaltrust.common
 
-import java.io.{FileInputStream, FileNotFoundException}
+
+
+import java.io.{File, FileInputStream, FileNotFoundException}
+import java.net.URI
 import java.util.Properties
 import scala.compiletime.ops.int.==
 import scala.reflect.{ClassTag, classTag}
-import scala.util.Using
+import scala.util.{Try, Using}
 
-
-opaque type PropertyFileName = String
-
-/**
- * ^ - Matches the start of the string.
- * .*[\\/] - Matches any characters (including directories) up to the last / or \ (to handle both Unix and Windows paths).
- * [^\\/]+ - Matches the file name (excluding slashes).
- * \.properties - Matches the specific file extension .properties.
- * $ - Matches the end of the string.
- * 
- * This regex was defined and explained by Microsoft's Copilot.
- */
-private inline val regex = "^.*[\\/][^\\/]+\\.properties$"
-
-object PropertyFileName:
-
-  import scala.compiletime.*
-  import ops.string.*
-
-  inline def apply[F <: String & Singleton](inline file: F): PropertyFileName =
-    inline if !constValue[Matches[F, regex.type]] then
-    error(s"${codeOf(file)}must end with .properties")
-    //      else if file.split("/")(0) != "db.properties" then error (codeOf(file) + " must end with .properties!")
-    else file
-
-  def from(fileName: Option[String]): Option[PropertyFileName] =
-
-    optional:
-      if !fileName.?.endsWith(".properties") then s"${fileName.?}.properties" else fileName.?
-
-
-end PropertyFileName
 
 enum PropertyFileReaderError:
   case FileNotFound(fileName: String)
   case PropertyNotFound(propertyName: String)
 
+  override def toString: String = this match
+    case PropertyNotFound(name) => s"Cannot find property with $name!"
+    case FileNotFound(name) => s"Cannot find file $name!"
+end PropertyFileReaderError
 
 class PropertyFileReader:
 
@@ -50,72 +25,102 @@ class PropertyFileReader:
 
   val props: Properties = new Properties()
 
-  def read(file: PropertyFileName): ![PropertyFileReader] =
-    Using(new FileInputStream(file.toString)): fis =>
-      props.load(fis)
+
+  def apply(propName: String): Option[String] =
+    Option(props.getProperty(propName))
+
+  def apply(propName: String, default: String): String =
+    apply(propName) ?? default
+
+  def readFile[A](file: Try[File]): Try[A] =
+    file match
+      case scala.util.Success(value) =>
+        Using[FileInputStream, A](new FileInputStream(value)): fis =>
+          props.load(fis).asInstanceOf[A]
+      case scala.util.Failure(exception) => scala.util.Failure(exception)
+
+  def readURI[A](file: Try[URI]): Try[A] =
+    readFile(file.map(File(_)))
+
+
+  def read(file: Try[File | URI]): ![PropertyFileReader] =
+    file match
+      case scala.util.Success(uri: URI) => readURI[Unit](scala.util.Success(uri))
+      case scala.util.Success(f: File) => readFile[Unit](scala.util.Success(f))
+      case scala.util.Failure(exception) => scala.util.Failure(exception)
     match
       case scala.util.Success(_) => Result.success(this)
       case scala.util.Failure(exception) => exception match
         case _: FileNotFoundException => Result.error(PropertyFileReaderError.FileNotFound(file.toString))
 
 
-  def get(key: String): ![String] =
+  private transparent inline def toPrimitiveType[T <: PrimitiveType : ClassTag](value: String): T =
+    val result = inline summon[ClassTag[T]] match
+      case classTag: ClassTag[String] => value
+      case classTag: ClassTag[Float] => value.toFloat
+      case classTag: ClassTag[Long] => value.toLong
+      case classTag: ClassTag[Double] => value.toDouble
+      case classTag: ClassTag[Short] => value.toShort
+      case classTag: ClassTag[Boolean] => value.toBoolean
+      case _ => value.asInstanceOf[T]
+    result.asInstanceOf[T]
+  end toPrimitiveType
+
+  def update(key: String, value: PrimitiveType): Unit =
+    props.setProperty(key, value.toString)
+
+  def set(key: String, value: PrimitiveType): Unit =
+    props.setProperty(key, value.toString)
+
+  def setProperty(key: String, value: String): Unit =
+    props.setProperty(key, value)
+
+
+  import org.itsadigitaltrust.common.Default.given
+  import PropertyFileReader.given
+  def getProperty(key: String, default: String): String =
+    getOrDefault(key, default)
+
+  def getOrDefault(key: String, default: String): String =
+    import org.itsadigitaltrust.common.Operators.??
     val value = Option(props.getProperty(key))
-    value match
-      case Some(value) => Result.success(value)
-      case None => Result.error(PropertyFileReaderError.PropertyNotFound(key))
+    value ?? default
+
+  def containsKey(key: String): Boolean =
+    props.containsKey(key)
+
+  def remove(key: String): Unit =
+    props.remove(key)
 
   private def error(e: PropertyFileReaderError): ![Nothing] =
     Result.error(e)
+
+
+
 end PropertyFileReader
 
 
 object PropertyFileReader:
-  private type PrimitiveType = String | Float | Long | Double | Short | Boolean
+  export Types.PrimitiveType
+
+
   private type ![T] = Result.Continuation[T, PropertyFileReaderError] ?=> T
+
 
   import scala.compiletime.*
   import ops.string.*
 
 
-  inline def apply(file: PropertyFileName): Result[PropertyFileReader, PropertyFileReaderError] =
+  inline def !(file: Try[File] | Try[URI]): ![PropertyFileReader] =
+    val reader = new PropertyFileReader()
+    reader.read(file)
+
+
+  inline def apply(file: Try[File] | Try[URI]): Result[PropertyFileReader, PropertyFileReaderError] =
     Result:
       val reader = new PropertyFileReader()
       reader.read(file)
 
-  def from (propsFile: String): Result[PropertyFileReader, PropertyFileReaderError] =
-    Result:
-
-      val reader  = new PropertyFileReader()
-      optional:
-        val fileName = PropertyFileName.from(Option(propsFile))
-        reader.read(fileName.?)
-      .match
-        case Some(r) => r
-        case None => Result.error(PropertyFileReaderError.FileNotFound(propsFile))
-
-
-  end from
-  inline def apply[F <: String & Singleton](inline file: F): Result[PropertyFileReader, PropertyFileReaderError] =
-
-    Result:
-      inline if constValue[F `Matches` regex.type] then
-        val reader = new PropertyFileReader()
-        reader.read(PropertyFileName(file))
-      else
-        error(s"${codeOf(file)} must end with .properties!")
-  end apply
-
-  inline def apply[F <: String & Singleton](inline file: F)(inline key: String): Result[String, PropertyFileReaderError] =
-    val reader = new PropertyFileReader()
-    Result:
-      Result:
-        inline if constValue[F `Matches` regex.type] then
-          reader.read(PropertyFileName(file))
-        else
-          error("file must end with .properties!")
-      reader.get(key)
-  end apply
 end PropertyFileReader
 
 
