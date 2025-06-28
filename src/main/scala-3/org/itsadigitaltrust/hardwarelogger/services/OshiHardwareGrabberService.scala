@@ -105,7 +105,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   protected def findItsaIdBySerialNumber(serial: String): Option[String]
 
   override def loadGeneralInfo(): Unit =
-    var serialNumber = hal.getComputerSystem.getSerialNumber
+    val serialNumber = hal.getComputerSystem.getSerialNumber
     val model = hal.getComputerSystem.getModel
     val vendor = hal.getComputerSystem.getManufacturer
     val os = System.getProperty("os.name")

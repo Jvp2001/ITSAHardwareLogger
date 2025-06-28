@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.backend.utils
 
+import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.collections.ApacheFuzzyMap
 
 import org.apache.commons.text.similarity.FuzzyScore
@@ -10,7 +11,7 @@ object IPAddressFinder:
 
   import scala.jdk.CollectionConverters.*
 
-  private lazy val networkInterfaces = NetworkInterface.getNetworkInterfaces.asScala
+  private def networkInterfaces = NetworkInterface.getNetworkInterfaces.asScala
 
   /**
    * Finds all IPv4 addresses on all ethernet cards.
@@ -49,20 +50,22 @@ object IPAddressFinder:
     val fuzzyMap = ApacheFuzzyMap[String]()
     val inetAddresses = networkInterfaces.filter(_.getName.startsWith("en")).filter(_.isUp).flatMap: inet =>
       inet.getInetAddresses.asScala.filter(_.isInstanceOf[Inet4Address]).map: address =>
-        address.toString.stripPrefix("/")
+        val foundAddress = address.toString.stripPrefix("/")
+        println(foundAddress)
+        foundAddress
 
 
     val fuzzyScore = new FuzzyScore(java.util.Locale.UK)
-    // go through all addresses and ma a Map of addresses to their best matching address
     inetAddresses.flatMap: address =>
       addresses.map: addr =>
         val score = fuzzyScore.fuzzyScore(address, addr)
-        (addr, address) -> score.toInt
-      .toMap
-    //.flatMap(_.toSeq.sortBy( 0-_._2))
-      // .toSeq
-    .toSeq.sortBy(_._2)
-    .reverse.headOption.map(_._1._1)
+        val result = (addr, address) -> score.toInt
+        println(result)
+        result
+    .toSeq.sortBy(_._2).lastOption.match
+      case Some(value) => value._1._1
+      case _ => null
+    |> Option[String]
 
 end IPAddressFinder
 
