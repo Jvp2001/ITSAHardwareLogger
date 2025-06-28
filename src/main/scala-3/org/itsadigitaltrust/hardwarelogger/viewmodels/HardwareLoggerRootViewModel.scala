@@ -1,26 +1,25 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
-import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.optional.?
-import org.itsadigitaltrust.common.{Result, optional}
+import org.itsadigitaltrust.common.{DoOnce, Result}
 
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
+import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
-import org.itsadigitaltrust.hardwarelogger.services.NotificationChannel.{ContinueWithDuplicateDrive, DBSuccess, Save, ShowDuplicateDriveWarning}
-import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, NotificationChannel, ServicesModule}
+import services.{HardwareIDValidationService, ServicesModule, notificationcentre, given}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName, NotificationUserInfo}
 import org.itsadigitaltrust.hardwarelogger.views.Dialogs
+
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Alert.AlertType.{Information, Warning}
 import scalafx.scene.control.{Alert, ButtonType}
 
 import scala.util.boundary
-
-
-final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule with ProgramModeChangedDelegate:
+final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule with ProgramModeChangedDelegate with Notifiable[NotificationName]:
 
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
@@ -28,40 +27,47 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
   val idErrorStringProperty: StringProperty = StringProperty("")
   val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
 
-
-
   private var wasDuplicateIDWarningAlreadyShown = false
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
 
-  validIDProperty <== idErrorStringProperty.isNotEmpty or idStringProperty.isNotEmpty
-
+  notificationCentre.addObserver(this)
 
   hardwareIDValidationService.validate(idStringProperty.get)
   idStringProperty.onChange: (observable, oldValue, newValue) =>
     if newValue.isEmpty || newValue == null then
       idErrorStringProperty.value = "ID must not be empty!"
+      validIDProperty.value = false
     else
       validateID()
 
+  override def onReceivedNotification(message: Message): Unit =
+    message.name match
+      case NotificationName.Save => ()
+      case NotificationName.DBSuccess => onDBSuccess(message)
+      case NotificationName.FoundDuplicateRowsWithID => onDuplicateIDFound(message)
+      case NotificationName.Reload => onReload(message)
+      case NotificationName.ShowDuplicateDriveWarning => duplicateDrives(message)
+      case NotificationName.ProgramModeChanged => onProgramModeChanged(ProgramMode.mode)
 
-
-  notificationCentre.subscribe(DBSuccess): (key, _) =>
+  private def onDBSuccess(message: Message): Unit =
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
     wasDuplicateIDWarningAlreadyShown = false
 
-  notificationCentre.subscribe(ShowDuplicateDriveWarning): (key, arg: Any) =>
-    val serial = arg.asInstanceOf[String]
+  private def duplicateDrives(message: Message) =
+    val serial = message.userInfo("drives").asInstanceOf[Seq[String]]
     new Alert(Warning, "Duplicate Drive Found!", ButtonType.Yes, ButtonType.No):
       contentText = s"A drive with the serial number '$serial' already exists. Do you want to continue?"
       showAndWait() match
         case Some(ButtonType.Yes) =>
-          notificationCentre.publish(ContinueWithDuplicateDrive)
+          notificationCentre.post(ContinueWithDuplicateDrive)
         case _ =>
           reload()
+  end duplicateDrives
+
 
   //TODO: Validate and fix the data actually going into the database.
-  notificationCentre.subscribe(NotificationChannel.FoundDuplicateRowsWithID): (key, _) =>
+  private def onDuplicateIDFound(message: Message) =
     if !wasDuplicateIDWarningAlreadyShown then
       new Alert(AlertType.Warning, "Do you want to continue with saving this data? If so, the current data with the same ID will be marked as an error.", ButtonType.Yes, ButtonType.No):
         headerText = s"ID '$idStringProperty' is already in use."
@@ -72,44 +78,52 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
           case _ => ()
     end if
 
-  notificationCentre.subscribe(NotificationChannel.Reload): (key, _) =>
+  private def onReload(message: Message): Unit =
     if ProgramMode.isInNormalMode then
-      optional:
-        val pcInfo = Option(hardwareGrabberService.generalInfo)
-        val info = pcInfo.?
-        val itsaId = info.itsaID.?
-        idStringProperty.value = itsaId
-        println(s"Itsa ID: $itsaId")
-  
-    
+      val pcInfo = hardwareGrabberService.generalInfo
+      val info = pcInfo
+      val itsaId = info.itsaID
+      idStringProperty.value = itsaId ?? ""
+      println(s"Itsa ID: $itsaId")
+
+
   override def setup(): Unit =
     reload()
 
 
-
   def reconnect(): Unit =
-    databaseService.connectAsync(getClass, "db/db.properties"):
-      case Result.Success(_) => ()
+    databaseService.connectAsync():
+      case Result.Success(_) =>
+        println("Database connection established successfully.")
       case Result.Error(err) =>
+        println(s"Database connection failed: $err")
         new Alert(AlertType.Error, "Could not connect to database!"):
           contentText = "Failed to connect to the database; please check your intranet connection, and try again!"
-        .showAndWait()
+          showAndWait()
   end reconnect
+
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
     isInNormalMode.value = mode == "Normal"
-  def save(): Unit =
-    validateID(true)
 
+  def save(): Unit =
+    //HLTaskRunner.runLater("Save"): () =>
+    validateID(true)
+    if !validIDProperty.value then
+      idFieldFocusProperty.value = true
+      return
     if ProgramMode.isInNormalMode then
       val notWipedDrives = findNonWipedDrives()
       if notWipedDrives.nonEmpty then
         showDrivesNotWipedAlert(notWipedDrives)
-    notificationCentre.publish(Save, Option(idStringProperty.value))
+
+    val userInfo = NotificationUserInfo:
+      val id = idStringProperty.value
+    notificationCentre.post(Save, None, Option(userInfo))
   end save
 
 
-  def validateID(showAlert: Boolean = false): Unit =
+  private def validateID(showAlert: Boolean = false): Unit =
     val currentID: String = Option(idStringProperty.get()).getOrElse("")
     if currentID == "" then
       idErrorStringProperty.set("ID cannot be empty!")
@@ -118,6 +132,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
     val result = hardwareIDValidationService.validate(currentID.strip())
     result match
       case Result.Error(value) =>
+        validIDProperty.value = false
         idErrorStringProperty.value = value.toString
         if showAlert then
           value match
@@ -127,13 +142,14 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
               idErrorAlert.showAndWait() match
                 case _ => idFieldFocusProperty.value = true
       case Result.Success(value) =>
+        validIDProperty.value = true
         idErrorStringProperty.value = ""
         idStringProperty.value = value.toString
   end validateID
 
   def reload(): Unit =
     hardwareGrabberService.load(): () =>
-      notificationCentre.publish(NotificationChannel.Reload)
+      notificationCentre.post(Reload)
       if isInNormalMode.value then
         idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
   end reload
@@ -173,10 +189,5 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
           case Some(ButtonType.Yes) => databaseService.addWipingRecords(hardwareGrabberService.hardDrives *)
           case _ => ()
   end showDrivesNotWipedAlert
-
-   
-  
-  def saveConsoleOutput(contents: String): Unit =
-    Dialogs.saveTextFile("Save Debug Info", contents)
 
 end HardwareLoggerRootViewModel

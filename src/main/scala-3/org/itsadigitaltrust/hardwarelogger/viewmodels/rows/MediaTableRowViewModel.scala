@@ -32,6 +32,8 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 import org.itsadigitaltrust.hardwarelogger.models.MediaModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
+import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
+
 
 final class MediaTableRowViewModel(model: MediaModel)(using itsaID: String) extends TableRowViewModel[MediaModel](model):
   def descriptionProperty: StringProperty =

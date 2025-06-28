@@ -31,7 +31,8 @@
 //    databaseService.connect(getClass, "db/db.properties")
 //  test("Find by id"):
 //    val hardwareData = getHardwareData
-//    val info = databaseService.findByID[GeneralInfoModel](hardwareData.info.itsaID.getOrElse(""))
+//    val info = databaseService.findByID[GeneralInfoModel](hardwareData.info.
+//    itsaID.getOrElse(""))
 //    val drives = databaseService.findByID[HardDriveModel]()
 //    val memory = databaseService.findByID[MemoryModel]()
 //    val processors = databaseService.findByID[ProcessorModel]()

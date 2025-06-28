@@ -1,8 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.optional
-import org.itsadigitaltrust.common.optional.?
+
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel

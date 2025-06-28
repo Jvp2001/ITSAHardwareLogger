@@ -3,37 +3,37 @@ import scala.languageFeature.implicitConversions
 import scala.util.boundary
 
 sealed trait Result[+T, +E] extends Matchable, Product, Equals:
+  import Result.!
+
   def toEither: Either[E, T] =
     this match
       case Success(value) => util.Right(value)
       case Error(reason) => util.Left(reason)
 
-  def failureOr[U >: T](f: T => U): Result[U, E] =
-    this match
-      case Success(value) => Result.Success(f(value))
-      case error@Error(_) => error
+//  def convertError[U >: T,  E2](f: E => E2)(using Result.![U, E2]): Result.![U, E2] =
+//      this match
+//        case Success(value) => Result.success[U, E2](value)
+//        case Error(reason) => Result.error(f(reason))
+//
+
 
   def toOption: Option[T] =
     this match
-      case Success(value) => Option(value)
-      case Error(reason) => None
-
+      case Success(value) => Some(value)
+      case Error(_) => None
+  def toOptionError: Option[E] =
+    this match
+      case Success(_) => None
+      case Error(e) => Option(e)
   def success: T =
     this match
       case Success(value) => value
       case Error(reason) => scala.sys.error(reason.toString)
-  def mapSuccess[R](f: T => R): Result[R, E] =
-      Result.fromEither.apply(this.toEither.map(f))
-
 
 object Result:
-  given fromEither[T, E]: Conversion[Either[E, T], Result[T, E]] with
+  type ![T, E] = Result.Continuation[T, E]
 
-    override def apply(x: Either[E, T]): Result[T, E] =
-      Result:
-        x match
-          case Left(value) => error(value)
-          case Right(value) => success(value)
+
 
   final case class Success[+T](value: T) extends Result[T, Nothing]
 

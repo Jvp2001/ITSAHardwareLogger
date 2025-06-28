@@ -1,19 +1,24 @@
 package org.itsadigitaltrust.hardwarelogger.delegates
 
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.optional
-import org.itsadigitaltrust.common.optional.?
-import org.itsadigitaltrust.hardwarelogger.services.{NotificationCentre, NotificationChannel, ServicesModule}
+
+
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationCentre, NotificationName}
+import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
+
 import scalafx.beans.property.*
 import scalafx.Includes.{*, given}
 import scalafx.beans.property
 
 type ProgramMode = "Normal" | "HardDrive"
-trait ProgramModeChangedDelegate extends ServicesModule:
-  notificationCentre.subscribe(NotificationChannel.ProgramModeChanged): (key, arg) =>
-    optional:
-      val mode = arg.asInstanceOf[Option[String]]
-      onProgramModeChanged((mode ?? "Normal").asInstanceOf[ProgramMode])
+trait ProgramModeChangedDelegate extends ServicesModule with Notifiable[NotificationName]:
+  override type Message = notificationCentre.type#Message
+  override def onReceivedNotification(message: Message): Unit =
+    if message.name == NotificationName.ProgramModeChanged then
+      onProgramModeChanged(ProgramMode.mode)
+
+  notificationCentre.addObserver(this)
+
 
   def onProgramModeChanged(mode: ProgramMode): Unit = ()
 
@@ -42,4 +47,4 @@ object ProgramMode extends ServicesModule:
     currentProgramMode.value.asInstanceOf[ProgramMode]
 
   currentProgramMode.addListener: (_, _, newValue) =>
-    notificationCentre.publish(NotificationChannel.ProgramModeChanged, Option(newValue))
+    notificationCentre.post(NotificationName.ProgramModeChanged)

@@ -13,6 +13,8 @@ object OshiHardwareGrabberTestService extends OshiHardwareGrabberService, TestSe
     loadGeneralInfo()
     finished()
 
-  override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] = ???
+  override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] = None
+
+  override protected def findItsaIdBySerialNumber(serial: String): Option[String] = None
 
 

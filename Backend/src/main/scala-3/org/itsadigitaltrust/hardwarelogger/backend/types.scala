@@ -8,6 +8,13 @@ import scala.reflect.ClassTag
 object types:
   type ItsaEC = InfoCreator | MemoryCreator | DiskCreator | WipingCreator | MediaCreator | HLEntityCreator
   type ItsaEntity = Info | Memory | Disk | Wiping | Media | HLEntity
+  type HLTableInfoFromEC[EC <: ItsaEC] = EC match
+    case MediaCreator => tables.mediaTable.type
+    case InfoCreator => tables.infoTable.type
+    case MemoryCreator => tables.memoryTable.type
+    case DiskCreator => tables.diskTable.type
+    case WipingCreator => tables.wipingTable.type
+    case HLEntityCreator | HLEntityWithItsaID => Nothing
   type EntityFromEC[EC <: ItsaEC] =
     EC match
       case MediaCreator => Media

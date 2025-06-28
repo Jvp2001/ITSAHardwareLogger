@@ -22,6 +22,9 @@
       <assistant-state connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
+      <assistant-state connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
+        <messages />
+      </assistant-state>
       <assistant-state connection-id="cc392073-c906-4319-a766-6683de9c4037" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
@@ -44,22 +47,28 @@
       <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select  * from info limit 100;]]></console>
     </connection>
     <connection id="cc392073-c906-4319-a766-6683de9c4037">
-      <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main" />
+      <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from hwlogger.disks where serial = 'S13TJ1CQ404992';]]></console>
     </connection>
     <connection id="ba269de5-3e99-4e6d-9901-2998b359418f">
       <console name="Connection" type="STANDARD" schema="postgres" session="Main" />
+    </connection>
+    <connection id="b7491575-f97f-42ca-87c9-15e723d77b55">
+      <console name="My HWlogger" type="STANDARD" schema="hwlogger" session="Main" />
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files />
+    <open-files>
+      <object connection-id="cc392073-c906-4319-a766-6683de9c4037" object-ref="consoles/External Itsahw" />
+    </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />
     <connection id="cc392073-c906-4319-a766-6683de9c4037" />
     <connection id="ba269de5-3e99-4e6d-9901-2998b359418f" />
+    <connection id="b7491575-f97f-42ca-87c9-15e723d77b55" />
   </component>
   <component name="DBNavigator.Project.DatasetFilterManager">
     <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.memory" active-filter-id="" />
@@ -73,6 +82,13 @@
   </component>
   <component name="DBNavigator.Project.ExecutionManager">
     <retain-sticky-names value="false" />
+  </component>
+  <component name="DBNavigator.Project.FileConnectionMappingManager">
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />
@@ -98,26 +114,26 @@
     <connections>
       <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" active="true" signed="true">
         <database>
-          <name value="itsahw" />
+          <name value="hwlogger" />
           <description value="" />
           <database-type value="MYSQL" />
           <config-type value="BASIC" />
-          <database-version value="9.2" />
+          <database-version value="8.0" />
           <driver-source value="BUNDLED" />
           <driver-library value="" />
           <driver value="" />
           <url-type value="DATABASE" />
-          <host value="localhost" />
+          <host value="192.168.100.230" />
           <port value="3306" />
-          <database value="itsahw" />
+          <database value="hwlogger" />
           <tns-folder value="" />
           <tns-profile value="" />
           <type value="USER_PASSWORD" />
-          <user value="root" />
+          <user value="itsa" />
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="root@localhost" />
+          <session-user value="itsa@MACBOOKPRO-2D5D" />
         </database>
         <properties>
           <auto-commit value="true" />
@@ -218,7 +234,7 @@
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="itsa@MACBOOKPRO-2D5D" />
+          <session-user value="itsa@10.0.1.104" />
         </database>
         <properties>
           <auto-commit value="false" />
@@ -320,6 +336,107 @@
           <token-config-file value="" />
           <token-profile value="" />
           <session-user value="" />
+        </database>
+        <properties>
+          <auto-commit value="false" />
+        </properties>
+        <ssh-settings>
+          <active value="false" />
+          <proxy-host value="" />
+          <proxy-port value="22" />
+          <proxy-user value="" />
+          <auth-type value="PASSWORD" />
+          <key-file value="" />
+        </ssh-settings>
+        <ssl-settings>
+          <active value="false" />
+          <certificate-authority-file value="" />
+          <client-certificate-file value="" />
+          <client-key-file value="" />
+        </ssl-settings>
+        <details>
+          <charset value="UTF-8" />
+          <session-management value="true" />
+          <ddl-file-binding value="true" />
+          <database-logging value="true" />
+          <connect-automatically value="true" />
+          <restore-workspace value="true" />
+          <restore-workspace-deep value="false" />
+          <environment-type value="default" />
+          <connectivity-timeout value="30" />
+          <idle-time-to-disconnect value="30" />
+          <idle-time-to-disconnect-pool value="5" />
+          <credential-expiry-time value="10" />
+          <max-connection-pool-size value="7" />
+          <alternative-statement-delimiter value="" />
+        </details>
+        <debugger>
+          <compile-dependencies value="true" />
+          <tcp-driver-tunneling value="false" />
+          <tcp-host-address value="" />
+          <tcp-port-from value="4000" />
+          <tcp-port-to value="4999" />
+          <debugger-type value="ASK" />
+        </debugger>
+        <object-filters hide-empty-schemas="false" hide-pseudo-columns="false" hide-audit-columns="false">
+          <object-filters />
+          <object-type-filter use-master-settings="true">
+            <object-type name="SCHEMA" enabled="true" />
+            <object-type name="USER" enabled="true" />
+            <object-type name="ROLE" enabled="true" />
+            <object-type name="PRIVILEGE" enabled="true" />
+            <object-type name="CHARSET" enabled="true" />
+            <object-type name="TABLE" enabled="true" />
+            <object-type name="VIEW" enabled="true" />
+            <object-type name="MATERIALIZED_VIEW" enabled="true" />
+            <object-type name="NESTED_TABLE" enabled="true" />
+            <object-type name="COLUMN" enabled="true" />
+            <object-type name="INDEX" enabled="true" />
+            <object-type name="CONSTRAINT" enabled="true" />
+            <object-type name="DATASET_TRIGGER" enabled="true" />
+            <object-type name="DATABASE_TRIGGER" enabled="true" />
+            <object-type name="SYNONYM" enabled="true" />
+            <object-type name="SEQUENCE" enabled="true" />
+            <object-type name="PROCEDURE" enabled="true" />
+            <object-type name="FUNCTION" enabled="true" />
+            <object-type name="PACKAGE" enabled="true" />
+            <object-type name="TYPE" enabled="true" />
+            <object-type name="TYPE_ATTRIBUTE" enabled="true" />
+            <object-type name="ARGUMENT" enabled="true" />
+            <object-type name="JAVA_CLASS" enabled="true" />
+            <object-type name="JAVA_INNER_CLASS" enabled="true" />
+            <object-type name="JAVA_FIELD" enabled="true" />
+            <object-type name="JAVA_METHOD" enabled="true" />
+            <object-type name="DIMENSION" enabled="true" />
+            <object-type name="CLUSTER" enabled="true" />
+            <object-type name="DBLINK" enabled="true" />
+            <object-type name="CREDENTIAL" enabled="true" />
+            <object-type name="AI_PROFILE" enabled="true" />
+          </object-type-filter>
+        </object-filters>
+      </connection>
+      <connection id="b7491575-f97f-42ca-87c9-15e723d77b55" active="true" signed="true">
+        <database>
+          <name value="My HWlogger" />
+          <description value="" />
+          <database-type value="MYSQL" />
+          <config-type value="BASIC" />
+          <database-version value="9.2" />
+          <driver-source value="BUNDLED" />
+          <driver-library value="" />
+          <driver value="" />
+          <url-type value="DATABASE" />
+          <host value="192.168.1.134" />
+          <port value="3306" />
+          <database value="hwlogger" />
+          <tns-folder value="" />
+          <tns-profile value="" />
+          <type value="USER_PASSWORD" />
+          <user value="itsa" />
+          <token-type value="" />
+          <token-config-file value="" />
+          <token-profile value="" />
+          <session-user value="itsa@MACBOOKPRO-2D5D" />
         </database>
         <properties>
           <auto-commit value="false" />

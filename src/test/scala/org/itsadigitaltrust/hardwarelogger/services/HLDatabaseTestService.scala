@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.hardwarelogger.backend.entities.{DiskCreator, InfoCreator, MediaCreator, MemoryCreator, WipingCreator}
 import org.itsadigitaltrust.hardwarelogger.models.{GeneralInfoModel, HardDriveModel, MemoryModel, ProcessorModel}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, NotificationName}
 import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerTask
 
 import java.net.InterfaceAddress
@@ -14,10 +15,9 @@ object HLDatabaseTestService extends CommonHLDatabase[HardwareLoggerTask]:
       WipingCreator(hddID = s"NO ID${index + 1}", serial = drive.serial, model = drive.model, insertionDate = OffsetDateTime.now, capacity = drive.size.toString, `type` = drive.`type`, description = "", health = drive.health.toByte, toUpdate = true , isSsd = true, formFactor = None)
 
     db.get.addWipingRecords(records*)
+  
 
-  connect(getClass, "db/db.properties")
-
-  override def executeTasks()(using notificationCentre: NotificationCentre[NotificationChannel])(using hardwareGrabberService: HardwareGrabberService): Unit =
+  override def executeTasks()(using notificationCentre: NotificationCentre[NotificationName])(using hardwareGrabberService: HardwareGrabberService): Unit =
     print("Executing tasks...")
     transactionQueue.forEach:
       case mediaCreator: MediaCreator => db.get.insertOrUpdate(mediaCreator)
@@ -28,7 +28,7 @@ object HLDatabaseTestService extends CommonHLDatabase[HardwareLoggerTask]:
       case _ => scala.sys.error("Unknown type!")
 
 
-    notificationCentre.publish(NotificationChannel.DBSuccess)
+    notificationCentre.post(NotificationName.DBSuccess)
 
 
 

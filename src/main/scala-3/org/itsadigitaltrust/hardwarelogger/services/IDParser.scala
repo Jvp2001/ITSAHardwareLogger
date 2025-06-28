@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Operators.{??, in}
-import org.itsadigitaltrust.common.{Result, optional}
+import org.itsadigitaltrust.common.Result
 
 import scala.annotation.tailrec
 import scala.compiletime.uninitialized

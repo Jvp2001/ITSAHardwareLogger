@@ -2,66 +2,121 @@ package org.itsadigitaltrust.hardwarelogger.backend
 
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
-import org.itsadigitaltrust.common.optional.?
-import org.itsadigitaltrust.common.{Result, Success, optional}
+import org.itsadigitaltrust.common.Operators.{??, |>}
+import org.itsadigitaltrust.common.collections.Dict
+
+import org.itsadigitaltrust.common.{PropertyFileReader, PropertyFileReaderError, Result, Success}
+import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
 
 import java.io.{File, FileInputStream, FileNotFoundException, FileReader}
-import java.net.URI
+import java.net.{MalformedURLException, URI}
+import java.nio.file.Path
 import java.util.Properties
 import javax.sql.DataSource
-import scala.util.{Failure, Using, boundary}
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
+import scala.util.{Failure, Try, Using, boundary}
 
 
 final class HLSqlDataSource extends MysqlDataSource
-  
-object DataSourceLoader:
-  enum Error:
-    case PropertyNotFound(name: String)
-    case FileNotFound(name: String)
 
-    override def toString: String = this match
-      case Error.PropertyNotFound(name) => s"Cannot find property with $name!"
-      case FileNotFound(name) => s"Cannot find file $name!"
+class DataSourceLoader private:
+  type Error = PropertyFileReaderError
 
   import scala.compiletime.*
 
-  private type Prefix = "MYSQL" | "ORACEL"
+  type ![T] = Result.Continuation[T, PropertyFileReaderError] ?=> T
 
-  private final val timeoutTime = 3 // seconds
+  private type DBProperties = Dict
+    {
+      val name: String
+      val username: String
+      val password: String
+      val port: Int
+      val maxReconnects: Int
+      val autoReconnect: Boolean
+      val serverTimeZone: String
+      val unit7Address: String
+      val unit9Address: String
+      val localAddress: String
+    }
+  extension (props: DBProperties)
+    def isValid: Boolean =
+      !(props.name.isBlank && props.username.isBlank && props.password.isBlank && props.unit7Address.isBlank && props.unit9Address.isBlank && props.localAddress.isBlank)
+
+  private type DBAddresses = Dict
+    {
+      val unit7: String
+      val unit9: String
+      val local: String
+    }
+
+  private var dbProperties: Option[DBProperties] = None
+  private var _dataSource: Option[MysqlDataSource] = None
+
+  private def dataSource_=(value: Option[MysqlDataSource]): Unit =
+    _dataSource = value
+
+  def dataSource: Option[MysqlDataSource] = _dataSource
+
+  def apply(configFile: Try[URI]): Option[PropertyFileReaderError] = reload(configFile)
+
+  def reload(configFile: Try[URI]): Option[PropertyFileReaderError] =
+    val result: Result[MysqlDataSource, PropertyFileReaderError] =
+      Result:
+        dataSource = dataSource.orElse(Option(new MysqlDataSource()))
+
+        if !(dbProperties.isDefined && dbProperties.get.isValid) then
+          val propsFileReader: PropertyFileReader = PropertyFileReader(configFile) match
+            case Success(value) => value
+            case Result.Error(reason) => Result.error(reason)
+
+          val props = propsFileReader
 
 
-  def apply(configFile: URI): Result[MysqlDataSource, Error] =
+
+          val dict = Dict:
+            val name = props("db.name", "hwlogger")
+            val username = props("db.username", "")
+            val port = props("db.port", "3306").toInt
+            val password = props("db.password", "")
+            val maxReconnects = props("db.maxReconnects", "10").toInt
+            val autoReconnect = props("db.autoReconnect", "true").toBoolean
+            val serverTimeZone = props("db.serveTimeZone", "UTC")
+            val unit7Address = props("db.unit7.address", "")
+            val unit9Address = props("db.unit9.address", "")
+            val localAddress = props("db.local.address", "")
+          end dict
+          dbProperties = Option(dict.asInstanceOf[DBProperties])
+        end if
+
+        val props = dbProperties.get
+        val url = IPAddressFinder.findDatabaseAddress(props.unit7Address, props.unit9Address, props.localAddress) match
+          case Some(address) => s"jdbc:mysql://$address:${props.port}/${props.name}"
+          case None => s"jdbc:mysql://${props.localAddress}:${props.port}/${props.name}"
+
+        val ds = dataSource.get
+        ds.setDatabaseName(props.name)
+        ds.setUrl(url)
+        ds.setUser(props.username)
+        ds.setPassword(props.password)
+        ds.setMaxReconnects(props.maxReconnects)
+        ds.setServerTimezone(props.serverTimeZone)
+        ds.setAutoReconnect(props.autoReconnect)
+        Result.success(ds)
+    end result
+
+    result.toOptionError
+  end reload
+
+end DataSourceLoader
+
+object DataSourceLoader:
+  type Error = PropertyFileReaderError
+
+  def apply(configFile: Try[URI]): Result[DataSourceLoader, PropertyFileReaderError] =
+    val dsl = new DataSourceLoader
     Result:
-      val dataSource = MysqlDataSource()
-      val file = new File(configFile)
+      dsl.reload(configFile)
+      Result.success(dsl)
 
-      val props = new Properties()
-      val use = Using(new FileInputStream(new File(configFile))): fis =>
-        props.load(fis)
-      use match
-        case Failure(exception) =>
-          exception match
-            case _: FileNotFoundException => Result.error(Error.FileNotFound(configFile.getRawPath))
-        case util.Success(_) => ()
-      
-        Map[String, (MysqlDataSource, String) => Unit](
-         "db.url" -> ((ds: MysqlDataSource, v: String) =>
-          ds.setURL(v)
-          ),
-        "db.username" -> ((ds, v) =>
-          ds.setUser(v)
-          ),
-        "db.password" -> ((ds, v) =>
-          ds.setPassword(v)
-          )
-      ).foreach: prop =>
-        if !props.containsKey(prop._1) then
-          Result.error(Error.PropertyNotFound(prop._1))
-        else
-          prop._2(dataSource, props.getProperty(prop._1))
-
-      Seq(dataSource.setLoginTimeout, dataSource.setConnectTimeout, dataSource.setSocketTimeout).foreach(_(timeoutTime))
-      Result.success(dataSource)
-
-
-
+end DataSourceLoader

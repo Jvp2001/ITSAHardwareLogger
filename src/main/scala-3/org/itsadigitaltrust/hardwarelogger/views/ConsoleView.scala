@@ -4,8 +4,7 @@ import javafx.scene.control.TextFormatter
 import javafx.util.converter.DefaultStringConverter
 import jp.uphy.javafx.console.ConsoleView
 import org.itsadigitaltrust.common.Operators.{??, |>}
-import org.itsadigitaltrust.common.optional
-import org.itsadigitaltrust.common.optional.?
+
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.issuereporter.Description
@@ -45,12 +44,10 @@ object ItsaDebugView:
            |""".stripMargin
       Issue(title, Description(description))
     end makeReport
-
-    optional:
-      Dialogs.createConfirmationAlert("Report Issue", "Do you want to report an Issue").showAndWait().?.match
+     Dialogs.createConfirmationAlert("Report Issue", "Do you want to report an Issue").showAndWait().match
         case ButtonType.No => ()
         case ButtonType.Yes | ButtonType.OK =>
-          Dialogs.createConfirmationAlert("Customise Issue", "Do you want to customise the issue?").showAndWait().?.match
+          Dialogs.createConfirmationAlert("Customise Issue", "Do you want to customise the issue?").showAndWait().match
             case ButtonType.No =>  sendReport()
             case ButtonType.Yes | ButtonType.OK =>
               Dialogs.showIssueCustomisationDialog(): dialog =>
