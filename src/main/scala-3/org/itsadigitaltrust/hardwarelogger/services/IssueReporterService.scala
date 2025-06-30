@@ -1,15 +1,19 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
+import org.itsadigitaltrust.common.InputStreamExtensions.readAllAsString
 import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.Result
+
 import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, GitHubIssueReporter, IssueReportStatus, ReportedIssue}
 
-private object types:
-  export org.itsadigitaltrust.hardwarelogger.issuereporter.ReportedIssue as Issue
-  extension (issue: ReportedIssue)
-    def name: String = issue.title
-export types.*
+import scala.util.Try
+
+
+export org.itsadigitaltrust.hardwarelogger.issuereporter.ReportedIssue as Issue
+extension (issue: ReportedIssue)
+  def name: String = issue.title
+
 
 
 trait IssueReporterService:
@@ -20,7 +24,7 @@ trait IssueReporterService:
 class StandardIssueReporterService extends IssueReporterService:
   import org.itsadigitaltrust.hardwarelogger.core.issueReporterDefaults
   lazy val issueReporter: GitHubIssueReporter =
-    GitHubIssueReporter(null)
+    GitHubIssueReporter(Try(getClass.getResourceAsStream("src/main/resources/org/itsadigitaltrust/hardwarelogger/services/issuesReporter.properties").readAllAsString()))
 
   override def report(name: String, description: String): Option[String] =
       issueReporter.report(ReportedIssue(name, Description(description))) match

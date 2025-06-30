@@ -8,9 +8,11 @@ import com.mysql.cj.jdbc.{ConnectionImpl, MysqlDataSource}
 import org.itsadigitaltrust.common
 import common.*
 import org.itsadigitaltrust.common.Operators.??
+
 import org.itsadigitaltrust.hardwarelogger.backend.backend.*
 import org.itsadigitaltrust.hardwarelogger.backend.entities.{Wiping, WipingCreator}
 
+import java.io.InputStream
 import java.net.{URI, URL}
 import java.sql.Connection
 import scala.compiletime.{summonInline, uninitialized}
@@ -20,7 +22,7 @@ import scala.reflect.{ClassTag, classTag}
 import scala.util.Try
 
 
-class HLDatabase private(private val configFile: Try[URI], private val dataSourceLoader: DataSourceLoader):
+class HLDatabase private(private val configFile: Try[String], private val dataSourceLoader: DataSourceLoader):
 
   import HLDatabase.Error
   import tables.given
@@ -198,7 +200,7 @@ object HLDatabase:
     override def apply(x: DataSourceLoader.Error): Error =
       Error.LoaderError(x)
 
-  def apply(dbProperties: => URI, testConnection: Boolean = true): Result[HLDatabase, Error] =
+  def apply(dbProperties: => String, testConnection: Boolean = true): Result[HLDatabase, Error] =
     Result:
       val configFile = Try(dbProperties)
       DataSourceLoader(configFile) match

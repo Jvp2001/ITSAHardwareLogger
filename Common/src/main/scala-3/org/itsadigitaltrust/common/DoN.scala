@@ -11,4 +11,4 @@ class DoN[T](times: Long)(private val f: () => T):
 
 end DoN
 
-final class DoOnce[T](f: => () => T) extends DoN(1)(f)
+final class DoOnce[T](block: => T) extends DoN(1)(() => block)

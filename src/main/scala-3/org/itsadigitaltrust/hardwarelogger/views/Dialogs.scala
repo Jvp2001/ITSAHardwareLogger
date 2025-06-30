@@ -2,10 +2,11 @@ package org.itsadigitaltrust.hardwarelogger.views
 
 import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.OSUtils
-
 import org.itsadigitaltrust.common.processes.proc
+
 import org.itsadigitaltrust.hardwarelogger.issuereporter.Description
 import org.itsadigitaltrust.hardwarelogger.services.Issue
+
 import org.scalafx.extras.generic_pane.GenericDialogFX
 import scalafx.scene.control.Alert.AlertType.Confirmation
 import scalafx.scene.control.{Alert, ButtonType, DConvert, Dialog, DialogPane, Label, TextArea, TextField}
@@ -19,37 +20,47 @@ import scala.jdk.CollectionConverters.*
 import java.io.File
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path}
-import scala.collection.immutable
+import scala.collection.{immutable, mutable}
 
 object Dialogs:
-  class IssueCustomisationDialog extends GenericDialogFX("Customise Issue"):
-    import org.itsadigitaltrust.hardwarelogger.services.{Issue, IssueReporterService}
 
-    addStringField("Title", "")
+  import org.itsadigitaltrust.hardwarelogger.services.{Issue, IssueReporterService}
+
+  class IssueCustomisationDialog extends GenericDialogFX("Customise Issue"):
+
+    private val reportTitle = new TextField:
+      promptText = "Title"
+    addNode("Title", reportTitle)
+
     private val area = new TextArea("")
     addNode("Description", area)
 
     def getDescription: String = area.text.value
 
     def getIssue: Issue =
-      Issue(nextString(), Description(getDescription))
+      Issue(reportTitle.text.value, Description(getDescription))
+
+    def value: Issue = getIssue
+
+    showDialog()
+  end IssueCustomisationDialog
 
 
   def showIssueCustomisationDialog()(okay: IssueCustomisationDialog => Unit): Unit =
     val dialog = new IssueCustomisationDialog()
-
     dialog.showDialog()
     if dialog.wasOKed then
       okay(dialog)
 
   def showErrorAlert(alertHeader: String, message: String): Unit =
     createAlert(AlertType.Error, alertHeader, message)
-    .showAndWait()
+      .showAndWait()
 
 
-  def showInfoAlert(alertHeader: String, message: String) =
+  def showInfoAlert(alertHeader: String, message: String): Option[ButtonType] =
     createAlert(AlertType.Information, alertHeader, message)
-    .showAndWait()
+      .showAndWait()
+
   private def createAlert(`type`: AlertType, alertHeader: String, message: String) =
     new Alert(`type`):
       title = `type`.toString
@@ -64,18 +75,23 @@ object Dialogs:
       title = alertTitle
       contentText = message
       buttonTypes = buttons
-
   end createConfirmationAlert
 
+  def showConfirmationAlert(alertHeader: String, message: String): Option[ButtonType] =
+    val alert = createConfirmationAlert("Confirmation", message)
+    alert.headerText = alertHeader
+    alert.contentText = message
+    alert.showAndWait()
+
   def saveDialog[C](dialogTitle: String, contents: C, fileTypes: String*)(save: (File, C) => Unit): Unit =
-      val fileChooser = new scalafx.stage.FileChooser:
-        title = dialogTitle
-        private val filters = fileTypes.map(ft => scalafx.stage.FileChooser.ExtensionFilter(ft, s"*$ft"))
-        filters.map(_.delegate).foreach(extensionFilters.add)
-      val file = Option(fileChooser.showSaveDialog(null))
-      file match
-        case Some(value) => save(value, contents)
-        case None => ()
+    val fileChooser = new scalafx.stage.FileChooser:
+      title = dialogTitle
+      private val filters = fileTypes.map(ft => scalafx.stage.FileChooser.ExtensionFilter(ft, s"*$ft"))
+      filters.map(_.delegate).foreach(extensionFilters.add)
+    val file = Option(fileChooser.showSaveDialog(null))
+    file match
+      case Some(value) => save(value, contents)
+      case None => ()
   end saveDialog
 
   def saveTextFile(title: String, contents: String): Unit =

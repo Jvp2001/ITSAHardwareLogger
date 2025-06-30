@@ -7,6 +7,6 @@ object Description:
 
   extension (desc: Description)
     def value: String = desc
-final case class ReportedIssue(title: String, description: Description)
+final case class ReportedIssue private(title: String, description: Description)
 object ReportedIssue:
-  def apply(): ReportedIssue = new ReportedIssue("", Description(""))
+  def apply(title: String = "Issue", description: Description = Description("")): ReportedIssue = new ReportedIssue(title, description)

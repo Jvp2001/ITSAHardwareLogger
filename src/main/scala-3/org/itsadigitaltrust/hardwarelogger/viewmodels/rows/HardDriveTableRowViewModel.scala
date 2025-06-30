@@ -15,11 +15,11 @@ final case class HardDriveTableRowViewModel(model: HardDriveModel)(using itsaID:
 
   override protected val modeToSaveIn: ProgramMode | "both" = "both"
   
-  def healthProperty: ObjectProperty[Percentage] =
-    wrapper.field("Health", _.health, 100.percent)(ObjectProperty.apply)
+  def healthProperty: StringProperty =
+    wrapper.field("Health", _.health.toString, "100%")(StringProperty.apply)
 
-  def performanceProperty: ObjectProperty[Percentage] =
-    wrapper.field("Performance", _.health, 100.percent)(ObjectProperty.apply)
+  def performanceProperty: StringProperty =
+    wrapper.field("Performance", _.performance.toString, "100%")(StringProperty.apply)
     
   def sizeProperty: StringProperty =
     wrapper.field("Size", _.size.toSize(DataSizeUnit.GB).dbString, "0 GB")(StringProperty.apply)

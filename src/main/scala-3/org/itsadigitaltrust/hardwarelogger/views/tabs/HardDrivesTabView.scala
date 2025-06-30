@@ -51,6 +51,9 @@ class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with
   override given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
   
   private val tableView = new HardDriveTableView()
+
+
+
   children += tableView
   children += new VBox():
     children += new StackPane()
@@ -91,14 +94,6 @@ class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with
 end HardDrivesTabView
 
 
-
-
-
-
-
-
-
-// add the green text form the Linux hd sentinel into program. Update the text when a row is clicked.
 
 
 

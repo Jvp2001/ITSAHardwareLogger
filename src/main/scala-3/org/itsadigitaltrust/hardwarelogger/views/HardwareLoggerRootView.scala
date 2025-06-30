@@ -1,22 +1,32 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 
+import org.itsadigitaltrust.common.DoOnce
+
 import jp.uphy.javafx.console
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate, TabDelegate}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, TableRowViewModel, ViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.{GeneralInfoTabView, HardDrivesTabView, MediaTabView, MemoryTabView, ProcessorTabView, TabTableView}
+
 import scalafx.application.Platform
 import scalafx.collections.ObservableBuffer
 import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem}
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.input.KeyCode
-
 import org.itsadigitaltrust.hardwarelogger.services.given
 
+import javafx.beans.value.{ChangeListener, ObservableValue}
+import javafx.scene.control
+
 final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with ProgramModeChangedDelegate:
-  root =>
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
+
+
+
+
+  notificationCentre.addObserver(this)
+
 
   stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
@@ -107,6 +117,8 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     alignmentInParent = Pos.Center
     vgrow = Always
 
+
+
   private val reconnectButton = new Button:
     text = "Reconnect"
     onAction = _ => viewModel.reconnect()
@@ -169,6 +181,8 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
   given itsaID: String = viewModel.idStringProperty.get
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
+    val hardDrivesTabView = new HardDrivesTabView
+
     mode match
       case "HardDrive" =>
         tabPane.tabs = Seq(
@@ -179,11 +193,13 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
 
       case "Normal" =>
+
+
         tabPane.tabs = Seq(
           createTab(" General", new GeneralInfoTabView),
           createTab("Memory", new MemoryTabView),
           createTab("Processor", new ProcessorTabView),
-          createTab("HDD", new HardDrivesTabView),
+          createTab("HDD", hardDrivesTabView),
           createTab("Media", new MediaTabView)
         )
         ProgramMode.isHardDriveMode.value = false
@@ -191,7 +207,16 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     end match
     tabPane.tabs += createTab("Debug",
       consoleView)
+    /** The code below is a hacky workaround to get the HDD tab's [[HardDrivesTabView]] table to display its data properly.
+     * This is hacky because this should not be needed to get the table view to display its data;
+     * also, I am dropping back down to using JavaFX, instead of staying in the ScalaFX universe. */
+    val changeListener: ChangeListener[control.Tab] = (_: ObservableValue[? <: control.Tab], oldValue: control.Tab, newValue: control.Tab) =>
+      if newValue.textProperty().get().equalsIgnoreCase("HDD") then
+        hardDrivesTabView.viewModel.reload()
+    tabPane.selectionModel.value.selectedItemProperty().addListener(changeListener)
   end onProgramModeChanged
+
+
 
 end HardwareLoggerRootView
 

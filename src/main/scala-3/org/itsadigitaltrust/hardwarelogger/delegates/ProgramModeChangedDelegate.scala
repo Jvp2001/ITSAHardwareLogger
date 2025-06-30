@@ -17,6 +17,7 @@ trait ProgramModeChangedDelegate extends ServicesModule with Notifiable[Notifica
     if message.name == NotificationName.ProgramModeChanged then
       onProgramModeChanged(ProgramMode.mode)
 
+
   notificationCentre.addObserver(this)
 
 

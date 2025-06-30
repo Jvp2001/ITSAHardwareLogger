@@ -45,11 +45,10 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
       scene = new Scene(1020, 720):
         root = new HardwareLoggerRootView
         //            menuBar.useSystemMenuBar =  true
-        onKeyPressed = (event: KeyEvent) =>
-          val code = event.code
-          if code == KeyCode.F5 then
-            hardwareGrabberService.load(): () =>
-              notificationCentre.post(NotificationName.Reload, None, None)
+//        onKeyPressed = (event: KeyEvent) =>
+//          val code = event.code
+//          if code == KeyCode.F5 then
+//            notificationCentre.post(NotificationName.Reload)
       show()
 
   end start

@@ -14,6 +14,7 @@ object PercentageType:
         scala.compiletime.error("Percentage must be between 0 and 100")
 
     extension(p: Percentage)
+      def dbstring: String = p
       def toByte: Byte =
         p.replace("%", "").trim.toByteOption.get
     extension (i: Int)
@@ -40,4 +41,5 @@ object PercentageType:
   end Percentage
 
 end PercentageType
-export PercentageType.*
+export PercentageType.{Percentage,*}
+export Percentage.{percent, asPercentage, dbstring}

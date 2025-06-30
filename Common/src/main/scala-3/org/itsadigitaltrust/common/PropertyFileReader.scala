@@ -2,12 +2,12 @@ package org.itsadigitaltrust.common
 
 
 
-import java.io.{File, FileInputStream, FileNotFoundException}
+import java.io.{File, FileInputStream, FileNotFoundException, InputStream, StringReader}
 import java.net.URI
 import java.util.Properties
 import scala.compiletime.ops.int.==
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Try, Using}
+import scala.util.{Failure, Try, Using}
 
 
 enum PropertyFileReaderError:
@@ -32,21 +32,16 @@ class PropertyFileReader:
   def apply(propName: String, default: String): String =
     apply(propName) ?? default
 
-  def readFile[A](file: Try[File]): Try[A] =
+  def readString(string: Try[String]): Try[PropertyFileReader] =
+    string.map: str =>
+      props.load(new StringReader(str))
+      this
+
+
+
+  def read(file: Try[String]): ![PropertyFileReader] =
     file match
-      case scala.util.Success(value) =>
-        Using[FileInputStream, A](new FileInputStream(value)): fis =>
-          props.load(fis).asInstanceOf[A]
-      case scala.util.Failure(exception) => scala.util.Failure(exception)
-
-  def readURI[A](file: Try[URI]): Try[A] =
-    readFile(file.map(File(_)))
-
-
-  def read(file: Try[File | URI]): ![PropertyFileReader] =
-    file match
-      case scala.util.Success(uri: URI) => readURI[Unit](scala.util.Success(uri))
-      case scala.util.Success(f: File) => readFile[Unit](scala.util.Success(f))
+      case scala.util.Success(string: String) => readString(scala.util.Success(string))
       case scala.util.Failure(exception) => scala.util.Failure(exception)
     match
       case scala.util.Success(_) => Result.success(this)
@@ -111,12 +106,12 @@ object PropertyFileReader:
   import ops.string.*
 
 
-  inline def !(file: Try[File] | Try[URI]): ![PropertyFileReader] =
+  inline def !(file: Try[String]): ![PropertyFileReader] =
     val reader = new PropertyFileReader()
     reader.read(file)
 
 
-  inline def apply(file: Try[File] | Try[URI]): Result[PropertyFileReader, PropertyFileReaderError] =
+  inline def apply(file: Try[String]): Result[PropertyFileReader, PropertyFileReaderError] =
     Result:
       val reader = new PropertyFileReader()
       reader.read(file)

@@ -16,18 +16,23 @@ class TabTableViewModel[M, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadD
 
   type RowViewModel = VM
   val data: ObservableBuffer[VM] = ObservableBuffer()
-
   notificationCentre.addObserver(this)
+
+  override def setup(): Unit =
+    super.setup()
 
   def reload(): Unit =
     data.clear()
-    data.addAll(reloadData(hardwareGrabberService).map(rowCtor))
+    val newData = reloadData(hardwareGrabberService).map(rowCtor)
+    data.addAll(newData)
 
-  reload()
 
   override def onReceivedNotification(message: Message): Unit =
     if message.name == NotificationName.Reload then
       reload()
+      if data.isEmpty then
+        val newData = reloadData(hardwareGrabberService).map(rowCtor)
+        data.addAll(newData*)
 
 end TabTableViewModel
 

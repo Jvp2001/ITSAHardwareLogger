@@ -3,10 +3,11 @@ package org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.{Frequency, FrequencyUnit}
 
+import java.io.InputStream
 import java.net.URI
 import scala.annotation.targetName
 import scala.reflect.{ClassTag, classTag}
-import scala.util.Try
+import scala.util.{Try, Using}
 
 extension [T](coll: IndexedSeq[T])
   def filterByIndices(predicate: Int => Boolean): Seq[T] =
@@ -62,4 +63,15 @@ object StringExtensions:
     inline def loadAsResource[T : ClassTag]: Try[URI] =
       Try(classTag[T].runtimeClass.getResource(s).toURI)
 end StringExtensions
+
 export StringExtensions.*
+
+object InputStreamExtensions:
+  extension(is: InputStream)
+    def readAllAsString(): String =
+      Using(is): _ =>
+        scala.io.Source.fromInputStream(is).getLines().mkString("\n")
+      .get
+end InputStreamExtensions
+
+export InputStreamExtensions.*

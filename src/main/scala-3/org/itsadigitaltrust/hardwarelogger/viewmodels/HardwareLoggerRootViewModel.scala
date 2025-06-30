@@ -19,7 +19,7 @@ import scalafx.scene.control.Alert.AlertType.{Information, Warning}
 import scalafx.scene.control.{Alert, ButtonType}
 
 import scala.util.boundary
-final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule with ProgramModeChangedDelegate with Notifiable[NotificationName]:
+final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, ProgramModeChangedDelegate:
 
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
@@ -31,7 +31,6 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
 
-  notificationCentre.addObserver(this)
 
   hardwareIDValidationService.validate(idStringProperty.get)
   idStringProperty.onChange: (observable, oldValue, newValue) =>
@@ -43,12 +42,12 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
 
   override def onReceivedNotification(message: Message): Unit =
     message.name match
-      case NotificationName.Save => ()
       case NotificationName.DBSuccess => onDBSuccess(message)
       case NotificationName.FoundDuplicateRowsWithID => onDuplicateIDFound(message)
       case NotificationName.Reload => onReload(message)
       case NotificationName.ShowDuplicateDriveWarning => duplicateDrives(message)
       case NotificationName.ProgramModeChanged => onProgramModeChanged(ProgramMode.mode)
+      case _ => ()
 
   private def onDBSuccess(message: Message): Unit =
     new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
@@ -87,7 +86,7 @@ final class HardwareLoggerRootViewModel extends ViewModel with ServicesModule wi
       println(s"Itsa ID: $itsaId")
 
 
-  override def setup(): Unit =
+  override def setup(): Unit = ()
     reload()
 
 

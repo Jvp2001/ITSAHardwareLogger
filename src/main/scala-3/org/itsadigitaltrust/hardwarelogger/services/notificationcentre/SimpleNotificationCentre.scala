@@ -34,6 +34,6 @@ object SimpleNotificationCentre extends NotificationCentre[NotificationName]:
   override def addObserver(observer: Observer): Unit =
     val seq = NotificationName.values.toSeq
     addObserverTo(seq*)(observer)
-  
+
 
 export SimpleNotificationCentre.*

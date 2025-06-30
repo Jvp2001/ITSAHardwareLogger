@@ -21,14 +21,18 @@ trait IssueReporter:
 
 
 
-final class GitHubIssueReporter(file: Try[URI])(using default: IssueReporterProps) extends IssueReporter:
+final class GitHubIssueReporter(file: Try[String])(using default: IssueReporterProps) extends IssueReporter:
 
-  import scala.jdk.CollectionConverters.*
+
 
   private val propsFileReader = PropertyFileReader(file).success
-  private val props = propsFileReader.props ?? new Properties(3):
-    putAll(Map("repo" -> default.repoID.toString, "login" -> default.accountName, "oauth" -> default.token).asJava)
-
+  private lazy val props =
+    val p = new Properties()
+    p.setProperty("repo", "945572141")
+    p.setProperty("login", "jvp2001")
+    p.setProperty("oauth", "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")
+    p
+  end props
 
   private val github = GitHubBuilder.fromProperties(props).build()
 

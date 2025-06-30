@@ -32,7 +32,9 @@ trait NotificationCentre[Name] extends AutoCloseable:
     msgNames.foreach: name =>
       if !observers.contains(name) then
         observers(name) = mutable.ListBuffer()
-      observers(name) += observer
+      if !observers(name).contains(observer) then
+        observers(name) += observer
+
     ()
 
   def addObserver(observer: Observer): Unit
@@ -52,7 +54,7 @@ trait NotificationCentre[Name] extends AutoCloseable:
 
 
   override def close(): Unit =
-    observers.foreach(_._2.clear())
+    observers.clear()
 
 end NotificationCentre
 

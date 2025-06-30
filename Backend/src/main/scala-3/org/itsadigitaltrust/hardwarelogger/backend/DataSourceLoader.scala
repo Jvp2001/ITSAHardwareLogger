@@ -4,11 +4,11 @@ import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common
 import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.common.collections.Dict
-
 import org.itsadigitaltrust.common.{PropertyFileReader, PropertyFileReaderError, Result, Success}
+
 import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
 
-import java.io.{File, FileInputStream, FileNotFoundException, FileReader}
+import java.io.{File, FileInputStream, FileNotFoundException, FileReader, InputStream}
 import java.net.{MalformedURLException, URI}
 import java.nio.file.Path
 import java.util.Properties
@@ -58,9 +58,9 @@ class DataSourceLoader private:
 
   def dataSource: Option[MysqlDataSource] = _dataSource
 
-  def apply(configFile: Try[URI]): Option[PropertyFileReaderError] = reload(configFile)
+  def apply(configFile: Try[String]): Option[PropertyFileReaderError] = reload(configFile)
 
-  def reload(configFile: Try[URI]): Option[PropertyFileReaderError] =
+  def reload(configFile: Try[String]): Option[PropertyFileReaderError] =
     val result: Result[MysqlDataSource, PropertyFileReaderError] =
       Result:
         dataSource = dataSource.orElse(Option(new MysqlDataSource()))
@@ -113,7 +113,7 @@ end DataSourceLoader
 object DataSourceLoader:
   type Error = PropertyFileReaderError
 
-  def apply(configFile: Try[URI]): Result[DataSourceLoader, PropertyFileReaderError] =
+  def apply(configFile: Try[String]): Result[DataSourceLoader, PropertyFileReaderError] =
     val dsl = new DataSourceLoader
     Result:
       dsl.reload(configFile)

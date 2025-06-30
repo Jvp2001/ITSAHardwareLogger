@@ -10,12 +10,13 @@ import org.itsadigitaltrust.hardwarelogger.tasks.*
 import org.itsadigitaltrust.common.types.*
 
 import org.itsadigitaltrust.hardwarelogger.backend.HLDatabase.Error
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationUserInfo, NotificationCentre, NotificationName}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationCentre, NotificationName, NotificationUserInfo}
 
 import org.scalafx.extras.BusyWorker
 import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.batch.{BatchRunnerWithProgress, ItemTask}
 
+import java.io.InputStream
 import java.net.URI
 import java.nio.file.FileSystems
 import java.sql.Timestamp
@@ -24,14 +25,14 @@ import java.util.concurrent.LinkedBlockingQueue
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.reflect.{ClassTag, classTag}
-import scala.util.Try
+import scala.util.{Try, Using}
 
 
 trait HLDatabaseService:
   import HLDatabaseService.{given, *}
   type Error
 
-  lazy val dbPropertiesFile: URI
+  lazy val dbPropertiesFile: String
 
 
   def connect(): Result[Unit, Error]
@@ -74,8 +75,10 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
   private val minAmountOfTransactions = 4
 
-  override lazy val dbPropertiesFile: URI =
-    getClass.getResource("db.properties").toURI
+  override lazy val dbPropertiesFile: String =
+    getClass.getResourceAsStream("db.properties").readAllAsString()
+
+
 
 
 

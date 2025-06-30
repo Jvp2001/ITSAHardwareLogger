@@ -8,6 +8,7 @@ Compile / mainClass := Some("org.itsadigitaltrust.hardwarelogger.$HardwareLogger
 
 // Allow java sources
 
+ThisBuild / assemblyOutputPath := file("ITSAHardwareLogger.jar")
 ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", _*) => MergeStrategy.discard
   case _ => MergeStrategy.first
@@ -40,7 +41,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= commonDependencies,
     scalacOptions += "-experimental"
 
-  ).dependsOn(common, backend, hdsentinelreader, issueReporter)
+  ).dependsOn(common, backend, hdsentinelreader, issueReporter).aggregate()
 
 
 lazy val common = (project in file("Common"))
@@ -73,7 +74,7 @@ lazy val backend = (project in file("Backend"))
     name := "Backend",
     libraryDependencies ++= commonDependencies,
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    Test / unmanagedSourceDirectories += file("tests")
+    Test / unmanagedSourceDirectories += file("tests"),
   ).dependsOn(common)
 
 
@@ -81,7 +82,7 @@ lazy val backend = (project in file("Backend"))
 
 lazy val issueReporter = (project in file("IssueReporter"))
   .settings(
-    name := "ReportedIssue Reporter",
+    name := "IssueReporter",
     libraryDependencies ++= Seq(
       "org.kohsuke" % "github-api" % "1.327"
     ).map(_ withSources() withJavadoc())
