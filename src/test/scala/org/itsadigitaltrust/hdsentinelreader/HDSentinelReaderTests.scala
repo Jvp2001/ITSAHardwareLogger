@@ -42,7 +42,7 @@ class HDSentinelReaderTests extends AnyFunSuite:
     else*/
       HDSentinelReader[HardDiskSummary](xml)
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
-    println(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
+    System.out.println(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
     val driveModel = new HardDriveModel(
       hardDiskSummary.health.asPercentage,
       hardDiskSummary.performance.asPercentage,
@@ -59,8 +59,8 @@ class HDSentinelReaderTests extends AnyFunSuite:
 
     //  reader.xmlParser \ "Hard_Disk_Summary" match
     //   case Some(hardDiskSummary: HardDiskSummary) =>
-    //     println(hardDiskSummary)
+    //     System.out.println(hardDiskSummary)
     //   case None =>
-    //     println("No data found")
+    //     System.out.println("No data found")
     //     assert(false)
     //   assert(true)

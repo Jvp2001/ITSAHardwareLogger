@@ -51,7 +51,7 @@ object IPAddressFinder:
     val inetAddresses = networkInterfaces.filter(_.getName.startsWith("en")).filter(_.isUp).flatMap: inet =>
       inet.getInetAddresses.asScala.filter(_.isInstanceOf[Inet4Address]).map: address =>
         val foundAddress = address.toString.stripPrefix("/")
-        println(foundAddress)
+        System.out.println(foundAddress)
         foundAddress
 
 
@@ -60,7 +60,7 @@ object IPAddressFinder:
       addresses.map: addr =>
         val score = fuzzyScore.fuzzyScore(address, addr)
         val result = (addr, address) -> score.toInt
-        println(result)
+        System.out.println(result)
         result
     .toSeq.sortBy(_._2).lastOption.match
       case Some(value) => value._1._1

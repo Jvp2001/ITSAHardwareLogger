@@ -12,13 +12,17 @@ import scalafx.scene.Cursor
 
 
 class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T], itsaID: String) extends TableView[T]:
+
   val vm: TabTableViewModel[M, T] = viewModel
   def getViewModel = viewModel
   var rowDelegate: Option[TableRowDelegate[T]] = None
   var showHandCursorOnHover: Boolean = false
   val reordableColumns: Boolean = false
-  private class TableTabRow[R](
-                        var rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
+  final val bigColumn: Int = 150
+  final val massiveColumn: Int = 274
+
+  private class TableTabRow[R](var rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
+
 
     hoverProperty().addListener: (_, _, newValue) =>
       if showHandCursorOnHover then
@@ -53,7 +57,7 @@ class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewMo
   end TableTabRow
 
 
-  class TableTabColumn[P] extends TableColumn[T, P] // Placeholder for your custom TableTabColumn class
+  class TableTabColumn[P] extends TableColumn[T, P]
 
   rowFactory = _ => new TableTabRow[T](rowDelegate)
 

@@ -11,6 +11,7 @@ import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.
 import services.{HardwareIDValidationService, ServicesModule, notificationcentre, given}
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName, NotificationUserInfo}
+import org.itsadigitaltrust.hardwarelogger.tasks.HLTaskRunner
 import org.itsadigitaltrust.hardwarelogger.views.Dialogs
 
 import scalafx.beans.property.*
@@ -83,22 +84,21 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
       val info = pcInfo
       val itsaId = info.itsaID
       idStringProperty.value = itsaId ?? ""
-      println(s"Itsa ID: $itsaId")
+      System.out.println(s"Itsa ID: $itsaId")
 
 
-  override def setup(): Unit = ()
+  override def setup(): Unit =
     reload()
 
 
   def reconnect(): Unit =
     databaseService.connectAsync():
       case Result.Success(_) =>
-        println("Database connection established successfully.")
+        System.out.println("Database connection established successfully.")
       case Result.Error(err) =>
-        println(s"Database connection failed: $err")
-        new Alert(AlertType.Error, "Could not connect to database!"):
-          contentText = "Failed to connect to the database; please check your intranet connection, and try again!"
-          showAndWait()
+        System.out.println(s"Database connection failed: $err")
+        Dialogs.showDBConnectionError()
+
   end reconnect
 
   def switchMode(mode: ProgramMode): Unit =

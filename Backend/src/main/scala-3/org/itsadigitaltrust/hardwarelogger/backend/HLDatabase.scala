@@ -79,17 +79,15 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
   end getClassTagForEntityTypeEC
 
   private def getDbCodec[EC <: ItsaEC : ClassTag] =
-    summon[DbCodec[EntityFromEC[EC]]]
-  //    val result = summon[ClassTag[EC]] match
-  //      case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
-  //      case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
-  //      case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
-  //      case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
-  //      case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
-  //      case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
-  //
-  //
-  //    result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
+
+      val result = summon[ClassTag[EC]] match
+        case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
+        case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
+        case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
+        case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
+        case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
+        case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
+      result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
   end getDbCodec
 
 

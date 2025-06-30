@@ -18,7 +18,7 @@
 //  def load(): Unit =
 //    hardwareGrabberService.load(): () =>
 //      databaseService.connect(HardwareLoggerApplication.getClass, "db/db.properties")
-//      notificationCentre.subscribe(NotificationChannel.DBSuccess)((_, _) => println("Database connection successful"))
+//      notificationCentre.subscribe(NotificationChannel.DBSuccess)((_, _) => System.out.println("Database connection successful"))
 //
 //  load()
 //

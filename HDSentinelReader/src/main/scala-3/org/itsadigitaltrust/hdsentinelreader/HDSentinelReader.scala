@@ -46,7 +46,7 @@ object HDSentinelReader:
     val reader = new HDSentinelReader
     if OSUtils.onLinux then
       val xml = sudo"HDSentinel -r -xml -dump"
-      println(s"XML: $xml")
+      System.out.println(s"XML: $xml")
       reader.read(xml)
     reader
 

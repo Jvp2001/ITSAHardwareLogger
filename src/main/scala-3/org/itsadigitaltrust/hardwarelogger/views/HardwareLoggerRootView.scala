@@ -29,9 +29,8 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
 
   stylesheets += "org/itsadigitaltrust/hardwarelogger/stylesheets/common.css"
-  Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
-  prefWidth = 1020.0
-  prefHeight = 768.0
+  //Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
+
 
 
   private given consoleView: ItsaDebugView = new ItsaDebugView(using viewModel.issueReporterService)
@@ -70,7 +69,8 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
 
   top = menuBar
-  private val contentBorderPane = new BorderPane()
+  private val contentBorderPane = new BorderPane():
+    alignmentInParent = Center
   center = contentBorderPane
 
   private val idLabel = new Label:
@@ -140,20 +140,25 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     margin = Insets(0, 10.0, 0, 0)
     disable <== !viewModel.validIDProperty
 
-  private val centerButtonsContainer = new HBox:
+  private val buttonsContainer = new HBox:
     alignment = Center
     prefWidth = 200.0
-    prefHeight = 100.0
+    prefHeight = 50.0
     children += new Region:
       prefWidth = 200.0
       prefHeight = prefWidth.get
       hgrow = Always
     children ++= Seq(reconnectButton, reloadButton, saveButton)
-  end centerButtonsContainer
+  end buttonsContainer
 
   contentBorderPane.center = new VBox:
     BorderPane.setAlignment(this, Center)
-    children ++= Seq(tabPane, centerButtonsContainer)
+    children ++= Seq(buttonsContainer, tabPane)
+
+
+
+
+
 
 
   private def createTab(title: String, rootContent: Node): Tab =

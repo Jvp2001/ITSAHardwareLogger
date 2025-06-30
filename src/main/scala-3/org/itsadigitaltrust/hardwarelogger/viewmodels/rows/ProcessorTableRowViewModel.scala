@@ -7,7 +7,7 @@ import org.itsadigitaltrust.hardwarelogger.services.given
 
 final class ProcessorTableRowViewModel(model: ProcessorModel)(using itsaID: String) extends TableRowViewModel[ProcessorModel](model):
   def nameProperty: StringProperty =
-    println(s"Name Prop val: ${model.name}")
+    System.out.println(s"Name Prop val: ${model.name}")
     wrapper.field("name", _.name, "")(StringProperty.apply)
 
   def speedProperty: StringProperty =

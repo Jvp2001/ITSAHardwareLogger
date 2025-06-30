@@ -102,4 +102,9 @@ object Dialogs:
         proc"start $folder"
       else
         proc"open $folder"
+
+  end saveTextFile
+  def showDBConnectionError(): Unit =
+    showErrorAlert("Could not connect to database!", "Failed to connect to the database; please check your intranet connection, and try again!")
+
 end Dialogs

@@ -27,7 +27,7 @@ object HLTaskRunner extends ServicesModule:
     catch
       case e: NumberFormatException =>
         Platform.runLater: () =>
-          println(s"Error in HLTaskRunner: ${e.getMessage}")
+          System.out.println(s"Error in HLTaskRunner: ${e.getMessage}")
           e.printStackTrace()
           finished()
 

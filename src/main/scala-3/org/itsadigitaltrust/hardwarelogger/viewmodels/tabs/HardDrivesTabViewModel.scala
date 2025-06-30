@@ -22,7 +22,7 @@ final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewMod
 
   def setData(): Unit =
     hardwareGrabberService.hardDrives.map(HardDriveTableRowViewModel.apply).foreach: datum =>
-      println(datum)
+      System.out.println(datum)
       data.add(datum)
 
   override def onSelected(selectedRow: Option[HardDriveTableRowViewModel]): Unit =

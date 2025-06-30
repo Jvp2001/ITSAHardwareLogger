@@ -22,6 +22,7 @@ class ItsaDebugView(using issueReporterService: IssueReporterService) extends Co
   System.setOut(getOut)
   System.setErr(getOut)
 
+
   createAndAddItem("Report", _ => ItsaDebugView.report(issueReporterService.report)(using this))
 
 

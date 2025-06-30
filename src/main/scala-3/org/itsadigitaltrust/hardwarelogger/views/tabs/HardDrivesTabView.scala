@@ -30,10 +30,10 @@ class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewMo
     cellValue.sizeProperty
 
 
-  private val modelColumn = createAndAddColumn("Model"): cellValue =>
+  private val modelColumn = createAndAddColumn("Model", minWidth=massiveColumn): cellValue =>
     cellValue.modelProperty
 
-  private val serialColumn = createAndAddColumn("Serial"): cellValue =>
+  private val serialColumn = createAndAddColumn("Serial", minWidth = bigColumn): cellValue =>
     cellValue.serialProperty
 
   private val typeColumn = createAndAddColumn("Type"): cellValue =>
@@ -63,6 +63,7 @@ class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with
         styleClass ++= List("hdsentinel-text")
       children += text
       children += new VBox(10):
+        minHeight = 80.0
         children += text
         children += new Label("No actions needed."):
           this.text <== viewModel.actionsText
@@ -70,6 +71,7 @@ class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with
       vgrow = Always
 
   private val infoBox = new GridPane(10, 10):
+    margin = Insets(0,0,0, 20D)
     private val powerOnTimeNameLabel = new Label("Power On Time:"):
       styleClass ++= List("name-label", "hdsentinel-text")
     private val powerOnTimeValueLabel = new Label:

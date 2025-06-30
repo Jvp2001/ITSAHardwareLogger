@@ -49,7 +49,7 @@ export XMLParser.given
 extension (elem: Elem | Node)
   def \\>[T: ClassTag](name: String)(using xmlMapper: XmlMapper): T =
     val node = s"${elem \\ name}"
-    println(node.length)
+    System.out.println(node.length)
     val ct: ClassTag[T] = classTag[T]
     xmlMapper.readValue(node, ct.runtimeClass.asInstanceOf[Class[T]])
 

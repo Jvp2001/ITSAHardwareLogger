@@ -40,9 +40,10 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
     stage = new PrimaryStage:
       minWidth = 1024
       minHeight = 768
-      maximized = true
+
       title <==> titleProperty
-      scene = new Scene(1020, 720):
+      scene = new Scene:
+
         root = new HardwareLoggerRootView
         //            menuBar.useSystemMenuBar =  true
 //        onKeyPressed = (event: KeyEvent) =>

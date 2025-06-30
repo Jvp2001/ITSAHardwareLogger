@@ -71,7 +71,7 @@ private[backend] object repos:
     def insertOrUpdate(creator: EC)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
       creator match
         case infoCreator: InfoCreator =>
-          println(infoCreator.itsaID)
+          System.out.println(infoCreator.itsaID)
           sql"select itsaid from info where itsaid = ${infoCreator.itsaID}".query[String].run().headOption match
             case Some(info) => ()
                           sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${infoCreator.itsaID}".update.run()
