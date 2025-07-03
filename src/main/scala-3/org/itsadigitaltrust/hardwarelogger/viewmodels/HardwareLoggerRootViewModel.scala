@@ -28,6 +28,8 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
   val idErrorStringProperty: StringProperty = StringProperty("")
   val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
 
+  val shouldCaretBeAtEnd: BooleanProperty = BooleanProperty(false)
+
   private var wasDuplicateIDWarningAlreadyShown = false
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
@@ -151,6 +153,8 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
       notificationCentre.post(Reload)
       if isInNormalMode.value then
         idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
+      shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty 
+
   end reload
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =

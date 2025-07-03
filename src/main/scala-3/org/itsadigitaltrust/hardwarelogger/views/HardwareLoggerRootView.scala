@@ -220,6 +220,10 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
         hardDrivesTabView.viewModel.reload()
     tabPane.selectionModel.value.selectedItemProperty().addListener(changeListener)
   end onProgramModeChanged
+  
+  viewModel.shouldCaretBeAtEnd.onChange: (op, oldValue, newValue) =>
+    if newValue then
+      idTextField.end()
 
 
 
