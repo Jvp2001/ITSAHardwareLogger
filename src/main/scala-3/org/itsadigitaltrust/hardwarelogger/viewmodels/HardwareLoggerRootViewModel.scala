@@ -5,6 +5,7 @@ import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.{DoOnce, Result}
 
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
+import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
@@ -12,7 +13,6 @@ import services.{HardwareIDValidationService, ServicesModule, notificationcentre
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName, NotificationUserInfo}
 import org.itsadigitaltrust.hardwarelogger.tasks.HLTaskRunner
-import org.itsadigitaltrust.hardwarelogger.views.Dialogs
 
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType

@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.core
 
-import org.itsadigitaltrust.hardwarelogger.views.Dialogs
-
+import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import com.mysql.cj.exceptions.CJCommunicationsException
 import com.mysql.cj.jdbc.exceptions.CommunicationsException
 import scalafx.application.Platform

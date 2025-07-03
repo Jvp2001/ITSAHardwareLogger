@@ -5,18 +5,19 @@ import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDeleg
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, TabTableViewModel}
-import scalafx.beans.property.{BooleanProperty, DoubleProperty, ObjectProperty, StringProperty}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.views.View
-import scalafx.application.Platform
-import scalafx.scene.control.cell.CheckBoxTableCell
 
-class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewModel ) extends TabTableView( using tabViewModel, itsaID):
-  
+import scalafx.application.Platform
+import scalafx.event.EventType
+
+class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewModel) extends TabTableView(using tabViewModel, itsaID):
+
   requestFocus()
 
+  override val rowDelegate: Option[TableRowDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel.rowDelegate)
 
-  showHandCursorOnHover = true
+  override val showHandCursorOnHover: Boolean = true
 
   private val healthColumn = createAndAddColumn[String]("Health"): cellValue =>
     StringProperty(cellValue.healthProperty.get.toString)
@@ -25,15 +26,14 @@ class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewMo
     StringProperty(cellValue.performanceProperty.get.toString)
 
 
-
   private val sizeColumn = createAndAddColumn[String]("Size"): cellValue =>
     cellValue.sizeProperty
 
 
-  private val modelColumn = createAndAddColumn("Model", minWidth=massiveColumn): cellValue =>
+  private val modelColumn = createAndAddColumn("Model", minWidth = ColumnSize.massive): cellValue =>
     cellValue.modelProperty
 
-  private val serialColumn = createAndAddColumn("Serial", minWidth = bigColumn): cellValue =>
+  private val serialColumn = createAndAddColumn("Serial", minWidth = ColumnSize.big): cellValue =>
     cellValue.serialProperty
 
   private val typeColumn = createAndAddColumn("Type"): cellValue =>
@@ -44,52 +44,36 @@ class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewMo
 
   private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
     cellValue.driveTypeProperty
+
 end HardDriveTableView
 
 
 class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with View[HardDrivesTabViewModel]:
   override given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
-  
+
   private val tableView = new HardDriveTableView()
 
 
-
   children += tableView
-  children += new VBox():
-    children += new StackPane()
-      styleClass ++= List("hdsentinel-background")
-      private val text = new Label("HDSentinel text here"):
-        this.text <== viewModel.description
-        styleClass ++= List("hdsentinel-text")
-      children += text
-      children += new VBox(10):
-        minHeight = 80.0
-        children += text
-        children += new Label("No actions needed."):
-          this.text <== viewModel.actionsText
-          styleClass ++= List("hdsentinel-text")
-      vgrow = Always
+  children += new HBox:
+    padding = Insets(5D, 5D, 0D, 0D)
+    private val region = new Region:
+      hgrow = Always
+      prefHeight = 40
+    private val moreInfoButton = new Button:
+      text = "More Info"
+      onAction = _ => viewModel.showExtraInfo(tableView.getSelectedItem)
+      disable <== !viewModel.moreInfoDisabledProperty
+      padding = Insets(0D, 5D, 0D, 0D)
+      prefHeight = 40D
+      prefWidth = 100D
+      hgrow = Always
+    children ++= Seq(region, moreInfoButton)
 
-  private val infoBox = new GridPane(10, 10):
-    margin = Insets(0,0,0, 20D)
-    private val powerOnTimeNameLabel = new Label("Power On Time:"):
-      styleClass ++= List("name-label", "hdsentinel-text")
-    private val powerOnTimeValueLabel = new Label:
-      text <== viewModel.powerOnTime
-      styleClass ++= List("value-label", "hdsentinel-text")
-    private val estimatedLifeTimeLabel = new Label("Estimated reaming lifetime:"):
-      styleClass ++= List("name-label", "hdsentinel-text")
-    private val estimatedLifeTimeValueLabel = new Label:
-      text <== viewModel    .estimatedLifeTime
-      styleClass ++= List("value-label", "hdsentinel-text")
-
-    addRow(0, powerOnTimeNameLabel, powerOnTimeValueLabel)
-    addRow(1, estimatedLifeTimeLabel, estimatedLifeTimeValueLabel)
-  end infoBox
-  children += infoBox
 
   def selectRow(index: Int = 0): Unit =
     tableView.getSelectionModel.select(index)
+
 
   override def onSelected(tab: Tab): Unit =
     selectRow()

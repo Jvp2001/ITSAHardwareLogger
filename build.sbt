@@ -20,7 +20,7 @@ lazy val javaFXDeps = Seq("win", "mac", "linux").flatMap { osName =>
 }
 
 lazy val scalaFXDeps = Seq(
-  "org.scalafx" %% "scalafx" % "23.0.1-R34",
+  "org.scalafx" % "scalafx" % "23.0.1-R34",
   "org.scalafx" %% "scalafx-extras" % "0.11.0",
 )
 

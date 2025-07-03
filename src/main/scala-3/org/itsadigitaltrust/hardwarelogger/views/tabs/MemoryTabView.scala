@@ -33,22 +33,21 @@ final class MemoryTabView(using itsaID: String) extends VBox:
 
 
 
-  private val tableView = new TabTableView[MemoryModel, MemoryTableRowViewModel]()
+  private val tableView = new TabTableView[MemoryModel, MemoryTableRowViewModel]:
     //    minWidth = Double.MaxValue
     //    minHeight = Double.MaxValue
 
+    import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 
+    private[MemoryTabView] val sizeColumn = createAndAddColumn("Size"): cellValue =>
+      cellValue.sizeProperty
 
-  import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+    private[MemoryTabView] val descriptionColumn = createAndAddColumn("Description"): cellValue =>
+      cellValue.descriptionProperty
 
-  private val sizeColumn = tableView.createAndAddColumn("Size"): cellValue =>
-    cellValue.sizeProperty
-
-  private val descriptionColumn = tableView.createAndAddColumn("Description"): cellValue =>
-    cellValue.descriptionProperty
-
-  private val typeColumn = tableView.createAndAddColumn("Type"): cellValue =>
-    cellValue.typeProperty
+    private[MemoryTabView] val typeColumn = createAndAddColumn("Type"): cellValue =>
+      cellValue.typeProperty
+  end tableView
 
 
   spacing = 10.0

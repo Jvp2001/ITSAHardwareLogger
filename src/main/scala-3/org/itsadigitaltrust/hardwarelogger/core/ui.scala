@@ -13,7 +13,7 @@ object ui:
   export scalafx.scene.text.TextAlignment
   export scalafx.scene.text.Font
 
-  export scalafx.scene.input.{KeyCode, KeyEvent}
+  export scalafx.scene.input.{KeyCode, KeyEvent, MouseEvent, MouseButton}
   export scalafx.beans.property.{StringProperty, IntegerProperty, DoubleProperty, BooleanProperty, ObjectProperty}
   export scalafx.collections.ObservableBuffer
  

@@ -7,8 +7,9 @@ import org.itsadigitaltrust.common.Operators.{??, |>}
 
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.issuereporter.Description
-import org.itsadigitaltrust.hardwarelogger.services.{Issue, IssueReporterService}
+import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, IssueCustomisationDialog}
+import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, ReportedIssue}
+import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, ReportedIssue}
 
 import org.scalafx.extras.auto_dialog.AutoDialog
 import scalafx.scene.control.Alert.AlertType.{Confirmation, Information}
@@ -22,14 +23,14 @@ class ItsaDebugView(using issueReporterService: IssueReporterService) extends Co
   System.setOut(getOut)
   System.setErr(getOut)
 
-
   createAndAddItem("Report", _ => ItsaDebugView.report(issueReporterService.report)(using this))
 
 
 object ItsaDebugView:
 
-  import org.itsadigitaltrust.hardwarelogger.services.Issue
+  import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue as Issue
   import org.itsadigitaltrust.hardwarelogger.core.given
+
 
   def report(reporter: Issue => Option[String])(using debugView: ItsaDebugView): Unit =
     def sendReport(issue: Issue = Issue()) =
@@ -53,17 +54,18 @@ object ItsaDebugView:
 
 
 
-     Dialogs.createConfirmationAlert("Report Issue", "Do you want to report an Issue").showAndWait().match
-        case Some(ButtonType.No) => ()
-        case Some(ButtonType.Yes | ButtonType.OK) =>
-          Dialogs.createConfirmationAlert("Customise Issue", "Do you want to customise the issue?").showAndWait().match
-            case Some(ButtonType.No) =>  sendReport()
-            case Some(ButtonType.Yes | ButtonType.OK) =>
-              Dialogs.showIssueCustomisationDialog(): dialog =>
-                sendReport(makeReport(dialog.getIssue))
-            case _ => ()
-        case _ => ()
+    Dialogs.createConfirmationAlert("Report Issue", "Do you want to report an Issue").showAndWait().match
+      case Some(ButtonType.No) => ()
+      case Some(ButtonType.Yes | ButtonType.OK) =>
+        Dialogs.createConfirmationAlert("Customise Issue", "Do you want to customise the issue?").showAndWait().match
+          case Some(ButtonType.No) =>  sendReport()
+          case Some(ButtonType.Yes | ButtonType.OK) =>
+            val dialog = new IssueCustomisationDialog()
+            dialog.showDialog()
+            if dialog.wasOKed then
+              sendReport(dialog.getIssue)
+            ()
+          case _ => ()
+      case _ => ()
 
 
-
-  end report

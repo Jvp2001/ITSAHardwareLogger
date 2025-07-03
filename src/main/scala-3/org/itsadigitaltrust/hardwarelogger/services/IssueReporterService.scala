@@ -10,14 +10,14 @@ import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, GitHubIss
 import scala.util.Try
 
 
-export org.itsadigitaltrust.hardwarelogger.issuereporter.ReportedIssue as Issue
+export org.itsadigitaltrust.hardwarelogger.issuereporter.ReportedIssue 
 extension (issue: ReportedIssue)
   def name: String = issue.title
 
 
 
 trait IssueReporterService:
-  def report(issue: Issue): Option[String]  =
+  def report(issue: ReportedIssue): Option[String]  =
     report(issue.name, issue.description.value)
   def report(name: String, description: String): Option[String]
 

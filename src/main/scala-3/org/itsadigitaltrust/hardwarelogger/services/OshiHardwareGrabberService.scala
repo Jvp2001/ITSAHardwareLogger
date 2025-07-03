@@ -84,11 +84,11 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
           <Total_Size>12345 MB</Total_Size>
           <Power_State>Active</Power_State>
           <Logical_Drive_s>C: [VOLUME1] D: [VOLUME2]</Logical_Drive_s>
-          <Current_Temperature>38 �C</Current_Temperature>
+          <Current_Temperature>38 °C</Current_Temperature>
           <Maximum_Temperature_ever_measured>49 �C, 17.07.1970 22:28:37</Maximum_Temperature_ever_measured>
           <Minimum_Temperature_ever_measured>16 �C, 17.11.1970 14:42:12</Minimum_Temperature_ever_measured>
-          <Daily_Average>38.80 �C</Daily_Average>
-          <Daily_Maximum>40 �C</Daily_Maximum>
+          <Daily_Average>38.80 °C</Daily_Average>
+          <Daily_Maximum>40 °C</Daily_Maximum>
           <Power_on_time>1593 days, 6 hours</Power_on_time>
           <Estimated_remaining_lifetime>200 days</Estimated_remaining_lifetime>
           <Health>93 %</Health>
@@ -143,7 +143,8 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
         else "SSD"
 
       val totalSize = hardDiskSummary.totalSize.split(" ")(0).toDoubleOption ?? 0D
-      val dataSize = DataSize(totalSize / 1e3D, DataSizeUnit.GB)
+      val size = totalSize / 1e3D
+      val dataSize = DataSize(size, DataSizeUnit.GB)
       System.out.println(s"Drive size: ${dataSize.dbString}")
       val drive = HardDriveModel(
         hardDiskSummary.health.asPercentage,
@@ -160,7 +161,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
         estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
       )
       drive
-    
+
   end loadHardDrives
 
 
@@ -205,11 +206,10 @@ object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwar
 
   override protected def findDriveIdBySerialNumber(serial: String): Option[String] =
     var string = Option("")
-    extras.offFX:
-        if ProgramMode.isInNormalMode then
-          string = databaseService.findItsaIdBySerialNumber(serial)
-        else
-          string  = Option(databaseService.findWipingRecord(serial).get.itsaID)
+    if ProgramMode.isInNormalMode then
+      string = databaseService.findItsaIdBySerialNumber(serial)
+    else
+      string = Option(databaseService.findWipingRecord(serial).get.itsaID)
     string
 
   override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] =
@@ -223,7 +223,7 @@ object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwar
         taskGroupBuilder.addAll(
           loadGeneralInfo(),
           loadHardDrives(),
-           loadMemory(),
+          loadMemory(),
           loadProcessors(),
           loadMedia()
         )
