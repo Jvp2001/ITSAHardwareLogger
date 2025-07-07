@@ -20,7 +20,7 @@ private[backend] object repos:
   type HLRepo[EC, E] = Repo[EC, E, Long]
   inline def HLRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](using RepoDefaults[EC, E, Long]): HLRepo[EC, E] = Repo[EC, E, Long]
 
-  extension [EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](repo: HLRepo[EC, E])
+  extension [EC <: ItsaEC, E <: EntityFromEC[EC]](repo: HLRepo[EC, E])(using ClassTag[EC])
 
     /**
      * Returns the name of the scala field that corresponds to the ITSA ID column in the database.
@@ -30,12 +30,13 @@ private[backend] object repos:
     private def idScalaName(using table: HLTableInfo[EC, E]): "itsaID" | "hddID" =
       if table.hasColumn("itsaID") then "itsaID" else "hddID"
 
-    private[backend] def findAllByID(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
-      val itsaIDFieldName = if classTag[EC].runtimeClass == classOf[WipingCreator] then
-        "hddID"
+    private def getItsaIDFieldName: String = if classTag[EC].runtimeClass == classOf[WipingCreator] then
+      "hddID"
       else
-        "itsaID"
-      val frag = sql"select * from $table where ${table.selectDynamic(itsaIDFieldName)} = $id"
+      "itsaID"
+    private[backend] def findAllByID(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
+
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} = $id"
       val result  = frag.query.run()
       result
     end findAllByID
@@ -43,7 +44,9 @@ private[backend] object repos:
 
     private[backend] def findAllByIdsStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Option[Seq[EntityFromEC[EC]]] =
 
-      val frag = sql"select * from $table where itsaid like '$id%'"
+      // Either itsaid or hdd_id
+
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$id%'"
       Option(frag.query.run())
 
     private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =

@@ -6,9 +6,12 @@ import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.Save
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 
+import org.itsadigitaltrust.common.*
+
 import scalafx.beans.property.{BooleanProperty, StringProperty}
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName}
 
+import scalafx.scene.control.TableRow
 import scalafx.scene.input.MouseButton
 import scalafx.scene.input.MouseButton.Primary
 
@@ -23,6 +26,26 @@ final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewMod
     hardwareGrabberService.hardDrives.map(HardDriveTableRowViewModel.apply).foreach: datum =>
       System.out.println(datum)
       data.add(datum)
+
+  override def onUpdateItem(row: Option[HardDriveTableRowViewModel], tableRow: TableRow[HardDriveTableRowViewModel]): Unit =
+    val colour = row.map: rowModel =>
+      rowModel.model.`type` match
+        case "SSD" if rowModel.model.health.toByte < 50 => "tomato"
+        case "HDD" | "HHD" if rowModel.model.health.toByte < 100 => "tomato"
+        case _ => ""
+    .getOrElse("")
+
+    if !colour.isBlank then
+      tableRow.setStyle(s"-fx-background-color: $colour")
+    else
+      tableRow.style = ""
+
+    if row.isEmpty then
+      tableRow.style = ""
+  end onUpdateItem
+
+
+
 
   override def onRowDoubleClicked(button: MouseButton, row: Option[HardDriveTableRowViewModel]): Unit =
     button match

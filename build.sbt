@@ -20,7 +20,7 @@ lazy val javaFXDeps = Seq("win", "mac", "linux").flatMap { osName =>
 }
 
 lazy val scalaFXDeps = Seq(
-  "org.scalafx" % "scalafx" % "23.0.1-R34",
+  "org.scalafx" %% "scalafx" % "23.0.1-R34",
   "org.scalafx" %% "scalafx-extras" % "0.11.0",
 )
 
@@ -47,8 +47,11 @@ lazy val root = (project in file("."))
 lazy val common = (project in file("Common"))
   .settings(
     name := "Common",
-    libraryDependencies ++= commonDependencies
-
+    libraryDependencies ++= commonDependencies ++ Seq (
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.19.1",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.19.1",
+      "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
+    ).map(_ withSources() withJavadoc())
   )
 
 lazy val commonDependencies = Seq(
@@ -62,8 +65,8 @@ lazy val hdsentinelreader = (project in file("HDSentinelReader")).
     name := "HDSentinelReader",
 
     libraryDependencies ++= Seq(
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.19.0",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.19.0",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.19.1",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.19.1",
       "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
     ).map(_ withJavadoc() withSources()),
     scalacOptions += "-experimental"

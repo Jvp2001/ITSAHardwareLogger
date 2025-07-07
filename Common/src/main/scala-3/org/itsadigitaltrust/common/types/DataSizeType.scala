@@ -74,7 +74,7 @@ object DataSizeType:
       val newValue = toBytes / targetUnit.factorToBytes
       (newValue, targetUnit)
     def toLong: Long = ds.value.toLong
-    def dbString: String = s"${value.toString.replaceFirst("(e|E[\\-?]\\d+)|(\\[e|E\\d+])", "").replaceFirst("\\[\\]","")} $unit"
+    def dbString: String = s"${value.toString.replaceFirst("(e|E[\\-?]\\d+)|(\\[e|E\\d+])", "").replaceFirst("\\[\\]","").replace(".", "")} $unit"
     def +(rhs: DataSize): DataSize = DataSize((toBytes + rhs.toBytes) / unit.factorToBytes, unit)
     def -(rhs: DataSize): DataSize = DataSize((toBytes - rhs.toBytes) / unit.factorToBytes, unit)
     def *(rhs: Double): DataSize = DataSize(value * rhs, unit)

@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
+import types.*
+import entities.*
 import javax.sql.DataSource
 import com.augustnagro.magnum
 import com.augustnagro.magnum.{DbCodec, DbCon, DbTx, SqlException, Transactor, transact as magTransact}
@@ -35,16 +37,16 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
       dataSourceLoader(configFile)
       dataSourceLoader.dataSource.get
 
-  private lazy val connection = dataSource.getConnection
-
+  private lazy val connection = new net.sf.log4jdbc.ConnectionSpy(dataSource.getConnection)
+  private lazy val letters = 'A' to 'Z'
 
   private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
 
-  private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodec[EntityFromEC[EC]] = getDbCodec[EC]
+  private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodecFromEC[EC] = getDbCodec[EC]
 
 
   private inline def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
-    val result = classTag[EC] match
+    val result = summon[ClassTag[EC]] match
       case c if c == classTag[MemoryCreator] => tables.memoryTable
       case c if c == classTag[MediaCreator] => tables.mediaTable
       case c if c == classTag[DiskCreator] => tables.diskTable
@@ -53,7 +55,7 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
     result.asInstanceOf[HLTableInfo[EC, E]]
 
 
-  private inline def getRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): HLRepo[EC, E] =
+  private inline def getRepo[EC <: ItsaEC, E <: EntityFromEC[EC]](creator: EC): HLRepo[EC, E] =
     val result = creator.getClass match
       case c if c == classOf[MemoryCreator] => repos.memoryRepo
       case c if c == classOf[MediaCreator] => repos.mediaRepo
@@ -79,26 +81,25 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
   end getClassTagForEntityTypeEC
 
   private def getDbCodec[EC <: ItsaEC : ClassTag] =
+    val result = summon[ClassTag[EC]] match
+      case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
+      case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
+      case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
+      case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
+      case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
+      case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
 
-      val result = summon[ClassTag[EC]] match
-        case c if c == classTag[MemoryCreator] => summon[DbCodec[Memory]]
-        case c if c == classTag[MediaCreator] => summon[DbCodec[Media]]
-        case c if c == classTag[DiskCreator] => summon[DbCodec[Disk]]
-        case c if c == classTag[InfoCreator] => summon[DbCodec[Info]]
-        case c if c == classTag[WipingCreator] => summon[DbCodec[Wiping]]
-        case c if c == classTag[HLEntityCreatorWithHardDiskID] => summon[DbCodec[Wiping]]
-      result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
+
+    result.asInstanceOf[DbCodec[EntityFromEC[EC]]]
   end getDbCodec
 
 
   def testConnection(): Boolean =
     dataSource.getConnection.isValid(1)
-  
 
 
-  def transact[T](connection: DataSource)(f: DbTx ?=> T): T =
-    magTransact(connection)(f)
-
+  def transact[T](connection: DataSource)(f: DbTx ?=> T): Try[T] =
+    Try(magTransact(connection)(f))
 
 
   /**
@@ -113,44 +114,73 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
     transact(ds):
       val result = repos.infoRepo.findItsaIdBySerialNumber(serial)
       result
+    .unwrapSafe
 
 
   def insertOrUpdate[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): Unit =
     val repo = getRepo[EC, E](creator)
     transact(dataSource):
-      repo.insertOrUpdate(creator)(using summon[DbCon])
+      repo.insertOrUpdate(creator)
 
   def doesDriveExists(creator: DiskCreator): Boolean =
     transact(dataSource):
       repos.diskRepo.sameDriveWithSerialNumber(creator.serial) match
         case Nil => false
         case _ => true
+    .toOption ?? false
 
 
   def findAllByIdStartingWith[EC <: ItsaEC : ClassTag](id: String): Option[Seq[EntityFromEC[EC]]] =
     transact(dataSource):
       val repo = getRepo[EC, EntityFromEC[EC]]
       repo.findAllByIdsStartingWith(id)
+    .toOptionFlat ?? None
+    
+    
+    
+
+
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
     transact(dataSource):
-      val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
-      val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id) ?? Seq.empty[EntityFromEC[EC]]
-      val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
-      if numberOfErrorRows > 0 then
-        val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
-        val newIDs = errorIndices.map: index =>
-          s"${if id(id.length - 2) == '.' then id else s"$id.0"}-E$index"
-        val oldToNew = nonErrorRows.map(_.id).zip(newIDs)
-        oldToNew.foreach: item =>
-          getRepo.replaceIDByPrimaryKey(item._1, item._2)
+      if id == null || id.isEmpty then
+        ()
+      else
+        val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
+        val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id) ?? Seq.empty[EntityFromEC[EC]]
+        val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
+        if numberOfErrorRows > 0 then
+          val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
+          val newIDs = errorIndices.map: index =>
+            s"${if id(id.length - 2) == '.' then id else s"$id.0"}-E$index"
+          val oldToNew = nonErrorRows.map(_.id).zip(newIDs)
+          oldToNew.foreach: item =>
+            getRepo.replaceIDByPrimaryKey(item._1, item._2)
+        end if
+      end if
   end markAllRowsWithIDAsError
+
+  def markAllRowsMatchingRecordsWithIDAsError[EC <: ItsaEC : ClassTag](ecs: EC*): Unit =
+    transact(dataSource):
+      ecs.foreach:
+        case ecID: &[HLEntityCreator, ItsaIDOfSomeKind] => markAllRowsWithIDAsError(ecID.getItsaID)
 
 
   def addWipingRecords(disks: WipingCreator*): Unit =
+    val newDisks =
+      val noIDDrives = disks.filter(d => d.hddID.isEmpty || d.hddID == "NOT LOGGED")
+      if noIDDrives.size >= 2 then
+        val first = noIDDrives.drop(1).head
+        val mappedDisks = (0 until disks.size).map: i =>
+          noIDDrives(i).copy(hddID = noIDDrives(i).hddID + letters(i))
+        Seq(first) ++ mappedDisks
+      else
+        disks
+    end newDisks
     transact(dataSource):
-      repos.wipingRepo.insertAll(disks.iterator.to(Iterable))
+      markAllRowsMatchingRecordsWithIDAsError(newDisks *)
+      repos.wipingRepo.insertAll(newDisks.iterator.to(Iterable))
 
 
   def findWipingRecord(serial: String): Option[Wiping] =
@@ -158,10 +188,9 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
 
     given wipingCreatorCT: ClassTag[WipingCreator] = classTag[WipingCreator]
 
-    val result  = transact(dataSource):
+    transact(dataSource):
       repos.wipingRepo.findWipingRecord(serial)
-
-    result
+    .toOptionFlat
   end findWipingRecord
 
   /**
@@ -185,6 +214,7 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
   def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
     transact(dataSource):
       getRepo.findAllByID(id)(using summon[DbCon], getDbCodec).headOption
+    .toOptionFlat
 
   def close(): Unit = if !connection.isClosed && connection.isValid(1) then connection.close()
 end HLDatabase
@@ -204,15 +234,11 @@ object HLDatabase:
       DataSourceLoader(configFile) match
         case Result.Success(value) =>
           val db = new HLDatabase(configFile, value)
-          if testConnection && db.testConnection() then
-            db
-          else
-            Result.error(Error.ConnectionError)
+          db
         case org.itsadigitaltrust.common.Result.Error(_) =>
-//          else
-            Result.error(Error.ConnectionError)
-//        case org.itsadigitaltrust.common.Result.Error(error) => Result.error(Error.LoaderError(error))
-
+          //          else
+          Result.error(Error.ConnectionError)
+  //        case org.itsadigitaltrust.common.Result.Error(error) => Result.error(Error.LoaderError(error))
 
 
 end HLDatabase

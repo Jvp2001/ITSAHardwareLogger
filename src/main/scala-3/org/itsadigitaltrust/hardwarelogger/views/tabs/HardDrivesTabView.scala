@@ -45,6 +45,7 @@ class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewMo
   private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
     cellValue.driveTypeProperty
 
+  
 end HardDriveTableView
 
 

@@ -26,6 +26,8 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
 
   private val titleProperty: StringProperty = StringProperty("Hardware Logger")
 
+  System.setProperty("javafx.preloader", classOf[HardwareLoggerSplashScreen].getName)
+
   def setProgramMode(): Unit =
     ProgramMode.mode =
       if parameters.raw.map(_.toLowerCase).contains("--harddrive") then "HardDrive"
@@ -33,7 +35,9 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
 
   end setProgramMode
 
+
   override def start(): Unit =
+    notificationCentre.post(NotificationName.Reload)
     setProgramMode()
     Thread.setDefaultUncaughtExceptionHandler(HardwareLoggerDefaultUncaughtExceptionHandler())
 
@@ -43,15 +47,12 @@ object HardwareLoggerApplication extends JFXApp3, ServicesModule, ProgramModeCha
 
       title <==> titleProperty
       scene = new Scene:
-
         root = new HardwareLoggerRootView
-        //            menuBar.useSystemMenuBar =  true
-//        onKeyPressed = (event: KeyEvent) =>
-//          val code = event.code
-//          if code == KeyCode.F5 then
-//            notificationCentre.post(NotificationName.Reload)
+        onKeyPressed = (event: KeyEvent) =>
+          val code = event.code
+          if code == KeyCode.F5 then
+            notificationCentre.post(NotificationName.Reload)
       show()
-
   end start
 
   override def stopApp(): Unit =

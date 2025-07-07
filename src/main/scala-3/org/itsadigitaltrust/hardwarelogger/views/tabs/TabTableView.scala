@@ -42,7 +42,7 @@ private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelega
     if empty || item == null then
       setGraphic(null)
     else if rowDelegate.isDefined then
-      rowDelegate.get.onUpdateItem(Option(item))
+      rowDelegate.get.onUpdateItem(Option(item), this)
   end updateItem
 
   setOnMouseClicked: event =>
@@ -53,16 +53,17 @@ private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelega
 
   override def updateSelected(b: Boolean): Unit =
     super.updateSelected(b)
-    if rowDelegate.isDefined then
-      val item = Option(getItem)
-      rowDelegate.get.onSelected(item)
+
+    val item = Option(getItem)
+    if item.isDefined then
+      if rowDelegate.isDefined then
+        rowDelegate.get.onSelected(item)
   end updateSelected
 end TableTabRow
 
-abstract class TabTableView[M, T <: TableRowViewModel[M]](using viewModel: TabTableViewModel[M, T], itsaID: String) extends TableView[T]:
+abstract class TabTableView[M, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T], itsaID: String) extends TableView[T]:
 
-  val vm: TabTableViewModel[M, T] = viewModel
-  def getViewModel = viewModel
+  given viewModel: TabTableViewModel[M, T] = vm
   val rowDelegate: Option[TableRowDelegate[T]] = None
   val showHandCursorOnHover: Boolean = false
   val reordableColumns: Boolean = false

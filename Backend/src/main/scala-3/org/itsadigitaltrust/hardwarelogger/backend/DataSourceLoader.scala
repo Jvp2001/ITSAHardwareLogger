@@ -38,6 +38,7 @@ class DataSourceLoader private:
       val unit7Address: String
       val unit9Address: String
       val localAddress: String
+      val timeout: Int
     }
   extension (props: DBProperties)
     def isValid: Boolean =
@@ -79,12 +80,13 @@ class DataSourceLoader private:
             val username = props("db.username", "")
             val port = props("db.port", "3306").toInt
             val password = props("db.password", "")
-            val maxReconnects = props("db.maxReconnects", "10").toInt
+            val maxReconnects = props("db.maxReconnects", "2").toInt
             val autoReconnect = props("db.autoReconnect", "true").toBoolean
             val serverTimeZone = props("db.serveTimeZone", "UTC")
             val unit7Address = props("db.unit7.address", "")
             val unit9Address = props("db.unit9.address", "")
             val localAddress = props("db.local.address", "")
+            val timeout = props("db.timeout", "1").toInt
           end dict
           dbProperties = Option(dict.asInstanceOf[DBProperties])
         end if
@@ -102,6 +104,7 @@ class DataSourceLoader private:
         ds.setMaxReconnects(props.maxReconnects)
         ds.setServerTimezone(props.serverTimeZone)
         ds.setAutoReconnect(props.autoReconnect)
+        ds.setConnectTimeout(props.timeout)
         Result.success(ds)
     end result
 

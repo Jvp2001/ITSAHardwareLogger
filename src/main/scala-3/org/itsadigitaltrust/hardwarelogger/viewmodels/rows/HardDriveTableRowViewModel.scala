@@ -22,7 +22,7 @@ final case class HardDriveTableRowViewModel(model: HardDriveModel)(using itsaID:
     wrapper.field("Performance", _.performance.toString, "100%")(StringProperty.apply)
     
   def sizeProperty: StringProperty =
-    wrapper.field("Size", _.size.toSize(DataSizeUnit.GB).dbString, "0 GB")(StringProperty.apply)
+    wrapper.field("Size", _.size.toSize(DataSizeUnit.GB).dbString.replace(".", ""), "0 GB")(StringProperty.apply)
     
   def modelProperty: StringProperty =
     wrapper.field("model", _.model, "")(StringProperty.apply)

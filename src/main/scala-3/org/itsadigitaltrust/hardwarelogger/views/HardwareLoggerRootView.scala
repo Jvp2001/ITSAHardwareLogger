@@ -23,8 +23,6 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
 
 
-
-
   notificationCentre.addObserver(this)
 
 
@@ -32,24 +30,23 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
   //Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
 
 
-
   private given consoleView: ItsaDebugView = new ItsaDebugView(using viewModel.issueReporterService)
 
   private val viewMenu = new Menu("_View"):
-      private val modeMenu = new Menu("Mode"):
-        items ++= Seq(
-          new CheckMenuItem("Normal"):
-            onAction = _ => ProgramMode.mode = "Normal"
-            selected <==> ProgramMode.isModeNormal
-          ,
-          new CheckMenuItem("HardDrive"):
-            onAction = _ =>
-              ProgramMode.mode = "HardDrive"
-              selected <==> ProgramMode.isHardDriveMode
-          ,
-        )
-      end modeMenu
-      items += modeMenu
+    private val modeMenu = new Menu("Mode"):
+      items ++= Seq(
+        new CheckMenuItem("Normal"):
+          onAction = _ => ProgramMode.mode = "Normal"
+          selected <==> ProgramMode.isModeNormal
+        ,
+        new CheckMenuItem("HardDrive"):
+          onAction = _ =>
+            ProgramMode.mode = "HardDrive"
+            selected <==> ProgramMode.isHardDriveMode
+        ,
+      )
+    end modeMenu
+    items += modeMenu
 
   end viewMenu
   private val menuBar = new MenuBar:
@@ -65,7 +62,6 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
       helpMenu
     )
   end menuBar
-
 
 
   top = menuBar
@@ -118,7 +114,6 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     vgrow = Always
 
 
-
   private val reconnectButton = new Button:
     text = "Reconnect"
     onAction = _ => viewModel.reconnect()
@@ -156,11 +151,6 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     children ++= Seq(buttonsContainer, tabPane)
 
 
-
-
-
-
-
   private def createTab(title: String, rootContent: Node): Tab =
     val tab: Tab = new Tab:
 
@@ -186,12 +176,15 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
   given itsaID: String = viewModel.idStringProperty.get
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
+    val generalInfoTabView = new GeneralInfoTabView
+    val processorTabView = new ProcessorTabView
+    val memoryTabView = new MemoryTabView
     val hardDrivesTabView = new HardDrivesTabView
-
+    val mediaTabView = new MediaTabView
     mode match
       case "HardDrive" =>
         tabPane.tabs = Seq(
-          createTab("HDD", new HardDrivesTabView(using viewModel.idStringProperty.get))
+          createTab("HDD", hardDrivesTabView)
         )
         ProgramMode.isHardDriveMode.value = true
         ProgramMode.isModeNormal.value = false
@@ -201,11 +194,11 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
 
 
         tabPane.tabs = Seq(
-          createTab(" General", new GeneralInfoTabView),
-          createTab("Memory", new MemoryTabView),
-          createTab("Processor", new ProcessorTabView),
+          createTab("General", generalInfoTabView),
+          createTab("Memory", memoryTabView),
+          createTab("Processor", processorTabView),
           createTab("HDD", hardDrivesTabView),
-          createTab("Media", new MediaTabView)
+          createTab("Media", mediaTabView)
         )
         ProgramMode.isHardDriveMode.value = false
         ProgramMode.isModeNormal.value = true
@@ -215,16 +208,38 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     /** The code below is a hacky workaround to get the HDD tab's [[HardDrivesTabView]] table to display its data properly.
      * This is hacky because this should not be needed to get the table view to display its data;
      * also, I am dropping back down to using JavaFX, instead of staying in the ScalaFX universe. */
-    val changeListener: ChangeListener[control.Tab] = (_: ObservableValue[? <: control.Tab], oldValue: control.Tab, newValue: control.Tab) =>
-      if newValue.textProperty().get().equalsIgnoreCase("HDD") then
-        hardDrivesTabView.viewModel.reload()
+    val changeListener: ChangeListener[control.Tab] = (tab: ObservableValue[? <: control.Tab], oldValue: control.Tab, newValue: control.Tab) =>
+      val t =
+        if newValue == null then
+          if oldValue eq null then
+            if tab.value eq null then
+              tab.value
+            else null
+          else oldValue
+        else newValue
+      end t
+      if t != null then
+        val name = t.textProperty().get().toLowerCase
+        name match
+          case "hdd" =>
+            hardDrivesTabView.viewModel.reload()
+          case "general info" =>
+            generalInfoTabView.viewModel.reload()
+          case "processor" =>
+            processorTabView.viewModel.reload()
+          case "memory" =>
+            memoryTabView.viewModel.reload()
+          case "media" =>
+            mediaTabView.viewModel.reload()
+          case _ => ()
+
+
     tabPane.selectionModel.value.selectedItemProperty().addListener(changeListener)
   end onProgramModeChanged
-  
+
   viewModel.shouldCaretBeAtEnd.onChange: (op, oldValue, newValue) =>
     if newValue then
       idTextField.end()
-
 
 
 end HardwareLoggerRootView

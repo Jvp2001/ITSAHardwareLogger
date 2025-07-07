@@ -1,10 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
-import org.itsadigitaltrust.common.OSUtils
-import org.itsadigitaltrust.common.Operators.??
+import org.itsadigitaltrust.common.{NetworkUtils, OSUtils}
+import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
-import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk}
+import org.itsadigitaltrust.common.processes.lshw.types.CdRom
+import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk, lshw}
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.common.types.FrequencyUnit
@@ -65,7 +66,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
           <Daily_Maximum>40 �C</Daily_Maximum>
           <Power_on_time>1593 days, 6 hours</Power_on_time>
           <Estimated_remaining_lifetime>200 days</Estimated_remaining_lifetime>
-          <Health>93 %</Health>
+          <Health>49%</Health>
           <Performance>100 %</Performance>
           <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found. The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s): #177 Wear Leveling Count</Description>
           <Tip>No actions needed.</Tip>
@@ -129,6 +130,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
     val lsblk = Lsblk()
 
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
+
       val driveId = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber)
       val serialId = findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber)
       val id = (driveId, serialId) match
@@ -142,8 +144,8 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
           if rota then "HDD" else "SSD"
         else "SSD"
 
-      val totalSize = hardDiskSummary.totalSize.split(" ")(0).toDoubleOption ?? 0D
-      val size = totalSize / 1e3D
+      val totalSize = hardDiskSummary.totalSize.split(" ")(0).toLongOption ?? 0L
+      val size = totalSize / 1000
       val dataSize = DataSize(size, DataSizeUnit.GB)
       System.out.println(s"Drive size: ${dataSize.dbString}")
       val drive = HardDriveModel(
@@ -194,7 +196,11 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
 
   override def loadMedia(): Unit =
-    ()
+    val cds = org.itsadigitaltrust.common.processes.Lshw.readDisks()
+    def toModel(cd: CdRom): MediaModel = MediaModel(cd.description, cd.handle)
+    media = cds.map(_.map(_ |> toModel)) ?? Seq()
+
+
 
 end OshiHardwareGrabberService
 
@@ -206,14 +212,19 @@ object OshiHardwareGrabberApplicationService extends ServicesModule, OshiHardwar
 
   override protected def findDriveIdBySerialNumber(serial: String): Option[String] =
     var string = Option("")
-    if ProgramMode.isInNormalMode then
+
+
+    if ProgramMode.isInNormalMode && NetworkUtils.isConnected then
       string = databaseService.findItsaIdBySerialNumber(serial)
     else
-      string = Option(databaseService.findWipingRecord(serial).get.itsaID)
+      string = Option(databaseService.findWipingRecord(serial).map(_.itsaID) ?? null)
     string
 
   override protected def findGeneralInfoByPCSerialNumber(serial: String): Option[String] =
-    databaseService.findItsaIdBySerialNumber(serial)
+    if !NetworkUtils.isConnected then
+      None
+    else
+      databaseService.findItsaIdBySerialNumber(serial)
 
 
   override def load()(finished: () => Unit = () => ()): Unit =

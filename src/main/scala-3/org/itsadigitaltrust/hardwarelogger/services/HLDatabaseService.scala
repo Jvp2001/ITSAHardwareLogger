@@ -56,7 +56,7 @@ trait HLDatabaseService:
 
   def findWipingRecord(serial: String): Option[Disk]
 
-  def addWipingRecords(drives: HardDriveModel*): Unit
+  def addWipingRecords(using itsaID: String)(drives: HardDriveModel*): Unit
 
   def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit
 
@@ -74,7 +74,6 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   protected def db: Option[HLDatabase] = revalidateDB()
 
   private val minAmountOfTransactions = 4
-
   override lazy val dbPropertiesFile: String =
     getClass.getResourceAsStream("db.properties").readAllAsString()
 
@@ -82,7 +81,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
 
 
-  
+
   /**
    * Can be used to mark a new version of the program.
    */
@@ -102,7 +101,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
           Result.Success(())
         case Result.Error(reason) =>
           Result.error(reason)
-        
+
 
 
   override final def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
@@ -124,7 +123,6 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
 
   override def findWipingRecord(serial: String): Option[Disk] =
-      revalidateDB()
       val disk =
         val database = db.get
         val foundRecord = database.findWipingRecord(serial)
@@ -142,11 +140,13 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     database = database ?? HLDatabase(dbPropertiesFile).toOption
     database
 
-  def addWipingRecords(drives: HardDriveModel*): Unit =
-    val disks = drives.map(createWiping)
-    revalidateDB()
+  def addWipingRecords(using itsaID: String)(drives: HardDriveModel*): Unit =
 
-    HLTaskRunner("Adding Wiping Records", Seq(() => db.get.addWipingRecords(disks *)) *)(HLDatabaseTransactionTask.apply)()
+
+    val updatedDrives = drives.map: drive =>
+      drive.copy(itsaID = drive.itsaID ?? itsaID)
+
+    HLTaskRunner("Adding Wiping Records", Seq(() => db.get.addWipingRecords(updatedDrives.map(createWiping) *)) *)(HLDatabaseTransactionTask.apply)()
 
 
   given [U]: Conversion[U, Option[U]] with
@@ -198,9 +198,6 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
   end generateTaskFunctions
 
-
-  //Q: What scala type represents this: () => Unit?
-  //
 
 
 
@@ -324,7 +321,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
       description = model.connectionType.toString, health = model.health.toByte, formFactor = "")
   end createWiping
-  
+
   private def createMedia(media: MediaModel, itsaID: String): MediaCreator =
     MediaCreator(itsaID, media.description, media.handle)
 end CommonHLDatabase

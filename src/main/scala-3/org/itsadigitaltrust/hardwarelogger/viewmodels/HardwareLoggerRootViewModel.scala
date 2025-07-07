@@ -34,6 +34,7 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
   private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
 
+  given itsaID: String = idStringProperty.value
 
   hardwareIDValidationService.validate(idStringProperty.get)
   idStringProperty.onChange: (observable, oldValue, newValue) =>

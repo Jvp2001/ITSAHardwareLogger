@@ -44,10 +44,18 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
-      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main" />
+      <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select * from info;
+select * from wiping where hdd_id is like '85977.%';]]></console>
     </connection>
     <connection id="cc392073-c906-4319-a766-6683de9c4037">
-      <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from hwlogger.disks where serial = 'S13TJ1CQ404992';]]></console>
+      <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from info;
+select * from wiping where hdd_id like '85977.%';
+
+
+--DatabaseTransactionTask: ERROR: Error executing query:
+--INSERT INTO wiping (hdd_id, serial, model, insertiondate, capicty, type, descr, health, to_update, is_ssd, form_factor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+--With message:
+--java.sql.BatchUpdateException: Duplicate entry '' for key 'wiping.idx_wiping_unique_hdd_id']]></console>
     </connection>
     <connection id="ba269de5-3e99-4e6d-9901-2998b359418f">
       <console name="Connection" type="STANDARD" schema="postgres" session="Main" />
@@ -82,11 +90,11 @@
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_media.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
-    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
     <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_u9totals.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_info.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_memory.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
+    <mapping file-url="file://$PROJECT_DIR$/Backend/src/main/resources/sql/itsa/itsahw_wiping.sql" connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" session-id="MAIN" current-schema="itsahw" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />
@@ -232,7 +240,7 @@
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="itsa@10.0.1.113" />
+          <session-user value="itsa@MACBOOKPRO-2D5D" />
         </database>
         <properties>
           <auto-commit value="false" />

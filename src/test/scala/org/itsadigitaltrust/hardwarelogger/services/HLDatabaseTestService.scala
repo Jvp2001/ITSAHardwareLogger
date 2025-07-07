@@ -10,7 +10,7 @@ import java.time.OffsetDateTime
 
 
 object HLDatabaseTestService extends CommonHLDatabase[HardwareLoggerTask]:
-  override def addWipingRecords(drives: HardDriveModel*): Unit =
+  override def addWipingRecords(using itsaID: String) (drives: HardDriveModel*): Unit =
     val records = drives.zipWithIndex.map: (drive, index) =>
       WipingCreator(hddID = s"NO ID${index + 1}", serial = drive.serial, model = drive.model, insertionDate = OffsetDateTime.now, capacity = drive.size.toString, `type` = drive.`type`, description = "", health = drive.health.toByte, toUpdate = true , isSsd = true, formFactor = None)
 

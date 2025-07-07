@@ -3,6 +3,7 @@ package org.itsadigitaltrust.common
 import scala.collection.generic.{IsMap, IsSeq}
 import scala.collection.mutable
 import scala.reflect.ClassTag
+import scala.util.Try
 import scala.util.chaining.scalaUtilChainingOps
 
 
@@ -21,18 +22,31 @@ object Operators:
       !seq.contains(item)
   end extension
 
-  extension[T : ClassTag ](option: Option[T] | T)
+  extension[T : ClassTag ](option: Option[T] | T | Try[T] | Try[Option[T]])
     infix def ??(default: T): T =
       option match
         case opt:Option[T] => opt.getOrElse(default)
         case t:T => if t == null then default else t
+        case t:Try[Option[T]] => t.getOrElse(Option(default)).getOrElse(default)
+        case t: Try[T] => t.getOrElse(default)
 
     infix def ??(other: Option[T]): Option[T] =
       option match
         case opt: Option[T] => opt.orElse(other)
-        case t: T => if t == null then other else Some(t)
-
+        case t: T => other.orElse(Option(t))
+        case t: Try[Option[T]] => t.getOrElse(other)
+        case t: Try[T] => t.toOption.orElse(other)
   end extension
+
+  extension(s: String)
+    infix def ??(other: String): String =
+      if s == null || s.isBlank then
+        other
+      else
+        s
+    end ??
+  end extension
+
   extension[A](a: A)
     def |>[B](f: A => B): B =
       a.pipe(f)

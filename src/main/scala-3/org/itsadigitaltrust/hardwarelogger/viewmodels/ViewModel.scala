@@ -16,6 +16,7 @@ trait TableRowViewModel[M](model: M)(using itsaID: String) extends ViewModel, Se
   protected val wrapper: ModelWrapper[M] = ModelWrapper(model)
   protected val modeToSaveIn: ProgramMode | "both" = "Normal"
 
+  notificationCentre.addObserver(this)
 
   override def onReceivedNotification(message: Message): Unit =
     if message.name == NotificationName.Save then

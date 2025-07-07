@@ -1,9 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
-import org.itsadigitaltrust.common.Operators.{??, in}
+import org.itsadigitaltrust.common.Operators.{??, in, notIn}
 import org.itsadigitaltrust.common.Result
 
 import scala.annotation.tailrec
+import scala.collection.immutable.Seq as :++
 import scala.compiletime.uninitialized
 import scala.util.boundary
 
@@ -36,8 +37,7 @@ class IDScanner(input: String, hdMode: Boolean = false):
 
   import IDScanner.*
 
-  private final val pcPrefixLetters = Seq('k', 'l')
-  private final val hdPrefixLetters = pcPrefixLetters :++ Seq('h')
+
   private lazy val prefixLetters = if hdMode then hdPrefixLetters else pcPrefixLetters
 
 
@@ -63,10 +63,10 @@ class IDScanner(input: String, hdMode: Boolean = false):
         Token.End
       else chars.peek() match
         case c: Char if c.isLetter =>
-          if location == 0 && !prefixLetters.contains(c.toLower) then
-            error(s"Invalid character $c")
-          else
-            readLetter(Token.Letter.apply)
+//          if location == 0 && !prefixLetters.contains(c.toLower) then
+//            error(s"Invalid character $c")
+//          else
+          readLetter(Token.Letter.apply)
         case c if c.isDigit => readNumber()
         case c if c == '.' => accept('.', Token.DecimalPoint)
         case c => error(s"Unknown character: $c!")
@@ -111,7 +111,8 @@ class IDScanner(input: String, hdMode: Boolean = false):
 end IDScanner
 
 object IDScanner:
-
+  final val pcPrefixLetters = Seq('k', 'l')
+  final val hdPrefixLetters = pcPrefixLetters :++ Seq('h')
   enum Token:
     case Letter(value: String)
     case Number(value: String)
@@ -150,7 +151,13 @@ final class IDParser:
     val token: Token = tokens(index)
     if index == 0 then
       token match
-        case Token.Letter(value) => handleTokens(tokens, index + 1, ParsedResult(Some(value), result.number, result.decimal, result.checkDigit, result.suffix))
+        case Token.Letter(value) =>
+          if value notIn IDScanner.hdPrefixLetters then
+            val validChars = IDScanner.hdPrefixLetters.map(_.toUpper).mkString(", ")
+            val validStr = validChars.replace("L, ", "L or ")
+            error(ParserError.InvalidCharacter(validStr, value))
+          else
+            handleTokens(tokens, index + 1, ParsedResult(Some(value), result.number, result.decimal, result.checkDigit, result.suffix))
         case Token.Number(value) => handleTokens(tokens, index + 1, ParsedResult(result.prefix, Some(value), result.decimal, result.checkDigit, result.suffix))
         case Token.DecimalPoint => error(ParserError.MissingNumber)
         case Token.End => result
@@ -221,7 +228,7 @@ object IDParser:
         case MissingCheckDigit => "ID is missing the check digit"
         case TooLongCheckDigit => "The check digit should be a single digit"
         case TooManyDecimalPoints => "You must only have one decimal point in the ID."
-        case InvalidCharacter(expected, got) => s"Expected $expected, but got $got   instead."
+        case InvalidCharacter(expected, got) => s"Expected $expected, but got $got instead."
         case ScannerError(msg, at) => s"Scanner error: $msg at location $at."
   end ParserError
 

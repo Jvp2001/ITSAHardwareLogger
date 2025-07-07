@@ -19,3 +19,5 @@ final class MemoryTableRowViewModel(model: MemoryModel)(using itsaID: String) ex
 
   def typeProperty: StringProperty =
     wrapper.field("type", _.`type`,"")(StringProperty.apply)
+    
+  

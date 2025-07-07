@@ -5,7 +5,7 @@ import org.itsadigitaltrust.common.types.FrequencyType.{Frequency, FrequencyUnit
 
 import java.io.InputStream
 import java.net.URI
-import scala.annotation.targetName
+import scala.annotation.{tailrec, targetName}
 import scala.reflect.{ClassTag, classTag}
 import scala.util.{Try, Using}
 
@@ -75,3 +75,18 @@ object InputStreamExtensions:
 end InputStreamExtensions
 
 export InputStreamExtensions.*
+
+
+object TryExtensions:
+  extension[T](`try`: Try[Option[T]])
+    def unwrapSafe: Option[T] =
+      `try`.getOrElse(None)
+
+    def toOptionFlat: Option[T] =
+      `try`.toOption.flatten
+  end extension
+
+end TryExtensions
+
+
+export TryExtensions.*
