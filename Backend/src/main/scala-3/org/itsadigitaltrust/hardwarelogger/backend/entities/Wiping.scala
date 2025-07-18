@@ -36,3 +36,18 @@ final case class WipingCreator(
                               ) extends HLEntityCreatorWithHardDiskID derives DbCodec
 
 
+object WipingCreator:
+  def apply(wiping: Wiping): WipingCreator =
+    WipingCreator(
+      wiping.hddID,
+      wiping.serial,
+      wiping.model,
+      wiping.insertionDate,
+      wiping.capacity,
+      wiping.`type`,
+      wiping.description,
+      wiping.health,
+      wiping.toUpdate,
+      wiping.isSsd,
+      wiping.formFactor
+    )

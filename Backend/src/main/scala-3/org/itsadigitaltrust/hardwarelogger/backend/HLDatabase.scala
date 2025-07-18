@@ -1,32 +1,24 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
-import types.*
-import entities.*
-import javax.sql.DataSource
-import com.augustnagro.magnum
-import com.augustnagro.magnum.{DbCodec, DbCon, DbTx, SqlException, Transactor, transact as magTransact}
-import com.mysql.cj.MysqlConnection
-import com.mysql.cj.jdbc.{ConnectionImpl, MysqlDataSource}
-import org.itsadigitaltrust.common
-import common.*
+import org.itsadigitaltrust.common.*
 import org.itsadigitaltrust.common.Operators.??
+import org.itsadigitaltrust.common.logging.HWLLoggable
 
+import org.itsadigitaltrust.hardwarelogger.backend
 import org.itsadigitaltrust.hardwarelogger.backend.backend.*
-import org.itsadigitaltrust.hardwarelogger.backend.entities.{Wiping, WipingCreator}
+import org.itsadigitaltrust.hardwarelogger.backend.entities.ItsaIDOfSomeKind
 
-import java.io.InputStream
-import java.net.{URI, URL}
-import java.sql.Connection
-import scala.compiletime.{summonInline, uninitialized}
-import scala.concurrent.Future
-import scala.reflect
+import com.augustnagro.magnum.{DbCodec, DbCon, DbTx, transact as magTransact}
+import org.itsadigitaltrust.common
+
+import javax.sql.DataSource
+import scala.collection.mutable
+import scala.compiletime.summonInline
 import scala.reflect.{ClassTag, classTag}
 import scala.util.Try
 
+class HLDatabase private(private val configFile: Try[String], private val dataSourceLoader: DataSourceLoader) extends HWLLoggable:
 
-class HLDatabase private(private val configFile: Try[String], private val dataSourceLoader: DataSourceLoader):
-
-  import HLDatabase.Error
   import tables.given
 
 
@@ -39,19 +31,24 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
 
   private lazy val connection = new net.sf.log4jdbc.ConnectionSpy(dataSource.getConnection)
   private lazy val letters = 'A' to 'Z'
+  private final val lettersInTheAlphabet = 26
 
-  private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] = getTableInfo[EC, E]
+  private given table: [EC <: HLEntityCreator : ClassTag, E <: EntityFromEC[EC]] => HLTableInfo[EC, E] =
+    logger.info(s"Table Info: ${getTableInfo[EC, E]}")
+    getTableInfo[EC, E]
 
   private given dbCodec: [EC <: ItsaEC : ClassTag] => DbCodecFromEC[EC] = getDbCodec[EC]
 
 
   private inline def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
-    val result = summon[ClassTag[EC]] match
+    logger.info(s"Class Tag: ${summonInline[ClassTag[EC]]}")
+    val result = summonInline[ClassTag[EC]] match
       case c if c == classTag[MemoryCreator] => tables.memoryTable
       case c if c == classTag[MediaCreator] => tables.mediaTable
       case c if c == classTag[DiskCreator] => tables.diskTable
       case c if c == classTag[InfoCreator] => tables.infoTable
       case c if c == classTag[WipingCreator] => tables.wipingTable
+      case _ => throw new IllegalArgumentException(s"Unknown entity creator class: ${summonInline[ClassTag[EC]]}")
     result.asInstanceOf[HLTableInfo[EC, E]]
 
 
@@ -133,22 +130,18 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
   def findAllByIdStartingWith[EC <: ItsaEC : ClassTag](id: String): Option[Seq[EntityFromEC[EC]]] =
     transact(dataSource):
       val repo = getRepo[EC, EntityFromEC[EC]]
-      repo.findAllByIdsStartingWith(id)
-    .toOptionFlat ?? None
-    
-    
-    
-
-
+      repo.findAllByIDStartingWith(id)
+    .toOptionFlat
 
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
     transact(dataSource):
+      logger.info(s"Marking rows with id: $id as error!")
       if id == null || id.isEmpty then
         ()
       else
         val nonErrorRows: Seq[EntityFromEC[EC]] = getRepo.findAllByID(id)
-        val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIdsStartingWith(id) ?? Seq.empty[EntityFromEC[EC]]
+        val allRows: Seq[EntityFromEC[EC]] = getRepo.findAllByIDStartingWith(id) ?? Seq.empty[EntityFromEC[EC]]
         val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
         if numberOfErrorRows > 0 then
           val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
@@ -168,19 +161,98 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
 
 
   def addWipingRecords(disks: WipingCreator*): Unit =
-    val newDisks =
-      val noIDDrives = disks.filter(d => d.hddID.isEmpty || d.hddID == "NOT LOGGED")
-      if noIDDrives.size >= 2 then
-        val first = noIDDrives.drop(1).head
-        val mappedDisks = (0 until disks.size).map: i =>
-          noIDDrives(i).copy(hddID = noIDDrives(i).hddID + letters(i))
-        Seq(first) ++ mappedDisks
+    given table: HLTableInfo[WipingCreator, Wiping] = tables.wipingTable
+    given ct: ClassTag[WipingCreator] = classTag[WipingCreator]
+    // This supports up to 702 drives with the same ID prefix, e.g. "HDD1234A", "HDD1234B", ..., "HDD1234ZZ"
+    def getSuffix(start: Int, current: Int): String =
+      val index = start + current
+      if index > lettersInTheAlphabet then
+        val times = index / lettersInTheAlphabet
+        letters(times - 1).toString + letters(index % lettersInTheAlphabet)
+
       else
-        disks
+        letters(index).toString
+    end getSuffix
+
+    logger.info(s"Wiping disks: $disks")
+    val foundDrives: Seq[Wiping] = findAllByIdStartingWith(disks.head.hddID) ?? Seq.empty[Wiping]
+    val suffixStartIndex = if foundDrives.size > 1 then foundDrives.size else 0
+    val newDisks: Seq[WipingCreator] =
+      if suffixStartIndex > 0 then
+        logger.info(s"Found ${foundDrives.size} drives with the same ID prefix: ${disks.head.hddID}")
+        disks.indices.map: index =>
+          val suffix = getSuffix(suffixStartIndex, index)
+          disks(index).copy(hddID = disks.head.hddID + suffix)
+
+      else
+        logger.info(s"No drives found with the same ID prefix: ${disks.head.hddID}")
+        disks.indices.map: index =>
+          val suffix = if index == 0 then "" else getSuffix(0, index - 1)
+          disks(index).copy(hddID = disks.head.hddID + suffix)
     end newDisks
+
+
+    // Supports up to ZZ (702 letters) for the hddID prefix
+    //    val newDisks: Seq[WipingCreator] =
+    //      val foundDrives: Seq[WipingCreator] = findAllByIdStartingWith[WipingCreator](disks.head.hddID).map(_.map(WipingCreator.apply)) ?? Seq.empty[WipingCreator]
+    //      val suffixStartIndex = if foundDrives.size > 1 then foundDrives.size else 0
+    //      if foundDrives.size == 0 then
+    //        // If no drives found, we can use the first drive as is
+    //        disks.toSeq
+    //      else if foundDrives.size > lettersInTheAlphabet then
+    //        // If more than 26 drives found, we need to add a prefix
+    //        val times = foundDrives.size / lettersInTheAlphabet
+    //        val prefix = letters(times - 1) + letters(foundDrives.size % lettersInTheAlphabet)
+    //        disks.map(_.copy(hddID = disks.head.hddID + prefix))
+    //      else if foundDrives.size == 1 then
+    //        // If only one drive found, we can use the first drive as is
+    //        disks.map(_.copy(hddID = disks.head.hddID + letters(suffixStartIndex)))
+    //      else
+    //        // If multiple drives found, we need to add a prefix to each drive
+    //        disks.indices.map: index =>
+    //          disks(index).copy(hddID = disks.head.hddID + letters(suffixStartIndex + disks.indexOf(index)))
+    //
+    ////      boundary:
+    //        val allDisks: Seq[WipingCreator] =
+    //          if disks.size == 1 then
+    //            val foundDisks: Seq[WipingCreator] = findAllByIdStartingWith[WipingCreator](disks.head.hddID) match
+    //              case Some(value) => value.map(WipingCreator.apply)
+    //              case None => Seq.empty[WipingCreator]
+    //            if foundDisks.isEmpty then
+    //              if foundDisks.size > lettersInTheAlphabet then
+    //                val times = foundDisks.size / lettersInTheAlphabet
+    //                val prefix = letters(times - 1) + letters(foundDisks.size % lettersInTheAlphabet)
+    //                Seq(disks.head.copy(hddID = disks.head.hddID + prefix))
+    //              else
+    //                Seq(disks.head.copy(hddID = disks.head.hddID + letters(foundDisks.size)))
+    //            else
+    //              disks
+    //          else
+    //            disks
+    //        end allDisks
+    //        if allDisks != disks then
+    //          boundary.break(allDisks)
+
+    //        val noIDDrives = disks.groupBy(_.hddID) //filter(d => d.hddID.isEmpty || d.hddID == "NOT LOGGED")
+    //        noIDDrives.values.flatMap: driveGroup =>
+    //          if driveGroup.size >= 2 then
+    //            val drives = driveGroup.drop(1)
+    //            val first = drives.head
+    //            val mappedDisks = (1 until drives.size).map: index =>
+    //              val i = index - 1 // Start from 0
+    //              val times = if i > 26 then i / lettersInTheAlphabet else 0
+    //              val prefix = if times > 0 then letters(times - 1) + letters(i) else letters(i)
+    //              val newDisk = drives(index).copy(hddID = drives(index).hddID + prefix)
+    //              logger.info(s"New Disk: $newDisk")
+    //              newDisk
+    //            Seq(first) ++ mappedDisks
+    //          else
+    //            disks.toSeq
+    //        .toSeq
     transact(dataSource):
       markAllRowsMatchingRecordsWithIDAsError(newDisks *)
-      repos.wipingRepo.insertAll(newDisks.iterator.to(Iterable))
+      newDisks.foreach(repos.wipingRepo.insert)
+    .get
 
 
   def findWipingRecord(serial: String): Option[Wiping] =
@@ -198,14 +270,13 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
    *
    * @param old   The old ID to be replaced
    * @param `new` The new ID to replace the old one
-   * @tparam EC The type of the entity creator
+   * @tparam EC The type of the {{H
    */
 
   def replaceAllRowsWithID[EC <: ItsaEC : ClassTag](old: String, `new`: String): Unit =
-    given table: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
 
     transact(dataSource):
-      getRepo.replaceIdWith(old, `new`)(using summon[DbCon])
+      getRepo.replaceIdWith(old, `new`)
 
   def findWipingRecordID(serial: String): Option[String] =
     findWipingRecord(serial).map(_.hddID)

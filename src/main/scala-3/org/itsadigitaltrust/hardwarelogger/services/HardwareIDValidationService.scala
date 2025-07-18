@@ -9,7 +9,7 @@ import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.services.IDParser.ParsedResult
 
 
-trait HardwareIDValidationService:
+trait HardwareIDValidationService extends FrontendService:
   import HardwareIDValidationService.*
 
   def validate(input: String): ValidationResult
@@ -31,7 +31,7 @@ object HardwareIDValidationService:
     override def toString: String =
       this match
         case ParserError(error) => error.toString()
-        case IncorrectCheckDigit(expected, got) => s"Not valid ID. Check if the ID is correct on the device."
+        case IncorrectCheckDigit(expected, got) => s"Not a valid ID. Check if the ID is correct on the device."
 
   given Conversion[IDParser.ParserError, ValidationError] with
     override def apply(x: IDParser.ParserError): ValidationError =

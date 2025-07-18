@@ -4,8 +4,8 @@ import com.augustnagro.magnum.Frag
 
 object backend:
   export entities.entities.*
+  export repos.{findAllByID, findAllByIDStartingWith, insertOrUpdate, *}
   export repos.given
-  export repos.*
   export tables.given
   export tables.*
   export types.*

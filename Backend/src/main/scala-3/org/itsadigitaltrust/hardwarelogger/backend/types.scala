@@ -7,32 +7,33 @@ import com.augustnagro.magnum.DbCodec
 import scala.reflect.ClassTag
 
 object types:
-  type ItsaEC = InfoCreator | MemoryCreator | DiskCreator | WipingCreator | MediaCreator | HLEntityCreator
-  type ItsaEntity = Info | Memory | Disk | Media | entities.Wiping | HLEntity
+  type ItsaEC = InfoCreator | MemoryCreator | entities.DiskCreator | WipingCreator | MediaCreator | HLEntityCreator
+  type ItsaEntity = Info | Memory | Disk | entities.Media | entities.Wiping | HLEntity
   type HLTableInfoFromEC[EC <: ItsaEC] = EC match
     case MediaCreator => tables.mediaTable.type
     case InfoCreator => tables.infoTable.type
     case MemoryCreator => tables.memoryTable.type
-    case DiskCreator => tables.diskTable.type
+    case entities.DiskCreator => tables.diskTable.type
     case WipingCreator => tables.wipingTable.type
-    case HLEntityCreatorWithItsaID | HLEntityCreatorWithHardDiskID => Nothing
+    case HLEntityCreatorWithItsaID | HLEntityCreatorWithHardDiskID | HLEntityCreator => Nothing
+    case _ => Nothing
   type EntityFromEC[EC <: ItsaEC] =
     EC match
-      case MediaCreator => Media
+      case MediaCreator => entities.Media
       case InfoCreator => Info
       case MemoryCreator => Memory
-      case DiskCreator => Disk
+      case entities.DiskCreator => Disk
       case WipingCreator => Wiping
       case HLEntityCreator | HLEntityCreatorWithItsaID | HLEntityCreatorWithHardDiskID => Nothing
       case _ => Nothing
   type ECFromEntity[E <: ItsaEntity] =
     E match
-      case Media => MediaCreator
+      case entities.Media => MediaCreator
       case Info => InfoCreator
       case Memory => MemoryCreator
       case Disk => DiskCreator
       case entities.Wiping => WipingCreator
-      case HLEntity => Nothing
+      case HLEntityCreatorWithItsaID | HLEntityCreatorWithHardDiskID | HLEntityCreator => Nothing
       case _ => Nothing
   type EntityClassTagFromEC[EC <: ItsaEC] = ClassTag[EntityFromEC[EC]]
 

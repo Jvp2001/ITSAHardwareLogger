@@ -5,18 +5,21 @@ import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.Save
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
-
 import org.itsadigitaltrust.common.*
 
 import scalafx.beans.property.{BooleanProperty, StringProperty}
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName}
 
 import scalafx.scene.control.TableRow
-import scalafx.scene.input.MouseButton
+import scalafx.scene.input.{KeyCode, MouseButton}
 import scalafx.scene.input.MouseButton.Primary
 
 
+
+
 final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel]:
+  final val unhealthlyDriveClass = "unhealthy-drive"
+
   var moreInfoDisabledProperty: BooleanProperty = BooleanProperty(false)
   val rowDelegate: TableRowDelegate[HardDriveTableRowViewModel] = this
   override def setup(): Unit =
@@ -24,24 +27,16 @@ final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewMod
 
   def setData(): Unit =
     hardwareGrabberService.hardDrives.map(HardDriveTableRowViewModel.apply).foreach: datum =>
-      System.out.println(datum)
+      logger.info(datum.toString)
       data.add(datum)
 
   override def onUpdateItem(row: Option[HardDriveTableRowViewModel], tableRow: TableRow[HardDriveTableRowViewModel]): Unit =
-    val colour = row.map: rowModel =>
+    tableRow.styleClass += row.map: rowModel =>
       rowModel.model.`type` match
-        case "SSD" if rowModel.model.health.toByte < 50 => "tomato"
-        case "HDD" | "HHD" if rowModel.model.health.toByte < 100 => "tomato"
+        case "SSD" if rowModel.model.health.toByte < 50 => unhealthlyDriveClass
+        case "HDD" | "HHD" if rowModel.model.health.toByte < 100 => unhealthlyDriveClass
         case _ => ""
-    .getOrElse("")
-
-    if !colour.isBlank then
-      tableRow.setStyle(s"-fx-background-color: $colour")
-    else
-      tableRow.style = ""
-
-    if row.isEmpty then
-      tableRow.style = ""
+    .get
   end onUpdateItem
 
 
@@ -52,9 +47,15 @@ final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewMod
       case Primary =>
         row.foreach: r =>
           showExtraInfo(r)
+      case _ => ()
+
+  end onRowDoubleClicked
+
+
 
   def showExtraInfo(r: HardDriveTableRowViewModel): Unit =
-    Dialogs.showHardDriveExtraInfoDialog(r.model)
+      Dialogs.showHardDriveExtraInfoDialog(r.model)
+
 
   override def onSelected(selectedRow: Option[HardDriveTableRowViewModel]): Unit =
     moreInfoDisabledProperty.value = selectedRow.isEmpty

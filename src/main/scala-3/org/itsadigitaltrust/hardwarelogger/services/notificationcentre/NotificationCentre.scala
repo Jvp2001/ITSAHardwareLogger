@@ -4,7 +4,7 @@ package org.itsadigitaltrust.hardwarelogger.services.notificationcentre
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.collections.{CaseIterable, Dict}
 
-import org.itsadigitaltrust.hardwarelogger.services.{NotificationCentreModule, notificationcentre}
+import org.itsadigitaltrust.hardwarelogger.services.{FrontendService, NotificationCentreModule, notificationcentre}
 
 import scala.collection.mutable
 
@@ -18,7 +18,7 @@ object NotificationUserInfo:
 
 type NotificationCallback[Message] = (msg: Message) => Unit
 
-trait NotificationCentre[Name] extends AutoCloseable:
+trait NotificationCentre[Name] extends FrontendService with AutoCloseable:
   type Message <: NotificationCentre.Message[Name]
   type Observer = Notifiable[Name]
   type MessageName <: Name

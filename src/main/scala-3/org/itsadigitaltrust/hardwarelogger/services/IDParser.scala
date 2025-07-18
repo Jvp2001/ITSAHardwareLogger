@@ -60,7 +60,7 @@ class IDScanner(input: String, hdMode: Boolean = false):
   private def readToken(): IDScannerResult =
     boundary:
       if chars.atEnd then
-        Token.End
+        boundary.break(Token.End)
       else chars.peek() match
         case c: Char if c.isLetter =>
 //          if location == 0 && !prefixLetters.contains(c.toLower) then
@@ -147,7 +147,7 @@ final class IDParser:
 
     if index == tokens.length then
       return result
-
+    
     val token: Token = tokens(index)
     if index == 0 then
       token match
@@ -157,22 +157,21 @@ final class IDParser:
             val validStr = validChars.replace("L, ", "L or ")
             error(ParserError.InvalidCharacter(validStr, value))
           else
-            handleTokens(tokens, index + 1, ParsedResult(Some(value), result.number, result.decimal, result.checkDigit, result.suffix))
-        case Token.Number(value) => handleTokens(tokens, index + 1, ParsedResult(result.prefix, Some(value), result.decimal, result.checkDigit, result.suffix))
+            handleTokens(tokens, index + 1, result.copy(Some(value)))
+        case Token.Number(value) => handleTokens(tokens, index + 1, result.copy(number = Some(value)))
         case Token.DecimalPoint => error(ParserError.MissingNumber)
         case Token.End => result
         case error@Token.Error(msg, at) => this.error(error)
     else
       token match
-        case Token.Letter(value) if index == tokens.length - 1 =>
-          handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number,
-            result.decimal, result.checkDigit, Some(value)))
+        case Token.Letter(value) if index == tokens.length - 2 => // Last token before End
+          handleTokens(tokens, index + 1, result.copy(suffix = Some(value)))
         case Token.Letter(value) => error(ParserError.InvalidCharacter("number or a decimal point", value))
         case Token.Number(value) =>
           if result.number.isEmpty then
-            handleTokens(tokens, index + 1, ParsedResult(result.prefix, Some(value), result.decimal, result.checkDigit, result.suffix))
+            handleTokens(tokens, index + 1, result.copy( number= Some(value)))
           else
-            handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number, result.decimal, Some(value), result.suffix))
+            handleTokens(tokens, index + 1,result.copy(checkDigit = Some(value)))
 
         case Token.DecimalPoint =>
           if index < 2 && result.number.isEmpty then
@@ -180,10 +179,15 @@ final class IDParser:
           else if result.decimal.isDefined then
             error(ParserError.TooManyDecimalPoints)
           else
-            handleTokens(tokens, index + 1, ParsedResult(result.prefix, result.number, Some("."), result.checkDigit, result.suffix))
+            handleTokens(tokens, index + 1, result.copy(decimal = Some(".")))
 
-        case Token.End => result
-        case error@Token.Error(msg, at) => this.error(error)
+        case Token.End =>
+          if  result.decimal.isEmpty then
+            error(ParserError.MissingCheckDigit)
+          else if result.checkDigit.isEmpty then
+            error(ParserError.MissingCheckDigit)
+          result
+        case error@Token.Error(_, _) => this.error(error)
   end handleTokens
 
 
@@ -193,7 +197,7 @@ final class IDParser:
       scanner.next() match
         case tokenError: Token.Error =>
           error(tokenError)
-        case Token.End => tokens
+        case Token.End => tokens :+ Token.End //So I can perform post-validation checks.
         case t => loop(tokens :+ t)
 
     loop()
@@ -206,7 +210,9 @@ final class IDParser:
 object IDParser:
   final case class ParsedResult(prefix: Option[String] = None, number: Option[String] = None, decimal: Option[String] = None, checkDigit: Option[String] = None, suffix: Option[String] = None):
     override def toString: String =
-      s"${prefix ?? ""}${number.get}${decimal ?? "."}${checkDigit ?? "0"}${suffix ?? ""}"
+      s"${prefix ?? ""}${number.get}${decimal ?? ""}${checkDigit ?? ""}${suffix ?? ""}"
+
+
 
   type ParserResult = Result[ParsedResult, ParserError]
 
@@ -216,6 +222,7 @@ object IDParser:
     case MissingNumber
     case MissingCheckDigit
     case TooLongCheckDigit
+    case MissingDecimalPoint
     case TooManyDecimalPoints
     case InvalidCharacter(expected: String, got: String)
     case ScannerError(msg: String, at: Location)
@@ -228,6 +235,7 @@ object IDParser:
         case MissingCheckDigit => "ID is missing the check digit"
         case TooLongCheckDigit => "The check digit should be a single digit"
         case TooManyDecimalPoints => "You must only have one decimal point in the ID."
+        case MissingDecimalPoint => "ID is missing the decimal point."
         case InvalidCharacter(expected, got) => s"Expected $expected, but got $got instead."
         case ScannerError(msg, at) => s"Scanner error: $msg at location $at."
   end ParserError

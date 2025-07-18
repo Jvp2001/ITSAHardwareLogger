@@ -16,18 +16,18 @@ enum NotificationName:
 end NotificationName
 
 
-object SimpleNotificationCentre extends NotificationCentre[NotificationName]:
+object HardwareLoggerNotificationCentre extends NotificationCentre[NotificationName]:
   override type MessageName = NotificationName
-  private final case class SimpleMessage(messageName: NotificationName, override val sender: Option[Any], info: NotificationUserInfo = new NotificationUserInfo) extends NotificationCentre.Message(messageName, sender, info)
+  private final case class HardwareLoggerMessage(messageName: NotificationName, override val sender: Option[Any], info: NotificationUserInfo = new NotificationUserInfo) extends NotificationCentre.Message(messageName, sender, info)
 
 
-  override def post(message: SimpleNotificationCentre.Message): Unit =
+  override def post(message: HardwareLoggerNotificationCentre.Message): Unit =
     observers.getOrElse(message.name, mutable.ListBuffer.empty).foreach: item =>
       item(message.asInstanceOf[item.type#Message])
 
 
   override def post(name: NotificationName, sender: Option[Any], userInfo: Option[NotificationUserInfo]): Unit =
-    val message = SimpleMessage(name, sender, userInfo ?? new NotificationUserInfo)
+    val message = HardwareLoggerMessage(name, sender, userInfo ?? new NotificationUserInfo)
     observers(name).foreach: item =>
       item(message.asInstanceOf[item.type#Message])
 
@@ -36,4 +36,4 @@ object SimpleNotificationCentre extends NotificationCentre[NotificationName]:
     addObserverTo(seq*)(observer)
 
 
-export SimpleNotificationCentre.*
+export HardwareLoggerNotificationCentre.*

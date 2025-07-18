@@ -3,7 +3,7 @@
 //import javafx.beans.property.*
 //import org.itsadigitaltrust.hardwarelogger.models.{GeneralInfoModel, Processor}
 //import org.itsadigitaltrust.hardwarelogger.mvvm.properties.accessorfunctions.{StringGetter, StringSetter}
-//import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+//import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
 ////
 ////final class ProcessorTableViewModel(
 ////  private val chipTypeProp: StringProperty,

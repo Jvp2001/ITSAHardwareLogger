@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 import scala.compiletime.uninitialized
 
 
-trait HardwareGrabberService:
+trait HardwareGrabberService extends FrontendService:
 
   import org.itsadigitaltrust.hardwarelogger.models.*
 

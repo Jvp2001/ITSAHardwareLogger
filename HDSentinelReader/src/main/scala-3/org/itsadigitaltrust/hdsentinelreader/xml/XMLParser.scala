@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.hdsentinelreader.xml
 
+import org.itsadigitaltrust.common.logging.HWLLoggable
+
 import com.fasterxml.jackson.dataformat.xml.{JacksonXmlModule, XmlMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
@@ -12,7 +14,7 @@ import scala.util.Using
 import java.io.{InputStream, StringReader}
 import scala.reflect.{ClassTag, classTag}
 
-private[hdsentinelreader] final class XMLParser:
+private[hdsentinelreader] final class XMLParser(using HWLLoggable):
 
   var xml: Elem = uninitialized
 
@@ -36,7 +38,7 @@ private[hdsentinelreader] final class XMLParser:
     xml \\> name
 
 object XMLParser:
-  def apply(string: String): XMLParser =
+  def apply(string: String)(using HWLLoggable): XMLParser =
     val parser = new XMLParser()
     parser.read(string)
     parser
@@ -47,9 +49,9 @@ object XMLParser:
 export XMLParser.given
 
 extension (elem: Elem | Node)
-  def \\>[T: ClassTag](name: String)(using xmlMapper: XmlMapper): T =
+  def \\>[T: ClassTag](name: String)(using xmlMapper: XmlMapper, logger: HWLLoggable): T =
     val node = s"${elem \\ name}"
-    System.out.println(node.length)
+    logger().info(s"Node length: ${node.length}")
     val ct: ClassTag[T] = classTag[T]
     xmlMapper.readValue(node, ct.runtimeClass.asInstanceOf[Class[T]])
 

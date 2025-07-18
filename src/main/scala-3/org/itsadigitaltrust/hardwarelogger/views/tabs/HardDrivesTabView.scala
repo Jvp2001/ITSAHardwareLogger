@@ -11,7 +11,9 @@ import org.itsadigitaltrust.hardwarelogger.views.View
 import scalafx.application.Platform
 import scalafx.event.EventType
 
-class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewModel) extends TabTableView(using tabViewModel, itsaID):
+import scala.reflect.classTag
+
+class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewModel) extends TabTableView(using classTag[HardDriveModel], tabViewModel, itsaID):
 
   requestFocus()
 
@@ -64,7 +66,7 @@ class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with
     private val moreInfoButton = new Button:
       text = "More Info"
       onAction = _ => viewModel.showExtraInfo(tableView.getSelectedItem)
-      disable <== !viewModel.moreInfoDisabledProperty
+      disable <== viewModel.moreInfoDisabledProperty
       padding = Insets(0D, 5D, 0D, 0D)
       prefHeight = 40D
       prefWidth = 100D

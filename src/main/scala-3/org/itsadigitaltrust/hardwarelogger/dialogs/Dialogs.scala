@@ -29,5 +29,5 @@ object Dialogs extends ShowDialogs:
   import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue
   import org.itsadigitaltrust.hardwarelogger.dialogs
   import dialogs.*
-  export dialogs.{HardDriveExtraInformationDialog, IssueCustomisationDialog, showIssueCustomisationDialog, showHardDriveExtraInfoDialog}
+  export dialogs.{HardDriveExtraInformationDialog, IssueCustomisationDialog, WebViewDialog, showAboutDialog, showIssueCustomisationDialog, showHardDriveExtraInfoDialog}
 end Dialogs

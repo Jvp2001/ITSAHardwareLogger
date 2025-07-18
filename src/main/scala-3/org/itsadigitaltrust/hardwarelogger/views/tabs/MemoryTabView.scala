@@ -6,12 +6,14 @@ import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.TabDelegate
 import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
+
 import scalafx.Includes.*
 import scalafx.beans.property.IntegerProperty
 import scalafx.scene.text.FontWeight
+import org.itsadigitaltrust.hardwarelogger.views.{Reloadable, View}
 
 
-final class MemoryTabView(using itsaID: String) extends VBox:
+final class MemoryTabView(using itsaID: String) extends VBox with Reloadable:
   given viewModel: MemoryTabViewModel = new MemoryTabViewModel
 
   private val totalMemLabel = new Label:
@@ -32,10 +34,12 @@ final class MemoryTabView(using itsaID: String) extends VBox:
     styleClass += "total-memory-container"
 
 
+  override def reload(shouldClearData: Boolean = true): Unit = viewModel.reload()
 
   private val tableView = new TabTableView[MemoryModel, MemoryTableRowViewModel]:
     //    minWidth = Double.MaxValue
     //    minHeight = Double.MaxValue
+
 
     import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 

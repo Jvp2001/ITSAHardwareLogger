@@ -1,11 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
-import org.itsadigitaltrust.common.Operators.|>
+import org.itsadigitaltrust.common.Operators.{|>, in}
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
-import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
+import org.itsadigitaltrust.hardwarelogger.views.Reloadable
 
 import javafx.beans.value
 import javafx.beans.value.ChangeListener
@@ -18,6 +20,8 @@ import scalafx.event.EventType
 import scalafx.event.subscriptions.Subscription
 import scalafx.scene.Cursor
 import scalafx.scene.input.KeyEvent
+
+import scala.reflect.ClassTag
 
 
 private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
@@ -41,7 +45,7 @@ private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelega
     super.updateItem(item, empty)
     if empty || item == null then
       setGraphic(null)
-    else if rowDelegate.isDefined then
+    else if !empty && item != null && rowDelegate.isDefined then
       rowDelegate.get.onUpdateItem(Option(item), this)
   end updateItem
 
@@ -61,32 +65,34 @@ private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelega
   end updateSelected
 end TableTabRow
 
-abstract class TabTableView[M, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T], itsaID: String) extends TableView[T]:
+abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T], itsaID: String) extends TableView[T] with Reloadable:
+
+  import TabTableView.*
 
   given viewModel: TabTableViewModel[M, T] = vm
+
+  final val rowClickedByKeyboardKeys = Seq(KeyCode.Space)
   val rowDelegate: Option[TableRowDelegate[T]] = None
   val showHandCursorOnHover: Boolean = false
   val reordableColumns: Boolean = false
-  val triggerDbClickedWhenEnterIsPressedInNonEditingTable: Boolean = true
-
-  val nonEditableSelectionConfirmation = (event: KeyEvent) =>
-    if triggerDbClickedWhenEnterIsPressedInNonEditingTable && event.code == KeyCode.Space || event.code == KeyCode.Enter then
+  val nonEditableSelectionConfirmationPressed = (event: KeyEvent) =>
+    if event.code in rowClickedByKeyboardKeys then
       rowDelegate.foreach(_.onRowDoubleClicked(MouseButton.Primary, Option(getSelectedItem)))
     end if
-  end nonEditableSelectionConfirmation
 
-  private val keyEventFilter: Option[Subscription] = filterEvent(KeyEvent.Any): (event: KeyEvent) =>
+  end nonEditableSelectionConfirmationPressed
+
+  filterEvent(KeyEvent.Any): (event: KeyEvent) =>
     event.eventType match
       case _: EventType[KeyEvent.KeyPressed.type] if !editable.value =>
-        nonEditableSelectionConfirmation(event)
-  |> Option[Subscription]
-  end keyEventFilter
+        nonEditableSelectionConfirmationPressed(event)
+      case et: EventType[KeyEvent.KeyReleased.type] if !editable.value =>
+        rowDelegate.foreach(_.onRowKeyboardKeyReleased(event.code, Option(getSelectedItem)))
+
 
   editable = false
 
-
-
-
+  override def reload(shouldClearData: Boolean = true): Unit = viewModel.reload(shouldClearData)
 
   class TableTabColumn[P] extends TableColumn[T, P]
 
@@ -98,6 +104,7 @@ abstract class TabTableView[M, T <: TableRowViewModel[M]](using vm: TabTableView
 
 
   def getSelectedItem: T = selectionModel.apply().getSelectedItem
+
   def createAndAddColumn[P](
                              name: String,
                              minWidth: Int = 50)
@@ -139,8 +146,10 @@ abstract class TabTableView[M, T <: TableRowViewModel[M]](using vm: TabTableView
   end setupColumn
 
   selectionModel.apply().selectedItem.onChange: (op, newValue, oldValue) =>
-    rowDelegate.foreach(_.onSelected(selectionModel.apply().getSelectedItem |> Option[T] ))
-
+    rowDelegate.foreach(_.onSelected(selectionModel.apply().getSelectedItem |> Option[T]))
 
 
 end TabTableView
+
+object TabTableView:
+  private[TabTableView] var triggerRowClicked: Boolean = false

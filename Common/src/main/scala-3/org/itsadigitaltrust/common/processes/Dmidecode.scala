@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.common.processes
 
 import org.itsadigitaltrust.common.OSUtils
+import org.itsadigitaltrust.common.logging.HWLLoggable
 
 object Dmidecode:
   type Keyword =
@@ -31,7 +32,7 @@ object Dmidecode:
       "processor-version" |
       "processor-frequency"
 
-  def apply(keyword: Keyword)(using config: ProcessConfig): String =
+  def apply(keyword: Keyword)(using ProcessConfig, HWLLoggable): String =
     if OSUtils.onLinux then
       sudo"dmidecode -s $keyword"
     else

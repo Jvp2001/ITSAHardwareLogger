@@ -6,9 +6,14 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewMode
 import scalafx.application.Platform
 import scalafx.scene.Node
 
-trait View[VM <: ViewModel]:
+trait Reloadable:
+  def reload(shouldClearData: Boolean = true): Unit
+trait View[VM <: ViewModel] extends Reloadable:
   this: Node => /** This means only subclasses of [[scalafx.scene.Node]] can implement this trait. */
   given viewModel: VM = scala.compiletime.deferred
 
   Platform.runLater:
     viewModel.setup()
+
+  override def reload(shouldClearData: Boolean = true): Unit =
+    viewModel.reload(shouldClearData)

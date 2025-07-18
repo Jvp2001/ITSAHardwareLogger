@@ -2,7 +2,7 @@
 //
 //import javafx.beans.property.*
 //import org.itsadigitaltrust.hardwarelogger.models.Media
-//import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
+//import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
 //
 //
 ////final class MediaTableRowViewModel(
@@ -30,7 +30,6 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.hardwarelogger.models.MediaModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
 

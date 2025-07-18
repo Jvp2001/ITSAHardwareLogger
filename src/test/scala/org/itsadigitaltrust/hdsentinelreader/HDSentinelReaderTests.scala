@@ -1,14 +1,15 @@
 package org.itsadigitaltrust.hdsentinelreader
 
-import org.itsadigitaltrust.hardwarelogger.models.{HardDriveModel, HardDriveConnectionType}
+import org.itsadigitaltrust.hardwarelogger.models.{HardDriveConnectionType, HardDriveModel}
+
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import org.scalatest.funsuite.AnyFunSuite
 import org.itsadigitaltrust.common.*
-
+import org.itsadigitaltrust.common.logging.HWLLoggable
 
 import scala.xml.XML
 
-class HDSentinelReaderTests extends AnyFunSuite:
+class HDSentinelReaderTests extends AnyFunSuite with HWLLoggable:
 
   val xml = <HDSentinel>
     <Hard_Disk_Summary>
@@ -42,7 +43,7 @@ class HDSentinelReaderTests extends AnyFunSuite:
     else*/
       HDSentinelReader[HardDiskSummary](xml)
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
-    System.out.println(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
+    logger.info(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
     val driveModel = new HardDriveModel(
       hardDiskSummary.health.asPercentage,
       hardDiskSummary.performance.asPercentage,
@@ -59,8 +60,8 @@ class HDSentinelReaderTests extends AnyFunSuite:
 
     //  reader.xmlParser \ "Hard_Disk_Summary" match
     //   case Some(hardDiskSummary: HardDiskSummary) =>
-    //     System.out.println(hardDiskSummary)
+    //     logger.info(hardDiskSummary)
     //   case None =>
-    //     System.out.println("No data found")
+    //     logger.info("No data found")
     //     assert(false)
     //   assert(true)

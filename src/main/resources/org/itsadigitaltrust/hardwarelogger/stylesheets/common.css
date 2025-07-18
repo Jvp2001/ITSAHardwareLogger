@@ -36,3 +36,9 @@
     -fx-font-weight: bold;
 
 }
+
+
+.unhealthy-drive
+{
+    -fx-background-color: tomato
+}

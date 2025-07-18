@@ -43,7 +43,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   end given
 
 
-  // serial number was this: S1CTNSAG440003
+  // serial number was this: S1CTNSAG440003, then this: S13TJ1CQ404992
   private val xml =
     <Hard_Disk_Sentinal>
       <Physical_Disk_Information_Disk_0>
@@ -54,7 +54,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
           <Disk_Location>Channel 1, Target 0, Lun 0, Device: 0</Disk_Location>
           <Hard_Disk_Model_ID>SSD Model</Hard_Disk_Model_ID>
           <Firmware_Revision>1234567890</Firmware_Revision>
-          <Hard_Disk_Serial_Number>S13TJ1CQ404992</Hard_Disk_Serial_Number>
+          <Hard_Disk_Serial_Number>Z6EQKBN7</Hard_Disk_Serial_Number>
           <SSD_Controller>SSD Controller</SSD_Controller>
           <Total_Size>12345 MB</Total_Size>
           <Power_State>Active</Power_State>
@@ -147,7 +147,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
       val totalSize = hardDiskSummary.totalSize.split(" ")(0).toLongOption ?? 0L
       val size = totalSize / 1000
       val dataSize = DataSize(size, DataSizeUnit.GB)
-      System.out.println(s"Drive size: ${dataSize.dbString}")
+      logger.info(s"Drive size: ${dataSize.dbString}")
       val drive = HardDriveModel(
         hardDiskSummary.health.asPercentage,
         hardDiskSummary.performance.asPercentage,

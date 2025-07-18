@@ -2,6 +2,8 @@ package org.itsadigitaltrust.hardwarelogger.backend
 
 
 import org.itsadigitaltrust.common.Operators.in
+import org.itsadigitaltrust.common.logging.HWLLoggable
+
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.tables.HLTableInfo
 import org.itsadigitaltrust.hardwarelogger.backend.types.{EntityFromEC, ItsaEC}
@@ -10,6 +12,7 @@ import java.sql.Timestamp
 import java.time.OffsetDateTime
 import scala.reflect.{ClassTag, classTag}
 import com.augustnagro.magnum.*
+
 extension [EC, E, ID](table: TableInfo[EC, E, ID])
   def hasColumn(scalaName: String): Boolean =
     table.all.columnNames.exists(_.scalaName == scalaName)
@@ -18,36 +21,44 @@ type ECTableInfo[EC <: ItsaEC] = TableInfo[EC, EntityFromEC[EC], Long]
 
 private[backend] object repos:
   type HLRepo[EC, E] = Repo[EC, E, Long]
+
   inline def HLRepo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](using RepoDefaults[EC, E, Long]): HLRepo[EC, E] = Repo[EC, E, Long]
 
-  extension [EC <: ItsaEC, E <: EntityFromEC[EC]](repo: HLRepo[EC, E])(using ClassTag[EC])
+  extension [EC <: ItsaEC, E <: EntityFromEC[EC]](repo: HLRepo[EC, E])(using ct:ClassTag[EC])
 
     /**
      * Returns the name of the scala field that corresponds to the ITSA ID column in the database.
+     *
      * @param table The table that is being queried.
      * @return "itsaID" if the table has a column named "itsaID", otherwise "hddID".
      */
     private def idScalaName(using table: HLTableInfo[EC, E]): "itsaID" | "hddID" =
       if table.hasColumn("itsaID") then "itsaID" else "hddID"
 
-    private def getItsaIDFieldName: String = if classTag[EC].runtimeClass == classOf[WipingCreator] then
-      "hddID"
+    private def getItsaIDFieldName: String =
+      if ct.runtimeClass == classOf[WipingCreator] then
+        HWLLoggable.default().info("ItsaID Field name: hddID")
+        "hddID"
       else
-      "itsaID"
+        HWLLoggable.default().info("ItsaID Field name: itsaID")
+        "itsaID"
     private[backend] def findAllByID(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Seq[EntityFromEC[EC]] =
 
       val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} = $id"
-      val result  = frag.query.run()
+      val result = frag.query.run()
       result
     end findAllByID
 
 
-    private[backend] def findAllByIdsStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Option[Seq[EntityFromEC[EC]]] =
+    private[backend] def findAllByIDStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Option[Seq[EntityFromEC[EC]]] =
 
+      val name = ct.runtimeClass.getSimpleName.replace("Creator", "").toLowerCase
+      val sqlID = s"{$id}%"
       // Either itsaid or hdd_id
-
-      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$id%'"
+//      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$sqlID'%"
+      val frag = sql"select * from $name where $getItsaIDFieldName like '$id%'"
       Option(frag.query.run())
+
 
     private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
       val scalaName = (idScalaName, old)
@@ -71,13 +82,15 @@ private[backend] object repos:
       frag.update.run()
     end replaceIDByPrimaryKey
 
-    def insertOrUpdate(creator: EC)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
+    def insertOrUpdate(creator: EC)(using DbCon)(using logger: HWLLoggable)(using table: HLTableInfo[EC, E]): Unit =
+      logger().info(s"Inserting or updating: $creator")
       creator match
         case infoCreator: InfoCreator =>
-          System.out.println(infoCreator.itsaID)
+          logger().info(infoCreator.itsaID)
           sql"select itsaid from info where itsaid = ${infoCreator.itsaID}".query[String].run().headOption match
             case Some(info) => ()
-                          sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${infoCreator.itsaID}".update.run()
+              logger().info(s"Updating lastupdated for itsaid: ${infoCreator.itsaID}")
+              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${infoCreator.itsaID}".update.run()
             case None => repo.insert(creator)
           end match
         case c: HLEntityCreatorWithItsaID =>
@@ -85,6 +98,7 @@ private[backend] object repos:
           result.headOption match
             case Some(info) => ()
             case None =>
+              logger().info(s"Inserting new itsaid: ${c.itsaID}")
               repo.insert(creator)
           end match
         case _: org.itsadigitaltrust.hardwarelogger.backend.entities.
@@ -98,7 +112,6 @@ private[backend] object repos:
   given diskRepo: HLRepo[DiskCreator, Disk] = HLRepo[DiskCreator, Disk]
 
   given wipingRepo: HLRepo[WipingCreator, Wiping] = HLRepo[WipingCreator, Wiping]
-
   given mediaRepo: HLRepo[MediaCreator, Media] = HLRepo[MediaCreator, Media]
 
   given infoRepo: HLRepo[InfoCreator, Info] = HLRepo[InfoCreator, Info]
@@ -126,6 +139,8 @@ private[backend] object repos:
     private[backend] def getLatestNoIDValue(using DbCon): Option[String] =
       sql"select MAX(itsahw.wiping.hdd_id) from wiping".query[String].run().headOption
   end extension
+
+
 end repos
 
 

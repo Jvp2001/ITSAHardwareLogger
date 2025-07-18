@@ -44,12 +44,14 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
+      <console name="hwlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[delete from hwlogger.wiping;]]></console>
       <console name="itsahw" type="STANDARD" schema="itsahw" session="Main"><![CDATA[select * from info;
 select * from wiping where hdd_id is like '85977.%';]]></console>
     </connection>
     <connection id="cc392073-c906-4319-a766-6683de9c4037">
       <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from info;
 select * from wiping where hdd_id like '85977.%';
+select * from wiping where serial = 'S13TJ1CQ404992'
 
 
 --DatabaseTransactionTask: ERROR: Error executing query:
@@ -61,14 +63,33 @@ select * from wiping where hdd_id like '85977.%';
       <console name="Connection" type="STANDARD" schema="postgres" session="Main" />
     </connection>
     <connection id="b7491575-f97f-42ca-87c9-15e723d77b55">
-      <console name="My HWlogger" type="STANDARD" schema="hwlogger" session="Main" />
+      <console name="My HWlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from hwlogger.wiping where hdd_id like '85977.0%';
+
+
+
+
+
+
+
+select * from hwlogger.info where itsaid = '85977.0';
+
+
+
+
+
+
+
+delete from hwlogger.wiping;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files />
+    <open-files>
+      <object connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" object-ref="schemas/hwlogger/tables/info" />
+      <object connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" object-ref="consoles/My HWlogger" />
+    </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />
@@ -85,6 +106,8 @@ select * from wiping where hdd_id like '85977.%';
       </filter>
     </filter-actions>
     <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.wiping" active-filter-id="" />
+    <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.info" active-filter-id="EMPTY_FILTER" />
+    <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.wiping" active-filter-id="EMPTY_FILTER" />
   </component>
   <component name="DBNavigator.Project.ExecutionManager">
     <retain-sticky-names value="false" />
@@ -432,17 +455,17 @@ select * from wiping where hdd_id like '85977.%';
           <driver-library value="" />
           <driver value="" />
           <url-type value="DATABASE" />
-          <host value="192.168.1.134" />
+          <host value="localhost" />
           <port value="3306" />
           <database value="hwlogger" />
           <tns-folder value="" />
           <tns-profile value="" />
           <type value="USER_PASSWORD" />
-          <user value="itsa" />
+          <user value="root" />
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="itsa@MACBOOKPRO-2D5D" />
+          <session-user value="root@localhost" />
         </database>
         <properties>
           <auto-commit value="false" />

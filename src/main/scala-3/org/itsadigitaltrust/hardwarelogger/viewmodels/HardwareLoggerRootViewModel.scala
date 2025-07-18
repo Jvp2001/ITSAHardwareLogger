@@ -2,17 +2,16 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.{DoOnce, Result}
+import org.itsadigitaltrust.common.Result
 
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
-import services.{HardwareIDValidationService, ServicesModule, notificationcentre, given}
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName, NotificationUserInfo}
-import org.itsadigitaltrust.hardwarelogger.tasks.HLTaskRunner
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationName, NotificationUserInfo}
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, ServicesModule}
 
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType
@@ -58,7 +57,13 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
     wasDuplicateIDWarningAlreadyShown = false
 
   private def duplicateDrives(message: Message) =
-    val serial = message.userInfo("drives").asInstanceOf[Seq[String]]
+
+    val serial = message.userInfo("drives") match
+      case arr: Array[String] => arr.toSeq
+      case seq: Seq[String] => seq
+      case s: String => Seq(s)
+      case other => Seq.empty[String]
+
     new Alert(Warning, "Duplicate Drive Found!", ButtonType.Yes, ButtonType.No):
       contentText = s"A drive with the serial number '$serial' already exists. Do you want to continue?"
       showAndWait() match
@@ -87,7 +92,7 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
       val info = pcInfo
       val itsaId = info.itsaID
       idStringProperty.value = itsaId ?? ""
-      System.out.println(s"Itsa ID: $itsaId")
+      logger.info(s"Itsa ID: $itsaId")
 
 
   override def setup(): Unit =
@@ -97,10 +102,12 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
   def reconnect(): Unit =
     databaseService.connectAsync():
       case Result.Success(_) =>
-        System.out.println("Database connection established successfully.")
+        logger.info("Database connection established successfully.")
       case Result.Error(err) =>
-        System.out.println(s"Database connection failed: $err")
+        logger.info(s"Database connection failed: $err")
         Dialogs.showDBConnectionError()
+    if !databaseService.testConnection() then
+      Dialogs.showDBConnectionError()
 
   end reconnect
 
@@ -164,9 +171,7 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
 
   private def findNonWipedDrives() =
     hardwareGrabberService.hardDrives.filterNot: hardDrive =>
-      databaseService.findWipingRecord(hardDrive.serial) match
-        case Some(_) => true
-        case None => false
+      databaseService.findWipingRecord(hardDrive.serial).isDefined
 
 
   private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =
@@ -178,8 +183,9 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
         else
           notWipedDrives.map(_.itsaID).mkString(", ")
       end serials
-      serials = serials.patch(serials.lastIndexOf(", "), " & ", 1)
-      serials = if serials.startsWith("& ") then serials.replaceFirst("& ", "") else serials
+      serials = serials.patch(serials.lastIndexOf(", "), " & ", 0)
+      serials = if serials.split(", ").length == 2 then serials.replaceFirst(", ", "") else serials
+      serials = if serials.trim.startsWith("& ") then serials.replaceFirst("& ", "") else serials
 
       val word = serials.length match
         case 0 => boundary.break()

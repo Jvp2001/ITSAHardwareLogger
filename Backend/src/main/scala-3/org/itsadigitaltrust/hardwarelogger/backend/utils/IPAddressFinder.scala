@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.backend.utils
 
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.collections.ApacheFuzzyMap
+import org.itsadigitaltrust.common.logging.HWLLoggable
 
 import org.apache.commons.text.similarity.FuzzyScore
 
@@ -45,13 +46,13 @@ object IPAddressFinder:
   //  end findIPv4Addresses
 
   // use ApacheFuzzyMap to find the best matching address
-  def findDatabaseAddress(addresses: String*): Option[String] =
+  def findDatabaseAddress(addresses: String*)(using logger:HWLLoggable): Option[String] =
 
     val fuzzyMap = ApacheFuzzyMap[String]()
     val inetAddresses = networkInterfaces.filter(_.getName.startsWith("en")).filter(_.isUp).flatMap: inet =>
       inet.getInetAddresses.asScala.filter(_.isInstanceOf[Inet4Address]).map: address =>
         val foundAddress = address.toString.stripPrefix("/")
-        System.out.println(foundAddress)
+        logger().info(foundAddress)
         foundAddress
 
 
@@ -60,7 +61,6 @@ object IPAddressFinder:
       addresses.map: addr =>
         val score = fuzzyScore.fuzzyScore(address, addr)
         val result = (addr, address) -> score.toInt
-        System.out.println(result)
         result
     .toSeq.sortBy(_._2).lastOption.match
       case Some(value) => value._1._1

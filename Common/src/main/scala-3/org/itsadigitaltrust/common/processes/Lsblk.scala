@@ -3,6 +3,7 @@ package org.itsadigitaltrust.common.processes
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.collections.{ApacheFuzzyMap, FuzzyMap}
+import org.itsadigitaltrust.common.logging.HWLLoggable
 
 import scala.annotation.tailrec
 
@@ -43,7 +44,7 @@ class Lsblk private:
       loop(output.split("\n").drop(1))
   end parse
   
-  def apply()(using ProcessConfig): FuzzyMap[DiskInfo] =
+  def apply()(using ProcessConfig, HWLLoggable): FuzzyMap[DiskInfo] =
     if OSUtils.onLinux then
       val result  = sudo"lsblk -d -o name,rota"
       info = parse(result)
@@ -58,7 +59,7 @@ end Lsblk
 
 
 object Lsblk:
-  def apply()(using ProcessConfig): Lsblk =
+  def apply()(using ProcessConfig, HWLLoggable): Lsblk =
     val lsblk = new Lsblk
     lsblk()
     lsblk

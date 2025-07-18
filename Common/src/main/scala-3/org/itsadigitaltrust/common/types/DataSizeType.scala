@@ -1,6 +1,8 @@
 package org.itsadigitaltrust.common.types
 
 import org.itsadigitaltrust.common.Operators.<=>
+import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit.GiB
 
 object DataSizeType:
 
@@ -74,7 +76,12 @@ object DataSizeType:
       val newValue = toBytes / targetUnit.factorToBytes
       (newValue, targetUnit)
     def toLong: Long = ds.value.toLong
-    def dbString: String = s"${value.toString.replaceFirst("(e|E[\\-?]\\d+)|(\\[e|E\\d+])", "").replaceFirst("\\[\\]","").replace(".", "")} $unit"
+    def dbString: String =
+      HWLLoggable.default().info(s"Size: $toBytes")
+      val newUnit = if unit == DataSizeUnit.GiB then DataSizeUnit.GB else unit
+      val result = s"${value.toString.replaceFirst("(e|E[\\-?]\\d+)|(\\[e|E\\d+])", "").replaceFirst("\\[\\]","").replace(".", "")} $newUnit"
+      HWLLoggable.default().info(s"Result: $result")
+      if result.endsWith(s"0 $newUnit") then result.replace(s"0 $newUnit", s" $newUnit") else result
     def +(rhs: DataSize): DataSize = DataSize((toBytes + rhs.toBytes) / unit.factorToBytes, unit)
     def -(rhs: DataSize): DataSize = DataSize((toBytes - rhs.toBytes) / unit.factorToBytes, unit)
     def *(rhs: Double): DataSize = DataSize(value * rhs, unit)

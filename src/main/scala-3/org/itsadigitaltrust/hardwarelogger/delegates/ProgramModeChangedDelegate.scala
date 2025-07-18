@@ -10,7 +10,7 @@ import scalafx.beans.property.*
 import scalafx.Includes.{*, given}
 import scalafx.beans.property
 
-type ProgramMode = "Normal" | "HardDrive"
+type ProgramMode = "Normal" | "HardDrive" | "Both"
 trait ProgramModeChangedDelegate extends ServicesModule with Notifiable[NotificationName]:
   override type Message = notificationCentre.type#Message
   override def onReceivedNotification(message: Message): Unit =

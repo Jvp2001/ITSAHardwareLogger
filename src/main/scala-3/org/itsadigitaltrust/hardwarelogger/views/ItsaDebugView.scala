@@ -11,9 +11,11 @@ import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, IssueCustomisationD
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, ReportedIssue}
 import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, ReportedIssue}
 
+import ch.qos.logback.classic.LoggerContext
 import org.scalafx.extras.auto_dialog.AutoDialog
+import org.slf4j.LoggerFactory
 import scalafx.scene.control.Alert.AlertType.{Confirmation, Information}
-import scalafx.scene.control.{ContextMenu, Dialog, MenuItem, SeparatorMenuItem, TextArea}
+import scalafx.scene.control.{CheckMenuItem, ContextMenu, Dialog, MenuItem, SeparatorMenuItem, TextArea}
 import scalafx.scene.input.{Clipboard, ClipboardContent}
 import scalafx.util.StringConverter
 
@@ -24,6 +26,18 @@ class ItsaDebugView(using issueReporterService: IssueReporterService) extends Co
   System.setErr(getOut)
 
   createAndAddItem("Report", _ => ItsaDebugView.report(issueReporterService.report)(using this))
+  createAndAddItem:
+    new CheckMenuItem("Log Exceptions"):
+      onAction = _ =>
+        val loggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+        loggerContext.getLoggerList.forEach: logger =>
+          logger.setLevel(
+            if selected.value then
+              ch.qos.logback.classic.Level.DEBUG
+            else
+              ch.qos.logback.classic.Level.INFO
+          )
+
 
 
 object ItsaDebugView:
@@ -67,5 +81,8 @@ object ItsaDebugView:
             ()
           case _ => ()
       case _ => ()
+
+
+end ItsaDebugView
 
 

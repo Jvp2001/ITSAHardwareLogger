@@ -1,7 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.tasks
 
+import org.itsadigitaltrust.common.logging.HWLLoggable
+
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, NotificationName}
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, ServicesModule}
+
 import org.scalafx.extras.BusyWorker
 import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.batch.{BatchRunnerWithProgress, ItemTask}
@@ -12,12 +15,12 @@ import scala.collection.mutable
 trait TaskExecutor[T[_]]:
   def executeTasks()(using notificationCentre: NotificationCentre[NotificationName])(using hardwareGrabberService: HardwareGrabberService): Unit
 
-object HLTaskRunner extends ServicesModule:
+object HLTaskRunner extends ServicesModule with HWLLoggable:
   def run[T[_] <: ItemTask[?], U](title: String, taskFuncs: TaskFunction[U]*)(ctor: => TaskFunction[U] => T[U])(finished: () => Unit = () => ()): Unit =
     try
-      val busyWorker = new BusyWorker(title, Seq())
+      val busyWorker = new HLBusyWorker(title)
       busyWorker.doTask("Start"): () =>
-        val batchRunnerWithProgress = new BatchRunnerWithProgress[U](title, None, true):
+        val batchRunnerWithProgress = new HLBatchTaskRunnerWithProgress[U](title, None, true):
           override def createTasks(): Seq[ItemTask[U]] =
             taskFuncs.map(ctor).map(_.asInstanceOf[ItemTask[U]])
         batchRunnerWithProgress.run()
@@ -27,7 +30,7 @@ object HLTaskRunner extends ServicesModule:
     catch
       case e: NumberFormatException =>
         Platform.runLater: () =>
-          System.out.println(s"Error in HLTaskRunner: ${e.getMessage}")
+          logger.debug(s"Error in HLTaskRunner: ${e.getMessage}")
           e.printStackTrace()
           finished()
 

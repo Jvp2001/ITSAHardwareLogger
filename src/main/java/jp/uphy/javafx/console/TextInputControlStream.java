@@ -96,7 +96,7 @@ class TextInputControlStream {
     private int lastLineBreakIndex = 0;
 
     /**
-     * {@link TextInputControlInputStream}オブジェクトを構築します。
+     * {@link TextInputControlInputStream} The text component from which you enter it。
      *
      * @param textInputControl 入力元のテキストコンポーネント
      */

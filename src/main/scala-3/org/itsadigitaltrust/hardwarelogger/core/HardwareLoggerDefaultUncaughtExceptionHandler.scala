@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.core
 
+import org.itsadigitaltrust.common.logging.HWLLoggable
+
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.services.ServicesModule
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName
@@ -13,10 +15,11 @@ import java.sql.SQLException
 import java.util.ConcurrentModificationException
 
 
-class HardwareLoggerDefaultUncaughtExceptionHandler extends UncaughtExceptionHandler with ServicesModule:
+class HardwareLoggerDefaultUncaughtExceptionHandler extends UncaughtExceptionHandler with ServicesModule with HWLLoggable:
   override def uncaughtException(t: Thread, e: Throwable): Unit =
     Platform.runLater:
       e match
+        case _: AssertionError => ()
         case _:CommunicationsException =>
           notificationCentre.post(NotificationName.Reload)
           Dialogs.showDBConnectionError()
@@ -26,7 +29,8 @@ class HardwareLoggerDefaultUncaughtExceptionHandler extends UncaughtExceptionHan
           ()
         case _: NullPointerException => ()
         case _ =>
-          Dialogs.showErrorAlert(e.getClass.getSimpleName, e.getMessage)
-    e.printStackTrace(System.err)
+//          Dialogs.showErrorAlert(e.getClass.getSimpleName, e.getMessage)
+    logger.whenTraceEnabled:
+      ()
   
     

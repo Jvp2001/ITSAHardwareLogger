@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.hardwarelogger.models.GeneralInfoModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.TableRowViewModel
 import scalafx.beans.property.*
 import org.itsadigitaltrust.hardwarelogger.services.given
 

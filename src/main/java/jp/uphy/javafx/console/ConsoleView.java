@@ -23,6 +23,7 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.FileChooser;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -32,6 +33,7 @@ import java.nio.file.Path;
 
 /**
  * @author Yuhi Ishikura
+ * @author Joshua Petersen
  */
 public class ConsoleView extends BorderPane
 {
@@ -82,35 +84,6 @@ public class ConsoleView extends BorderPane
         }));
 
 
-        menu.getItems().add(createItem("Save", e ->
-        {
-            var fileChooser = new FileChooser();
-            fileChooser.setTitle("Save Console Output");
-            fileChooser.setInitialFileName("Console Output.txt");
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
-            fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
-            var file = fileChooser.showSaveDialog(getParent().getScene().getWindow());
-            if (file != null)
-            {
-                // Open file's folder in file explorer or finder
-                try
-                {
-                    Files.writeString(Path.of(file.getAbsolutePath()), textArea.getText(), Charset.defaultCharset());
-                    if (PlatformUtil.isWindows())
-                    {
-
-                        Runtime.getRuntime().exec(new String[]{"explorer.exe", "/select", file.getParentFile().getAbsolutePath()});
-                    } else
-                    {
-                        Runtime.getRuntime().exec(new String[]{"open", "-R", file.getAbsolutePath()});
-                    }
-                } catch (IOException ex)
-                {
-                    throw new RuntimeException(ex);
-                }
-            }
-
-        }));
     }
 
     
@@ -119,14 +92,20 @@ public class ConsoleView extends BorderPane
         return textArea.getText();
     }    
 
-    protected MenuItem createAndAddItem(String name, EventHandler<ActionEvent> a)
+
+    protected MenuItem createAndAddItem( /* @NonNull */ String name, EventHandler<ActionEvent> a)
     {
         MenuItem item = createItem(name, a);
         menu.getItems().add(item);
         return item;
     }
+    protected final <MI extends MenuItem> MI createAndAddItem(MI item)
+    {
+        menu.getItems().add(item);
+        return item;
+    }
 
-    private MenuItem createItem(String name, EventHandler<ActionEvent> a)
+    private MenuItem createItem( /* @NonNull */ String name, EventHandler<ActionEvent> a)
     {
         final MenuItem menuItem = new MenuItem(name);
         menuItem.setOnAction(a);
@@ -135,6 +114,7 @@ public class ConsoleView extends BorderPane
 
     public PrintStream getOut()
     {
+
         return out;
     }
 

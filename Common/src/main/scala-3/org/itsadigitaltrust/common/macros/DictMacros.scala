@@ -14,7 +14,6 @@ object DictMacros:
 
     private def buildFromBlockImpl(block: Expr[Unit])(using Quotes): Expr[Dict] =
         import quotes.reflect.*
-        val x = 42
         def getTypedKeysAndValues(list: List[Statement]): List[(String, TypeTree, Term)] =
             list match
                 case Nil =>

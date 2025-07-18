@@ -16,7 +16,7 @@ extension (issue: ReportedIssue)
 
 
 
-trait IssueReporterService:
+trait IssueReporterService extends FrontendService:
   def report(issue: ReportedIssue): Option[String]  =
     report(issue.name, issue.description.value)
   def report(name: String, description: String): Option[String]

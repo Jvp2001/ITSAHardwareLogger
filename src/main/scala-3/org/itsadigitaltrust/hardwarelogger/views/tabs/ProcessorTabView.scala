@@ -4,10 +4,12 @@ import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.ProcessorTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
+import org.itsadigitaltrust.hardwarelogger.views.tabs.given
 
-private[views] final class ProcessorTabView(using itsaID: String) extends TabTableView[ProcessorModel, ProcessorTableRowViewModel](using TabTableViewModel(ProcessorTableRowViewModel.apply, _.processors)):
+import scala.reflect.{ClassTag, classTag}
+
+private[views] final class ProcessorTabView(using itsaID: String) extends TabTableView(using classTag[ProcessorModel], TabTableViewModel(ProcessorTableRowViewModel.apply, _.processors)):
   private val nameColumn = createAndAddColumn("Chip Type", minWidth = ColumnSize.massive): cellValue =>
-    System.out.println(s"Name: ${cellValue.nameProperty.get}")
     cellValue.nameProperty
   private val speedColumn = createAndAddColumn("Speed"): cellValue =>
     cellValue.speedProperty

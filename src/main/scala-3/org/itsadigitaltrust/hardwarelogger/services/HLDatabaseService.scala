@@ -25,15 +25,19 @@ import java.util.concurrent.LinkedBlockingQueue
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Try, Using}
+import scala.util.{Try, Using, boundary}
 
 
-trait HLDatabaseService:
+trait HLDatabaseService extends FrontendService:
+
   import HLDatabaseService.{given, *}
+
   type Error
 
   lazy val dbPropertiesFile: String
 
+
+  def testConnection(): Boolean = false
 
   def connect(): Result[Unit, Error]
 
@@ -73,13 +77,13 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
   protected def db: Option[HLDatabase] = revalidateDB()
 
-  private val minAmountOfTransactions = 4
+  private val minAmountOfTransactions = 8
   override lazy val dbPropertiesFile: String =
     getClass.getResourceAsStream("db.properties").readAllAsString()
 
 
-
-
+  override def testConnection(): Boolean =
+    db.map(_.testConnection()) ?? false
 
 
   /**
@@ -103,7 +107,6 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
           Result.error(reason)
 
 
-
   override final def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
     val creator = createEC(model)
     //    if !transactionQueue.contains(creator) then
@@ -112,7 +115,8 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     checkAndSave()
 
   override def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
-    transactionQueue.addAll(models.map(createEC).asJavaCollection)
+    models.map(createEC).foreach: item =>
+        transactionQueue.add(item)
     checkAndSave()
 
   def findItsaIdBySerialNumber(serial: String): Option[String] =
@@ -123,21 +127,21 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
 
   override def findWipingRecord(serial: String): Option[Disk] =
-      val disk =
-        val database = db.get
-        val foundRecord = database.findWipingRecord(serial)
-        if foundRecord.isEmpty || foundRecord == null then
-          null
-        else
-          val record = foundRecord.get
-          Disk(record.id, record.hddID, record.model, record.capacity ?? "", record.serial, record.`type` ?? "", record.description ?? "")
-      end disk
-      Option(disk)
+    val disk =
+      val database = db.get
+      val foundRecord = database.findWipingRecord(serial)
+      if foundRecord.isEmpty || foundRecord == null then
+        null
+      else
+        val record = foundRecord.get
+        Disk(record.id, record.hddID, record.model, record.capacity ?? "", record.serial, record.`type` ?? "", record.description ?? "")
+    end disk
+    Option(disk)
   end findWipingRecord
 
-
   private def revalidateDB(): Option[HLDatabase] =
-    database = database ?? HLDatabase(dbPropertiesFile).toOption
+    if database.isEmpty then
+      database = HLDatabase(dbPropertiesFile).toOption
     database
 
   def addWipingRecords(using itsaID: String)(drives: HardDriveModel*): Unit =
@@ -146,40 +150,43 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     val updatedDrives = drives.map: drive =>
       drive.copy(itsaID = drive.itsaID ?? itsaID)
 
-    HLTaskRunner("Adding Wiping Records", Seq(() => db.get.addWipingRecords(updatedDrives.map(createWiping) *)) *)(HLDatabaseTransactionTask.apply)()
+    val records = updatedDrives.map(createWiping)
+    HLTaskRunner("Adding Wiping Records", Seq(() => db.get.addWipingRecords(records *)) *)(HLDatabaseTransactionTask.apply)()
 
 
   given [U]: Conversion[U, Option[U]] with
     override def apply(x: U): Option[U] = Some(x)
 
 
-  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using itsaID: String)(using notificationCentre: NotificationCentre[NotificationName])(using HardwareGrabberService): Unit =
-    def checkForDuplicateDrives(): Option[Iterable[String]] =
-      transactionQueue.asScala
-        .filter(c => c.isInstanceOf[DiskCreator])
-        .map(_.asInstanceOf[DiskCreator])
-        .map: drive =>
-          if db.get.doesDriveExists(drive) then
-            drive.serial
-          else
-            ""
-        |> Option[Iterable[String]]
+  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using itsaID: String)(using notificationCentre: NotificationCentre[NotificationName], hardwareGrabber: HardwareGrabberService): Unit =
+    def checkForDuplicateDrives(): Boolean =
+      var result = false
+      transactionQueue.asScala.collect:
+          case drive: DiskCreator =>
+            if db.get.doesDriveExists(drive) then
+              logger.info(s"Found duplicate drive: ${drive.serial}")
+              true
+            else
+            false
+          case _ =>
+            false
+      .contains(true)
     end checkForDuplicateDrives
 
     def hasAnyDuplicateRows: Boolean =
       findAllStartingWithID[M](itsaID).nonEmpty
 
 
-    if transactionQueue.size() >= minAmountOfTransactions then
+    if transactionQueue.size() >= minAmountOfTransactions || !transactionQueue.isEmpty then
       if hasAnyDuplicateRows then
         notificationCentre.post(NotificationName.FoundDuplicateRowsWithID)
       else
-        val duplicateDrives = checkForDuplicateDrives().map(_.toArray) ?? Array.empty[String]
-        if duplicateDrives ?? "" ne "" then
+        val duplicateDrives = checkForDuplicateDrives()
+        logger.info("")
+        if duplicateDrives then
           val args = Dict:
             val drives = duplicateDrives
           .asInstanceOf[NotificationUserInfo]
-
           notificationCentre.post(NotificationName.ShowDuplicateDriveWarning, Option(this), args)
         else // if duplicateDrives.contains("") then
           save()
@@ -195,10 +202,9 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     if creator == null then
       functions
     else
+      logger.info(s"Creator: $creator")
       generateTaskFunctions(functions :+ (() => db.get.insertOrUpdate(creator)))
   end generateTaskFunctions
-
-
 
 
   override final def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID: String): Unit =
@@ -217,20 +223,20 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
 
   override final def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String): Unit =
     import HLDatabaseService.given
-      db.get.markAllRowsWithIDAsError(id)
+    db.get.markAllRowsWithIDAsError(id)
 
   def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String): Seq[Option[M]] =
     import HLDatabaseService.given
-      val result = db.get.findAllByIdStartingWith(itsaID)
-      val models = result.map(s => s.map(toModel)).get
-      models
-    ?? Seq()
+    val result = db.get.findAllByIdStartingWith(itsaID)
+    val models = result.map(s => s.map(toModel))
+    models
+      ?? Seq()
 
 
   def findByID[M <: HLModel : ClassTag](itsaID: String): Option[M] =
     import HLDatabaseService.given
-      val result = db.get.findByID(itsaID)
-      if result.isDefined then toModel(result.get) else None
+    val result = db.get.findByID(itsaID)
+    if result.isDefined then toModel(result.get) else None
 
 
   override final def stop(): Unit = db.foreach(_.close())

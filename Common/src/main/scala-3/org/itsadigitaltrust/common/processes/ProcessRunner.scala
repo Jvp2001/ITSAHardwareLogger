@@ -1,10 +1,12 @@
 package org.itsadigitaltrust.common.processes
 
+import org.itsadigitaltrust.common.logging.{HWLLoggable, HWLLogger, HWLLoggerImpl}
+
 import scala.sys.process.*
 
 
 extension (sc: StringContext)
-  inline def sudo(args: String*)(using config: ProcessConfig): String =
+  inline def sudo(args: String*)(using config: ProcessConfig, logger: HWLLoggable): String =
     val sudoPasswordInputCommand = s"echo ${config.sudoPassword} | sudo -S "
     val input =
       val res = sc.s(args*)
@@ -13,8 +15,8 @@ extension (sc: StringContext)
       else
         res
     end input
-    System.out.println(s"input starts with sudo: ${input.startsWith(sudoPasswordInputCommand)}")
-    System.out.println(s"input: $input")
+    logger().info(s"input starts with sudo: ${input.startsWith(sudoPasswordInputCommand)}")
+    logger().info(s"input: $input")
     val parts = input.split("\\|")
     (parts.head #| parts.tail.mkString).!!
   end sudo
