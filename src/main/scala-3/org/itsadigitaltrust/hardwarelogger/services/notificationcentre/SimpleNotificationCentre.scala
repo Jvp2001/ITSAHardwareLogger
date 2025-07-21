@@ -8,6 +8,7 @@ enum NotificationName:
   case Reload
   case Save // This channel is used to push all the loaded data to the database.
 
+  case HDRowSelectionChange
   case DBSuccess
   case FoundDuplicateRowsWithID
   case ShowDuplicateDriveWarning

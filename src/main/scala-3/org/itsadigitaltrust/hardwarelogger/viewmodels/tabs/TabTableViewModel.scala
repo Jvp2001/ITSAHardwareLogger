@@ -16,12 +16,16 @@ import scala.runtime.{AbstractFunction1, AbstractPartialFunction}
 import org.itsadigitaltrust.hardwarelogger.services.given
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
 
+import scalafx.beans.property.BooleanProperty
+
 import scala.reflect.ClassTag
 class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadData: HardwareGrabberService => Seq[M], saveDataMode: ProgramMode = "Normal")(using itsaID: String) extends ViewModel with ServicesModule with Notifiable[NotificationName]:
 
   type RowViewModel = VM
   val data: ObservableBuffer[VM] = ObservableBuffer()
   notificationCentre.addObserver(this)
+
+  val editable: BooleanProperty = BooleanProperty(false)
 
   def models: Seq[M] = data.map(_.model).toSeq
 
@@ -43,9 +47,11 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](row
     else if message.name == NotificationName.Save && (saveDataMode == "Both" || saveDataMode == ProgramMode.mode) then
       if data.isEmpty then
         reload()
-        
       logger.info(s"Saving ${models.size} models")
       save()
+
+    else if message.name == NotificationName.ProgramModeChanged then
+      editable.value = ProgramMode.isInHardDriveMode
   end onReceivedNotification
 
   protected def save(): Unit =

@@ -124,21 +124,30 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     margin = Insets(0, 20.0, 0, 0)
 
 
-  private val saveButton = new Button:
+  private val normalSaveButton = new Button:
     text = "Save"
     onAction = _ => viewModel.save()
     alignment = Center
     margin = Insets(0, 10.0, 0, 0)
     disable <== !viewModel.validIDProperty
 
+  private val hardDriveModeSaveButton = new Button:
+    text = "Save"
+    onAction = _ => viewModel.save()
+    alignment = Center
+    margin = Insets(0, 10.0, 0, 0)
+
+
+  private var saveButton: Button = normalSaveButton
+  private val rightAlignRegion = new Region:
+    prefWidth = 200.0
+    prefHeight = prefWidth.get
+    hgrow = Always
   private val buttonsContainer = new HBox:
     alignment = Center
     prefWidth = 200.0
     prefHeight = 50.0
-    children += new Region:
-      prefWidth = 200.0
-      prefHeight = prefWidth.get
-      hgrow = Always
+    children += rightAlignRegion
     children ++= Seq(reconnectButton, reloadButton, saveButton)
   end buttonsContainer
 
@@ -204,7 +213,7 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     tabPane.tabs += createTab("Debug",
       consoleView)
 
-//    Seq[View[? <: ViewModel[? <: HLModel]]]
+    //    Seq[View[? <: ViewModel[? <: HLModel]]]
     Seq[Reloadable](generalInfoTabView, processorTabView, memoryTabView, hardDrivesTabView, mediaTabView).foreach: view =>
       view.reload()
     /** The code below is a hacky workaround to get the HDD tab's [[HardDrivesTabView]] table to display its data properly.
@@ -238,7 +247,14 @@ final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRo
     tabPane.selectionModel.value.selectedItemProperty().addListener(changeListener)
     if mode == "HardDrive" then
       tabPane.selectionModel.get().select(1)
-      tabPane.selectionModel.get().select(0)
+      buttonsContainer.children = Seq(rightAlignRegion, reloadButton, hardDriveModeSaveButton)
+    else
+      buttonsContainer.children = Seq(rightAlignRegion, reloadButton, normalSaveButton)
+    (1 to tabPane.tabs.size).map: index =>
+      tabPane.selectionModel.get.select(index)
+    tabPane.selectionModel.get().select(0)
+
+  //viewModel.setIDToMatchValueInDB()
 
 
   end onProgramModeChanged

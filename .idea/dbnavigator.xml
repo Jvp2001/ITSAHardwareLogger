@@ -34,6 +34,9 @@
       <assistant-state connection-id="virtual-mysql-connection" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
         <messages />
       </assistant-state>
+      <assistant-state connection-id="cca9145e-76bb-45be-97f7-bc5b41c354b3" default-profile-name="" selected-profile-name="" selected-model-name="" assistant-type="GENERIC" selected-action="SHOW_SQL" availability="UNAVAILABLE" acknowledgement="NONE">
+        <messages />
+      </assistant-state>
     </assistants>
   </component>
   <component name="DBNavigator.Project.DatabaseBrowserManager">
@@ -49,18 +52,21 @@
 select * from wiping where hdd_id is like '85977.%';]]></console>
     </connection>
     <connection id="cc392073-c906-4319-a766-6683de9c4037">
-      <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from info;
-select * from wiping where hdd_id like '85977.%';
-select * from wiping where serial = 'S13TJ1CQ404992'
+      <console name="External Itsahw" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from info where itsaid like '85977.0%';
 
+
+select * from wiping where hdd_id like '85977.%';
+
+
+
+
+
+select * from wiping where hdd_id like '85977.0%';
 
 --DatabaseTransactionTask: ERROR: Error executing query:
 --INSERT INTO wiping (hdd_id, serial, model, insertiondate, capicty, type, descr, health, to_update, is_ssd, form_factor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 --With message:
 --java.sql.BatchUpdateException: Duplicate entry '' for key 'wiping.idx_wiping_unique_hdd_id']]></console>
-    </connection>
-    <connection id="ba269de5-3e99-4e6d-9901-2998b359418f">
-      <console name="Connection" type="STANDARD" schema="postgres" session="Main" />
     </connection>
     <connection id="b7491575-f97f-42ca-87c9-15e723d77b55">
       <console name="My HWlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from hwlogger.wiping where hdd_id like '85977.0%';
@@ -68,10 +74,14 @@ select * from wiping where serial = 'S13TJ1CQ404992'
 
 
 
+select * from hwlogger.memory;
+
+
+delete from hwlogger.disks;
+delete from hwlogger.wiping;
 
 
 
-select * from hwlogger.info where itsaid = '85977.0';
 
 
 
@@ -79,7 +89,14 @@ select * from hwlogger.info where itsaid = '85977.0';
 
 
 
-delete from hwlogger.wiping;]]></console>
+
+
+
+
+select itsaid from hwlogger.info where genserial = 'C02DD072MD6R';]]></console>
+    </connection>
+    <connection id="cca9145e-76bb-45be-97f7-bc5b41c354b3">
+      <console name="Local PC HWLogger" type="STANDARD" schema="mysql" session="Main" />
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
@@ -87,15 +104,14 @@ delete from hwlogger.wiping;]]></console>
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
     <open-files>
-      <object connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" object-ref="schemas/hwlogger/tables/info" />
-      <object connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" object-ref="consoles/My HWlogger" />
+      <object connection-id="cc392073-c906-4319-a766-6683de9c4037" object-ref="consoles/External Itsahw" />
     </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="2656857d-47b4-48c9-a693-a7924d67bddc" />
     <connection id="cc392073-c906-4319-a766-6683de9c4037" />
-    <connection id="ba269de5-3e99-4e6d-9901-2998b359418f" />
     <connection id="b7491575-f97f-42ca-87c9-15e723d77b55" />
+    <connection id="cca9145e-76bb-45be-97f7-bc5b41c354b3" />
   </component>
   <component name="DBNavigator.Project.DatasetFilterManager">
     <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.memory" active-filter-id="" />
@@ -106,8 +122,19 @@ delete from hwlogger.wiping;]]></console>
       </filter>
     </filter-actions>
     <filter-actions connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" dataset="itsahw.wiping" active-filter-id="" />
+    <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.memory" active-filter-id="EMPTY_FILTER">
+      <filter id="7595a858-0dc3-4a64-95f8-5cf590e8c23e" name="'85977.0'" temporary="false" custom-name="false" type="basic" join-type="AND">
+        <condition column="id" operator="=" value="'85977.0'" active="true" />
+      </filter>
+    </filter-actions>
     <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.info" active-filter-id="EMPTY_FILTER" />
+    <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.disks" active-filter-id="EMPTY_FILTER" />
     <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.wiping" active-filter-id="EMPTY_FILTER" />
+    <filter-actions connection-id="b7491575-f97f-42ca-87c9-15e723d77b55" dataset="hwlogger.media" active-filter-id="EMPTY_FILTER">
+      <filter id="76454ec3-c011-4bed-97ab-4328ee9a723f" name="'85977.0'" temporary="false" custom-name="false" type="basic" join-type="AND">
+        <condition column="id" operator="=" value="'85977.0'" active="true" />
+      </filter>
+    </filter-actions>
   </component>
   <component name="DBNavigator.Project.ExecutionManager">
     <retain-sticky-names value="false" />
@@ -343,31 +370,31 @@ delete from hwlogger.wiping;]]></console>
           </object-type-filter>
         </object-filters>
       </connection>
-      <connection id="ba269de5-3e99-4e6d-9901-2998b359418f" active="true" signed="true">
+      <connection id="b7491575-f97f-42ca-87c9-15e723d77b55" active="true" signed="true">
         <database>
-          <name value="Connection" />
+          <name value="My HWlogger" />
           <description value="" />
-          <database-type value="POSTGRES" />
+          <database-type value="MYSQL" />
           <config-type value="BASIC" />
-          <database-version value="9999.0" />
+          <database-version value="9.2" />
           <driver-source value="BUNDLED" />
           <driver-library value="" />
           <driver value="" />
           <url-type value="DATABASE" />
           <host value="localhost" />
-          <port value="5432" />
-          <database value="postgres" />
+          <port value="3306" />
+          <database value="hwlogger" />
           <tns-folder value="" />
           <tns-profile value="" />
           <type value="USER_PASSWORD" />
-          <user value="" />
+          <user value="root" />
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="" />
+          <session-user value="root@localhost" />
         </database>
         <properties>
-          <auto-commit value="false" />
+          <auto-commit value="true" />
         </properties>
         <ssh-settings>
           <active value="false" />
@@ -444,28 +471,28 @@ delete from hwlogger.wiping;]]></console>
           </object-type-filter>
         </object-filters>
       </connection>
-      <connection id="b7491575-f97f-42ca-87c9-15e723d77b55" active="true" signed="true">
+      <connection id="cca9145e-76bb-45be-97f7-bc5b41c354b3" active="true" signed="true">
         <database>
-          <name value="My HWlogger" />
+          <name value="Local PC HWLogger" />
           <description value="" />
           <database-type value="MYSQL" />
           <config-type value="BASIC" />
-          <database-version value="9.2" />
+          <database-version value="9999.0" />
           <driver-source value="BUNDLED" />
           <driver-library value="" />
           <driver value="" />
           <url-type value="DATABASE" />
-          <host value="localhost" />
+          <host value="192.168.134" />
           <port value="3306" />
-          <database value="hwlogger" />
+          <database value="mysql" />
           <tns-folder value="" />
           <tns-profile value="" />
           <type value="USER_PASSWORD" />
-          <user value="root" />
+          <user value="itsa" />
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
-          <session-user value="root@localhost" />
+          <session-user value="" />
         </database>
         <properties>
           <auto-commit value="false" />

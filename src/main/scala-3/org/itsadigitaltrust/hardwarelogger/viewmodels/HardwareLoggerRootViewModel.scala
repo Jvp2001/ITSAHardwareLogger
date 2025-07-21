@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
-import org.itsadigitaltrust.common.Operators.??
+import org.itsadigitaltrust.common.Operators.{??, in}
 import org.itsadigitaltrust.common.Result
 
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate}
@@ -11,7 +11,8 @@ import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationName, NotificationUserInfo}
-import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, ServicesModule}
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, IDParser, ServicesModule}
+import org.itsadigitaltrust.hardwarelogger.ui.ToastHelper
 
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType
@@ -52,9 +53,9 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
       case NotificationName.ProgramModeChanged => onProgramModeChanged(ProgramMode.mode)
       case _ => ()
 
-  private def onDBSuccess(message: Message): Unit =
-    new Alert(Information, "Data has been saved!", ButtonType.OK).showAndWait()
-    wasDuplicateIDWarningAlreadyShown = false
+  private def onDBSuccess(message: Message): Unit = ()
+//    ToastHelper.makeText(null, "Data has been saved!", 3000, 200, 200)
+//    wasDuplicateIDWarningAlreadyShown = false
 
   private def duplicateDrives(message: Message) =
 
@@ -76,15 +77,20 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
 
   //TODO: Validate and fix the data actually going into the database.
   private def onDuplicateIDFound(message: Message) =
-    if !wasDuplicateIDWarningAlreadyShown then
-      new Alert(AlertType.Warning, "Do you want to continue with saving this data? If so, the current data with the same ID will be marked as an error.", ButtonType.Yes, ButtonType.No):
-        headerText = s"ID '$idStringProperty' is already in use."
-        showAndWait() match
-          case Some(ButtonType.Yes) =>
-            databaseService.markAllRowsWithIDInDBAsError(idStringProperty.value)
-            wasDuplicateIDWarningAlreadyShown = true
-          case _ => ()
-    end if
+//    if !wasDuplicateIDWarningAlreadyShown then
+    new Alert(AlertType.Warning, "Do you want to continue with saving this data? If so, the current data with the same ID will be marked as an error.", ButtonType.Yes, ButtonType.No):
+      headerText = s"ID '${idStringProperty.value}' is already in use."
+      showAndWait() match
+        case Some(ButtonType.Yes) =>
+          databaseService.markAllRowsWithIDInDBAsError(idStringProperty.value)
+          val userInfo = NotificationUserInfo:
+            val id = idStringProperty.value
+          //    reload()
+          notificationCentre.post(Save, None, Option(userInfo))
+          wasDuplicateIDWarningAlreadyShown = true
+        case _ =>
+          wasDuplicateIDWarningAlreadyShown = false
+//    end if
 
   private def onReload(message: Message): Unit =
     if ProgramMode.isInNormalMode then
@@ -97,6 +103,7 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
 
   override def setup(): Unit =
     reload()
+    setIDToMatchValueInDB()
 
 
   def reconnect(): Unit =
@@ -126,9 +133,12 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
       if notWipedDrives.nonEmpty then
         showDrivesNotWipedAlert(notWipedDrives)
 
+    databaseService.itsaID = idStringProperty.value
     val userInfo = NotificationUserInfo:
       val id = idStringProperty.value
+//    reload()
     notificationCentre.post(Save, None, Option(userInfo))
+
   end save
 
 
@@ -143,6 +153,8 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
       case Result.Error(value) =>
         validIDProperty.value = false
         idErrorStringProperty.value = value.toString
+        if idErrorStringProperty.value ==  IDParser.ParserError.MissingCheckDigit.toString && idErrorStringProperty.value.contains(".") then
+          idErrorStringProperty.value = ""
         if showAlert then
           value match
             case ValidationError.ParserError(error) => idErrorStringProperty.value = error.toString
@@ -152,6 +164,7 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
                 case _ => idFieldFocusProperty.value = true
       case Result.Success(value) =>
         validIDProperty.value = true
+        //TODO: Check if you want to wipe the ID after saving.
         idErrorStringProperty.value = ""
         idStringProperty.value = value.toString
   end validateID
@@ -159,19 +172,28 @@ final class HardwareLoggerRootViewModel extends ViewModel, ServicesModule, Progr
   def reload(): Unit =
     hardwareGrabberService.load(): () =>
       notificationCentre.post(Reload)
-      if isInNormalMode.value then
-        idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
-      shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty 
+      setIDToMatchValueInDB()
 
   end reload
+
+  def setIDToMatchValueInDB(): Unit =
+    if isInNormalMode.value then
+      idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
+
+    else
+      idStringProperty.value = hardwareGrabberService.hardDrives.headOption.map(_.itsaID) ?? ""
+    shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
+
 
   override def onProgramModeChanged(mode: ProgramMode): Unit =
     isInNormalMode.value = mode == "Normal"
     reload()
 
+
   private def findNonWipedDrives() =
     hardwareGrabberService.hardDrives.filterNot: hardDrive =>
       databaseService.findWipingRecord(hardDrive.serial).isDefined
+
 
 
   private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =

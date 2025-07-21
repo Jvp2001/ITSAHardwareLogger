@@ -36,6 +36,7 @@ trait HLDatabaseService extends FrontendService:
 
   lazy val dbPropertiesFile: String
 
+  var itsaID: String
 
   def testConnection(): Boolean = false
 
@@ -60,27 +61,46 @@ trait HLDatabaseService extends FrontendService:
 
   def findWipingRecord(serial: String): Option[Disk]
 
-  def addWipingRecords(using itsaID: String)(drives: HardDriveModel*): Unit
+  def addWipingRecords(drives: HardDriveModel*): Unit
 
-  def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit
+  def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit
 
-  def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit
+  def ++=[M <: HLModel : ClassTag](models: Seq[M])(using NotificationCentre[NotificationName], HardwareGrabberService): Unit
 
   def stop(): Unit
 end HLDatabaseService
 
 
-trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
+trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T] with Notifiable[NotificationName]:
   override type Error = CommonHLDatabase.Error
 
   private var database: Option[HLDatabase] = None
 
   protected def db: Option[HLDatabase] = revalidateDB()
 
+  val totalNumberOfTabs = ReflectionUtils.totalNumberOfChildClasses[HLModel]
+  var prevClassTag: Option[ClassTag[? <: HLModel]] = None
+  protected var currentNumberOfProcessedTabs = 0
   private val minAmountOfTransactions = 8
   override lazy val dbPropertiesFile: String =
     getClass.getResourceAsStream("db.properties").readAllAsString()
 
+  var itsaID: String = ""
+
+  notificationCentre.addObserver(this)
+  override def onReceivedNotification(message: Message): Unit = ()
+//    if message.name == NotificationName.Save then
+//      itsaID = message.userInfo("id").asInstanceOf[String]
+//
+
+  private def incrementTabCount[M <: HLModel : ClassTag](): Unit =
+    val ct = classTag[M]
+    if prevClassTag.isEmpty then
+      prevClassTag = Option(ct)
+    prevClassTag `map`: lastClassTag =>
+      if lastClassTag != ct then
+        prevClassTag = Option(ct)
+        currentNumberOfProcessedTabs += 1
 
   override def testConnection(): Boolean =
     db.map(_.testConnection()) ?? false
@@ -92,7 +112,6 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
   private final val genID = "itsa-hwlogger"
 
   var transactionErrorHandler: Throwable => Unit = _ => ()
-
 
   protected val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
   private var noIDIndex: Option[Long] = None
@@ -107,17 +126,24 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
           Result.error(reason)
 
 
-  override final def +=[M <: HLModel : ClassTag](model: M)(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
+  override def +=[M <: HLModel : ClassTag](model: M)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
     val creator = createEC(model)
     //    if !transactionQueue.contains(creator) then
     transactionQueue.add(creator)
 
     checkAndSave()
 
-  override def ++=[M <: HLModel : ClassTag](models: Seq[M])(using itsaID: String)(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
+  override final def ++=[M <: HLModel : ClassTag](models: Seq[M])(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
+    if models.isEmpty then
+      currentNumberOfProcessedTabs += 1
     models.map(createEC).foreach: item =>
         transactionQueue.add(item)
-    checkAndSave()
+
+    if isFinishedProcessing then
+      checkAndSave()
+    else
+      incrementTabCount()
+
 
   def findItsaIdBySerialNumber(serial: String): Option[String] =
     db match
@@ -144,7 +170,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
       database = HLDatabase(dbPropertiesFile).toOption
     database
 
-  def addWipingRecords(using itsaID: String)(drives: HardDriveModel*): Unit =
+  def addWipingRecords(drives: HardDriveModel*): Unit =
 
 
     val updatedDrives = drives.map: drive =>
@@ -158,7 +184,7 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     override def apply(x: U): Option[U] = Some(x)
 
 
-  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using itsaID: String)(using notificationCentre: NotificationCentre[NotificationName], hardwareGrabber: HardwareGrabberService): Unit =
+  protected def checkAndSave[M <: HLModel : ClassTag](minAmountOfTransactions: Int = minAmountOfTransactions)(using notificationCentre: NotificationCentre[NotificationName], hardwareGrabber: HardwareGrabberService): Unit =
     def checkForDuplicateDrives(): Boolean =
       var result = false
       transactionQueue.asScala.collect:
@@ -174,29 +200,37 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
     end checkForDuplicateDrives
 
     def hasAnyDuplicateRows: Boolean =
-      findAllStartingWithID[M](itsaID).nonEmpty
+      findAllStartingWithID(itsaID).nonEmpty
 
-
-    if transactionQueue.size() >= minAmountOfTransactions || !transactionQueue.isEmpty then
-      if hasAnyDuplicateRows then
-        notificationCentre.post(NotificationName.FoundDuplicateRowsWithID)
-      else
-        val duplicateDrives = checkForDuplicateDrives()
-        logger.info("")
-        if duplicateDrives then
-          val args = Dict:
-            val drives = duplicateDrives
-          .asInstanceOf[NotificationUserInfo]
-          notificationCentre.post(NotificationName.ShowDuplicateDriveWarning, Option(this), args)
-        else // if duplicateDrives.contains("") then
-          save()
+    if hasAnyDuplicateRows then
+      notificationCentre.post(NotificationName.FoundDuplicateRowsWithID)
+      save()
+    else
+      val duplicateDrives = checkForDuplicateDrives()
+      logger.info("")
+      if duplicateDrives then
+        val args = Dict:
+          val drives = duplicateDrives
+        .asInstanceOf[NotificationUserInfo]
+        notificationCentre.post(NotificationName.ShowDuplicateDriveWarning, Option(this), args)
+      else  // if duplicateDrives.contains("") then
+        save()
 
   protected def save[M <: HLModel]()(using NotificationCentre[NotificationName], HardwareGrabberService): Unit =
     executeTasks()
 
+  def isFinishedProcessing: Boolean =
+    currentNumberOfProcessedTabs >= totalNumberOfTabs
+  def isFinished: Boolean =
+    isFinishedProcessing && transactionQueue.isEmpty
+
+  def reset(): Unit =
+    transactionQueue.clear()
+    prevClassTag = None
+
   @tailrec
   final protected def generateTaskFunctions(functions: Seq[() => Unit] = Seq()): Seq[() => Unit] =
-    if transactionQueue.size() < 0 then
+    if transactionQueue.isEmpty then
       return functions.getOrElse(Seq())
     val creator = transactionQueue.poll()
     if creator == null then
@@ -276,20 +310,20 @@ trait CommonHLDatabase[T[_]] extends HLDatabaseService with TaskExecutor[T]:
           model = hardDrive.model,
           size = DataSize(0, DataSizeUnit.GB),
           serial = hardDrive.serial,
-          description = hardDrive.description ?? "",
+          description = hardDrive.descr ?? "",
           health = Percentage(100),
           performance = Percentage(100),
           connectionType = HardDriveConnectionType.NVME
         )
       case media: Media =>
-        MediaModel(description = media.description, handle = media.handle ?? "")
+        MediaModel(description = media.descr ?? "", handle = media.handle ?? "")
       case _ => scala.sys.error("Unknown Type!")
     end model
     model.asInstanceOf[M]
   end toModel
 
 
-  protected def createEC[M <: HLModel](model: M)(using itsaID: String)(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
+  protected def createEC[M <: HLModel](model: M)(using hardwareGrabberService: HardwareGrabberService): HLEntityCreatorWithItsaID =
     model match
       case memory: MemoryModel => createMemory(memory, itsaID)
       case hardDriveModel: HardDriveModel => createHardDrive(hardDriveModel, itsaID)
@@ -349,9 +383,15 @@ class SimpleHLDatabaseService(using notificationCentre: NotificationCentre[Notif
 
   override final def executeTasks()(using notificationCentre: NotificationCentre[NotificationName])(using hardwareGrabberService: HardwareGrabberService): Unit =
 
-    HLTaskRunner("Saving to Database", generateTaskFunctions() *)(t => HLDatabaseTransactionTask(t)): () =>
-      if transactionQueue.size() < 1 then
+    val tasks = generateTaskFunctions()
+    HLTaskRunner("Saving to Database", tasks *)(t => HLDatabaseTransactionTask(t)): () =>
+      if transactionQueue.size == 1 then
+        save()
+      if  transactionQueue.isEmpty then //currentNumberOfProcessedTabs + 1  == totalNumberOfTabs || currentNumberOfProcessedTabs >= totalNumberOfTabs then
         notificationCentre.post(NotificationName.DBSuccess)
+        reset()
+        currentNumberOfProcessedTabs = 0
+
 
   end executeTasks
 

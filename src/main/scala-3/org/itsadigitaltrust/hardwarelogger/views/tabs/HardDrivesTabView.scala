@@ -1,17 +1,24 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
-import javafx.scene.control.cell
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, TabTableViewModel}
-import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewModel
 import org.itsadigitaltrust.hardwarelogger.views.View
 
-import scalafx.application.Platform
-import scalafx.event.EventType
+import scalafx.util.StringConverter
 
 import scala.reflect.classTag
+
+
+class ItsaIDConverter(model: HardDriveTableRowViewModel) extends StringConverter[String]:
+  override def fromString(string: String): String =
+    model.model.itsaID = string
+    model.model.itsaID
+
+  override def toString(t: String): String =
+    t
 
 class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewModel) extends TabTableView(using classTag[HardDriveModel], tabViewModel, itsaID):
 
@@ -44,6 +51,12 @@ class HardDriveTableView(using itsaID: String, tabViewModel: HardDrivesTabViewMo
   private val idColumn = createAndAddColumn("ID"): cellValue =>
     cellValue.idProperty
 
+//
+//    else
+//      new TableCell[HardDriveTableRowViewModel, String]()
+
+
+
   private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
     cellValue.driveTypeProperty
 
@@ -65,12 +78,14 @@ class HardDrivesTabView(using itsaID: String) extends VBox with TabDelegate with
       prefHeight = 40
     private val moreInfoButton = new Button:
       text = "More Info"
-      onAction = _ => viewModel.showExtraInfo(tableView.getSelectedItem)
+      onAction = _ =>
+        viewModel.showExtraInfo(tableView.getSelectedItem)
       disable <== viewModel.moreInfoDisabledProperty
       padding = Insets(0D, 5D, 0D, 0D)
       prefHeight = 40D
       prefWidth = 100D
       hgrow = Always
+
     children ++= Seq(region, moreInfoButton)
 
 

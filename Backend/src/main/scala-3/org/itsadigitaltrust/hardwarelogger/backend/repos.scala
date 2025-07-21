@@ -52,12 +52,17 @@ private[backend] object repos:
 
     private[backend] def findAllByIDStartingWith(id: String)(using DbCon, DbCodec[EntityFromEC[EC]])(using table: HLTableInfo[EC, E]): Option[Seq[EntityFromEC[EC]]] =
 
-      val name = ct.runtimeClass.getSimpleName.replace("Creator", "").toLowerCase
-      val sqlID = s"{$id}%"
+      var tableName = classTag[EC].runtimeClass.getSimpleName.replace("Creator", "").toLowerCase
       // Either itsaid or hdd_id
-//      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$sqlID'%"
-      val frag = sql"select * from $name where $getItsaIDFieldName like '$id%'"
+      val idColName = getItsaIDFieldName
+
+      tableName = if tableName == "disk" then "disks" else tableName
+
+//      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$id%'"
+      val frag = Frag(s"select * from $tableName where ${if idColName == "hddID" then "hdd_id" else "itsaid"} like '$id%'")
+
       Option(frag.query.run())
+
 
 
     private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
@@ -88,10 +93,13 @@ private[backend] object repos:
         case infoCreator: InfoCreator =>
           logger().info(infoCreator.itsaID)
           sql"select itsaid from info where itsaid = ${infoCreator.itsaID}".query[String].run().headOption match
-            case Some(info) => ()
+            case Some(info) if info != "" =>
               logger().info(s"Updating lastupdated for itsaid: ${infoCreator.itsaID}")
-              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = ${infoCreator.itsaID}".update.run()
+              sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = $info".update.run()
+            case Some(value) if value == "" => repo.insert(creator)
             case None => repo.insert(creator)
+            case Some(_) => repo.insert(creator)
+            case _ => repo.insert(creator)
           end match
         case c: HLEntityCreatorWithItsaID =>
           val result = sql"select itsaid from $table where itsaid = ${c.itsaID}".query[String].run()
@@ -100,6 +108,8 @@ private[backend] object repos:
             case None =>
               logger().info(s"Inserting new itsaid: ${c.itsaID}")
               repo.insert(creator)
+
+            case _ => repo.insert(creator)
           end match
         case _: org.itsadigitaltrust.hardwarelogger.backend.entities.
         HLEntityCreatorWithHardDiskID => ()
@@ -121,8 +131,8 @@ private[backend] object repos:
 
   extension (repo: HLRepo[InfoCreator, Info])
     def findItsaIdBySerialNumber(serial: String)(using DbCon)(using table: HLTableInfo[InfoCreator, Info]): Option[String] =
-      val frag = sql"select itsaid from $table where ${table.selectDynamic("genSerial")} = $serial"
-      frag.query[String].run().headOption
+      val frag = sql"select itsaid from info where genserial = $serial"
+      frag.query[String].run().lastOption
   end extension
 
   extension (repo: HLRepo[DiskCreator, Disk])

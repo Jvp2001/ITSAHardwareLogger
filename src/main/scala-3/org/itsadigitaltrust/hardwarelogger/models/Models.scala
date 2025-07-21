@@ -59,7 +59,7 @@ final case class HardDriveModel(
                                  model: String,
                                  serial: String,
                                  connectionType: HardDriveConnectionType,
-                                 itsaID: String = "NOT LOGGED",
+                                 var itsaID: String = "NOT LOGGED",
                                  `type`: HardDriveType = "SSD",
                                  description: String = "",
                                  actions: String = "No actions needed.",

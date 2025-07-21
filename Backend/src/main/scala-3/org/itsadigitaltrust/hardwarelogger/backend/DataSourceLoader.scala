@@ -1,29 +1,21 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
-import com.mysql.cj.jdbc.MysqlDataSource
-import org.itsadigitaltrust.common
-import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.common.collections.Dict
 import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.common.{PropertyFileReader, PropertyFileReaderError, Result, Success}
 
 import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
 
-import java.io.{File, FileInputStream, FileNotFoundException, FileReader, InputStream}
-import java.net.{MalformedURLException, URI}
-import java.nio.file.Path
-import java.util.Properties
-import javax.sql.DataSource
-import scala.collection.immutable.{AbstractSeq, LinearSeq}
-import scala.util.{Failure, Try, Using, boundary}
+import com.mysql.cj.jdbc.MysqlDataSource
+import org.itsadigitaltrust.common
+
+import scala.util.Try
 
 
 final class HLSqlDataSource extends MysqlDataSource
 
 class DataSourceLoader private extends HWLLoggable:
   type Error = PropertyFileReaderError
-
-  import scala.compiletime.*
 
   type ![T] = Result.Continuation[T, PropertyFileReaderError] ?=> T
 

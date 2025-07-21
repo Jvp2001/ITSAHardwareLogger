@@ -43,22 +43,39 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
   private inline def getTableInfo[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]]: HLTableInfo[EC, E] =
     logger.info(s"Class Tag: ${summonInline[ClassTag[EC]]}")
     val result = summonInline[ClassTag[EC]] match
-      case c if c == classTag[MemoryCreator] => tables.memoryTable
-      case c if c == classTag[MediaCreator] => tables.mediaTable
-      case c if c == classTag[DiskCreator] => tables.diskTable
-      case c if c == classTag[InfoCreator] => tables.infoTable
-      case c if c == classTag[WipingCreator] => tables.wipingTable
-      case _ => throw new IllegalArgumentException(s"Unknown entity creator class: ${summonInline[ClassTag[EC]]}")
+      case c if c == classTag[MemoryCreator] =>
+        tables.memoryTable
+      case c if c == classTag[MediaCreator] =>
+        tables.mediaTable
+      case c if c == classTag[DiskCreator] =>
+        tables.diskTable
+      case c if c == classTag[InfoCreator] =>
+        tables.infoTable
+      case c if c == classTag[WipingCreator] =>
+        tables.wipingTable
+      case _ =>
+        scala.sys.error(s"Unknown entity creator class: ${summonInline[ClassTag[EC]]}")
+        throw new IllegalArgumentException(s"Unknown entity creator class: ${summonInline[ClassTag[EC]]}")
     result.asInstanceOf[HLTableInfo[EC, E]]
 
 
   private inline def getRepo[EC <: ItsaEC, E <: EntityFromEC[EC]](creator: EC): HLRepo[EC, E] =
     val result = creator.getClass match
-      case c if c == classOf[MemoryCreator] => repos.memoryRepo
-      case c if c == classOf[MediaCreator] => repos.mediaRepo
-      case c if c == classOf[DiskCreator] => repos.diskRepo
-      case c if c == classOf[InfoCreator] => repos.infoRepo
-      case c if c == classOf[WipingCreator] => repos.wipingRepo
+      case c if c == classOf[MemoryCreator] =>
+        logger.info("Memory Repo")
+        repos.memoryRepo
+      case c if c == classOf[MediaCreator] =>
+        logger.info("Media Repo")
+        repos.mediaRepo
+      case c if c == classOf[DiskCreator] =>
+        logger.info("Disk Repo")
+        repos.diskRepo
+      case c if c == classOf[InfoCreator] =>
+        logger.info("Info repo")
+        repos.infoRepo
+      case c if c == classOf[WipingCreator] =>
+        logger.info("Wiping repo")
+        repos.wipingRepo
     result.asInstanceOf[HLRepo[EC, E]]
   end getRepo
 
@@ -116,8 +133,22 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
 
   def insertOrUpdate[EC <: ItsaEC : ClassTag, E <: EntityFromEC[EC]](creator: EC): Unit =
     val repo = getRepo[EC, E](creator)
+    logger.info(s"Repo: $repo")
+    given table:HLTableInfo[EC, E] = repo match
+      case repos.wipingRepo =>
+        tables.wipingTable
+      case repos.mediaRepo =>
+        tables.mediaTable
+      case repos.diskRepo =>
+        tables.diskTable
+      case repos.infoRepo =>
+        tables.infoTable
+      case repos.memoryRepo =>
+        tables.memoryTable
     transact(dataSource):
       repo.insertOrUpdate(creator)
+
+
 
   def doesDriveExists(creator: DiskCreator): Boolean =
     transact(dataSource):
@@ -136,6 +167,7 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
 
   def markAllRowsWithIDAsError[EC <: ItsaEC : ClassTag](id: String): Unit =
     transact(dataSource):
+      given tableInfo: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo
       logger.info(s"Marking rows with id: $id as error!")
       if id == null || id.isEmpty then
         ()
@@ -251,7 +283,9 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
     //        .toSeq
     transact(dataSource):
       markAllRowsMatchingRecordsWithIDAsError(newDisks *)
-      newDisks.foreach(repos.wipingRepo.insert)
+      val diskToAdd = newDisks
+        .dropWhile(_.hddID in foundDrives.map(_.hddID))
+      diskToAdd.foreach(repos.wipingRepo.insert)
     .get
 
 
@@ -276,6 +310,7 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
   def replaceAllRowsWithID[EC <: ItsaEC : ClassTag](old: String, `new`: String): Unit =
 
     transact(dataSource):
+      given tableInfo: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
       getRepo.replaceIdWith(old, `new`)
 
   def findWipingRecordID(serial: String): Option[String] =
@@ -284,6 +319,7 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
 
   def findByID[EC <: ItsaEC : ClassTag](id: String): Option[EntityFromEC[EC]] =
     transact(dataSource):
+      given tableInfo: HLTableInfo[EC, EntityFromEC[EC]] = getTableInfo[EC, EntityFromEC[EC]]
       getRepo.findAllByID(id)(using summon[DbCon], getDbCodec).headOption
     .toOptionFlat
 

@@ -10,7 +10,8 @@ import org.itsadigitaltrust.common.*
 import scalafx.beans.property.{BooleanProperty, StringProperty}
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{Notifiable, NotificationName}
 
-import scalafx.scene.control.TableRow
+import javafx.scene.control.ButtonType
+import scalafx.scene.control.{TableRow, TextInputDialog}
 import scalafx.scene.input.{KeyCode, MouseButton}
 import scalafx.scene.input.MouseButton.Primary
 
@@ -19,6 +20,8 @@ import scalafx.scene.input.MouseButton.Primary
 
 final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel]:
   final val unhealthlyDriveClass = "unhealthy-drive"
+
+  val editIDColumn = BooleanProperty(false)
 
   var moreInfoDisabledProperty: BooleanProperty = BooleanProperty(false)
   val rowDelegate: TableRowDelegate[HardDriveTableRowViewModel] = this
@@ -46,7 +49,17 @@ final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewMod
     button match
       case Primary =>
         row.foreach: r =>
-          showExtraInfo(r)
+          if ProgramMode.isInNormalMode then
+            showExtraInfo(r)
+          else
+            new TextInputDialog(r.idProperty.value):
+              headerText = "Change ID"
+              dialogPane.delegate.get().lookupButton(ButtonType.OK).disableProperty().bind(delegate.getEditor.textProperty().isEmpty)
+            .showAndWait() match
+              case Some(value) => r.model.itsaID = value
+              case None => ()
+
+
       case _ => ()
 
   end onRowDoubleClicked
@@ -64,6 +77,10 @@ final class HardDrivesTabViewModel(using itsaID: String) extends TabTableViewMod
   override def onReceivedNotification(message: Message): Unit =
     if message.name == NotificationName.Save then
       onSave(message)
+    else if message.name == NotificationName.ProgramModeChanged then
+      editIDColumn.value = ProgramMode.isInHardDriveMode
+
+
 
 
 

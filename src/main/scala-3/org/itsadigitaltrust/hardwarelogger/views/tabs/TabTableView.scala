@@ -65,7 +65,7 @@ private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelega
   end updateSelected
 end TableTabRow
 
-abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T], itsaID: String) extends TableView[T] with Reloadable:
+abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T], itsaID: String) extends TableView[T] with Reloadable :
 
   import TabTableView.*
 
@@ -91,6 +91,8 @@ abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](
 
 
   editable = false
+  delegate.getSelectionModel.cellSelectionEnabled <== editable
+
 
   override def reload(shouldClearData: Boolean = true): Unit = viewModel.reload(shouldClearData)
 
