@@ -3,8 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.core
 
 
 object ui:
-  export scalafx.Includes.*
-  export scalafx.Includes.given
+//  export scalafx.Includes.*
   export scalafx.stage.Window
   export scalafx.scene.{Node, Group}
   export scalafx.scene.control.{Tab, TableColumn, TableView, TabPane, Button, Label, TextField, Alert, ButtonType}

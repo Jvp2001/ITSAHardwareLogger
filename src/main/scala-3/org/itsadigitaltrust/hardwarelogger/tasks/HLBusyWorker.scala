@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.tasks
 
 import org.scalafx.extras.BusyWorker
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import javafx.scene as jfxs
 
 class HLBusyWorker(

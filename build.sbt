@@ -9,7 +9,7 @@ ThisBuild / packageOptions += Package.ManifestAttributes(
 ThisBuild / normalizedName := "ITSA Hardware Logger"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "org.itsadigitaltrust"
-ThisBuild / scalaVersion := "3.7.1"
+ThisBuild / scalaVersion := "3.7.0"
 ThisBuild / organizationName := "ITSA Digital Trust"
 ThisBuild / scalaBinaryVersion := "3"
 ThisBuild / organizationHomepage := Some(url("https://itsadigitaltrust.org/"))
@@ -31,41 +31,34 @@ enablePlugins(AssemblyPlugin, BuildInfoPlugin)
 Compile / mainClass := Some("org.itsadigitaltrust.hardwarelogger.$HardwareLoggerApplication")
 
 // Allow java sources
-Global / onChangedBuildSource := IgnoreSourceChanges
+//Global / onChangedBuildSource := IgnoreSourceChanges
 ThisBuild / assemblyOutputPath := file("ITSAHardwareLogger.jar")
 ThisBuild / assemblyMergeStrategy := {
-  case PathList("org.slf4j", "impl", xs @ _*) => MergeStrategy.first
-  case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
-    oldStrategy(x)
+  case PathList("META-INF", xs@_*) =>
+    xs map {_.toLowerCase} match {
+      case "services" :: xs =>
+        MergeStrategy.filterDistinctLines
+      case _ => MergeStrategy.discard
+    }
+  case _ => MergeStrategy.first
 }
-// := {
-//  case PathList("META-INF", xs@_*) =>
-//    xs map {_.toLowerCase} match {
-//      case "services" :: xs =>
-//        MergeStrategy.filterDistinctLines
-//      case _ => MergeStrategy.discard
-//    }
-//  case _ => MergeStrategy.discard
-//}
 
 lazy val loggingDeps = Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
-  "ch.qos.logback" % "logback-classic" % "1.5.13"
+  "ch.qos.logback" % "logback-classic" % "1.5.18"
 )
 
-lazy val javaFXDeps = Seq("win", "mac", "linux").flatMap { osName =>
-  Seq("base", "controls", "graphics")
-    .map(m => "org.openjfx" % s"javafx-$m" % "23" classifier osName)
+lazy val javaFXDeps = Seq("linux").flatMap { osName =>
+  Seq("base", "controls", "graphics", "web")
+    .map(m => "org.openjfx" % s"javafx-$m" % "21" classifier osName)
 }
-lazy val controlsFXDeps = "org.controlsfx" % "controlsfx" % "11.2.2"
 
 lazy val scalaFXDeps = Seq(
-  "org.scalafx" %% "scalafx" % "23.0.1-R34",
+  "org.scalafx" %% "scalafx" % "24.0.2-R36",
   "org.scalafx" %% "scalafx-extras" % "0.11.0",
 )
 
-lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ Seq(controlsFXDeps))
+lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps)
   .map(_ withJavadoc() withSources())
 enablePlugins()
 

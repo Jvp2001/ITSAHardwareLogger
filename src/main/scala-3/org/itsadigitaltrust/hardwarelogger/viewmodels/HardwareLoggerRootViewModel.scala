@@ -12,7 +12,6 @@ import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationName, NotificationUserInfo}
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareIDValidationService, IDParser, ServicesModule}
-import org.itsadigitaltrust.hardwarelogger.ui.ToastHelper
 
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType

@@ -7,6 +7,7 @@ import org.itsadigitaltrust.common.Operators.{??, |>}
 
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, IssueCustomisationDialog}
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, ReportedIssue}
 import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, ReportedIssue}

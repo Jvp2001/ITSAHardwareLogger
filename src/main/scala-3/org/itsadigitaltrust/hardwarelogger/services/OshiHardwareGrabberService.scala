@@ -15,7 +15,7 @@ import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.tasks.{HLTaskGroupBuilder, HLTaskRunner, HardwareGrabberTask}
 
-import org.itsadigitaltrust.hdsentinelreader.HDSentinelReader
+import org.itsadigitaltrust.hdsentinelreader.HDSentinalReader
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import org.scalafx.extras
 import oshi.SystemInfo
@@ -120,9 +120,9 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   override def loadHardDrives(): Unit =
     val hdSentinelReader =
       if OSUtils.onLinux then
-        HDSentinelReader[HardDiskSummary]()
+        HDSentinalReader[HardDiskSummary]()
       else
-        HDSentinelReader[HardDiskSummary](xml)
+        HDSentinalReader[HardDiskSummary](xml)
     end hdSentinelReader
 
     val hardDiskSummaries: Seq[HardDiskSummary] =
@@ -132,7 +132,7 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
     hardDrives = hardDiskSummaries.map: hardDiskSummary =>
 
       val driveId = findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber)
-      val serialId = findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber)
+      val serialId = findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber) ?? generalInfo.itsaID ?? None
       val id = (driveId, serialId) match
         case (Some(dId), None) => dId
         case (None, Some(sId)) => sId
