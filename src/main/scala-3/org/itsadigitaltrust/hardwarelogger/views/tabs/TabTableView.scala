@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.views.tabs
 import org.itsadigitaltrust.common.Operators.{|>, in}
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel

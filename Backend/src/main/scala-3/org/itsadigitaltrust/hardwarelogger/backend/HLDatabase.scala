@@ -200,7 +200,7 @@ class HLDatabase private(private val configFile: Try[String], private val dataSo
       val index = start + current
       if index > lettersInTheAlphabet then
         val times = index / lettersInTheAlphabet
-        letters(times - 1).toString + letters(index % lettersInTheAlphabet)
+        s"${letters(times - 1)}${letters(index % lettersInTheAlphabet)}"
 
       else
         letters(index).toString

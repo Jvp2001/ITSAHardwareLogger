@@ -18,7 +18,7 @@ class HardwareLoggerSplashScreen extends Preloader:
     val imageView = new ImageView:
       preserveRatio = true
       fitWidth = 500
-      image = new Image(getClass.getResourceAsStream("assets/images/ITSA_Logo.jpeg"))
+      image = new Image(getClass.getResourceAsStream("assets/images/ITSA_Logo.png"))
     stackPane.children += imageView
   end init
 

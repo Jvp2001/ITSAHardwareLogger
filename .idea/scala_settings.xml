@@ -3,10 +3,8 @@
   <component name="ScalaProjectSettings">
     <option name="intInjectionMapping">
       <map>
-        <entry key="css" value="CSS" />
         <entry key="html" value="HTML" />
         <entry key="java" value="JAVA" />
-        <entry key="js" value="JavaScript" />
         <entry key="json" value="JSON" />
         <entry key="json5" value="JSON5" />
         <entry key="md" value="Markdown" />

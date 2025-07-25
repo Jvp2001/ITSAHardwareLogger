@@ -1,8 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.dialogs
 
 import org.scalafx.extras.generic_pane.GenericDialogFX
-
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
 import org.itsadigitaltrust.common.??
 

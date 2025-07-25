@@ -41,7 +41,7 @@ class HDSentinelReaderTests extends AnyFunSuite with HWLLoggable:
     val reader = /*if System.getProperty("os.name").toLowerCase.contains("linux") then
       HDSentinelReader[HardDriveModel]("password")
     else*/
-      HDSentinelReader[HardDiskSummary](xml)
+      HDSentinalReader[HardDiskSummary](xml)
     val hardDiskSummary: HardDiskSummary = reader \ "Hard_Disk_Summary"
     logger.info(s"HardDiskSummary\n===================\n$hardDiskSummary\n===================")
     val driveModel = new HardDriveModel(

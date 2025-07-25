@@ -1,13 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.dialogs
-import org.itsadigitaltrust.common.Operators.??
+import org.itsadigitaltrust.common.Operators.*
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-
+import scalafx.Includes.*
 import scalafx.scene.control.{Dialog, DialogPane}
 import scalafx.scene.web.WebEngine
 import scalafx.stage.StageStyle.Decorated
 class WebViewDialog(_url: String, owner: Option[Window] = None) extends Dialog:
-  initOwner(owner ?? null)
+  initOwner(owner ??  null)
   initStyle(Decorated)
 
   val url: StringProperty = StringProperty(_url)

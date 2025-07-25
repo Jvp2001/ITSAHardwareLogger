@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.views.tabs
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.TabDelegate
 import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}

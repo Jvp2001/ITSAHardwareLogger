@@ -1,12 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewModel
 import org.itsadigitaltrust.hardwarelogger.views.View
-
+import scalafx.Includes.*
 import scalafx.util.StringConverter
 
 import scala.reflect.classTag

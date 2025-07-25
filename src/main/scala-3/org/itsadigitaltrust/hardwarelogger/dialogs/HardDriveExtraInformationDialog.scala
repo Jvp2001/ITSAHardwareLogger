@@ -1,12 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.dialogs
 
+import scalafx.scene.text.Text
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 
 import org.scalafx.extras.generic_pane.GenericDialogFX
 import scalafx.scene.control.Label
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 
-import scalafx.scene.text.Text
 
 private[dialogs] class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDialogFX("Extra Information"):
   override val header: String = s"${model.serial}'s Information"

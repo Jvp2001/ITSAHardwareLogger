@@ -6,7 +6,7 @@ import com.sun.javafx.PlatformUtil
 import org.itsadigitaltrust.common
 import common.Result
 import core.ui.*
-import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.getClass
+import scalafx.Includes.*
 import delegates.{ProgramMode, ProgramModeChangedDelegate}
 import org.itsadigitaltrust.hardwarelogger.core.HardwareLoggerDefaultUncaughtExceptionHandler
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, NotificationName}

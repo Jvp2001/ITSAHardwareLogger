@@ -1,9 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.ui
 
 import org.itsadigitaltrust.common.Operators.{in, |>}
-
+import scalafx.Includes.*
 import scalafx.stage.{Stage, Window}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 
 import scalafx.scene.control.Hyperlink

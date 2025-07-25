@@ -1,13 +1,13 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 
-import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, ProgramModeChangedDelegate, TabDelegate}
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, ViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.*
-
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import javafx.beans.value.{ChangeListener, ObservableValue}
 import javafx.scene.control
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
