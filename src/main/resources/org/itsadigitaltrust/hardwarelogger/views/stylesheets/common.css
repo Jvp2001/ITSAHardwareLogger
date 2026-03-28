@@ -1,0 +1,44 @@
+
+/*.h3*/
+/*{*/
+/*    -fx-font-size: 22px;*/
+/*}*/
+
+
+
+.label
+{
+    -fx-font-size: 14px;
+}
+
+
+.large-text
+{
+    -fx-font-size: 18px;
+}
+
+.text-field
+{
+    /*-fx-text-alignment: left ;*/
+}
+
+.error
+{
+    -fx-text-fill: red;
+    -fx-font-size: 14px;
+    -fx-start-margin: 10px;
+}
+.text-area .content { -fx-cursor: default ; }
+
+
+.memory-label
+{
+    -fx-font-weight: bold;
+
+}
+
+
+.unhealthy-drive
+{
+    -fx-background-color: tomato
+}

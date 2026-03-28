@@ -1,0 +1,291 @@
+package org.itsadigitaltrust.hardwarelogger.views
+
+
+import org.itsadigitaltrust.common.Operators.{?, or, |>}
+import org.itsadigitaltrust.common.optional.optional
+import org.itsadigitaltrust.common.optional.optional.{?, ??}
+
+import scalafx.Includes.*
+import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TabDelegate}
+import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.{HardwareLoggerRootViewModel, ViewModel}
+import org.itsadigitaltrust.hardwarelogger.views.tabs.*
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.services.NotificationCentreModule
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.HardwareLoggerNotificationCentre
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.{ProgramModeChanged, Reload}
+
+import javafx.beans.value.{ChangeListener, ObservableValue}
+import javafx.scene.control
+import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
+import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem}
+
+final class HardwareLoggerRootView extends BorderPane with View[HardwareLoggerRootViewModel] with NotificationCentreModule:
+  override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
+
+
+
+  HardwareLoggerNotificationCentre.addObserver(Reload)(reload)
+  HardwareLoggerNotificationCentre.addObserver(Reload)(reload)
+
+  stylesheets += "org/itsadigitaltrust/hardwarelogger/views/stylesheets/common.css"
+  //Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
+
+  private given generalInfoTabView: GeneralInfoTabView = new GeneralInfoTabView
+  private given processorTabView: ProcessorTabView = new ProcessorTabView
+  private given memoryTabView: MemoryTabView = new MemoryTabView
+  private given hardDrivesTabView: HardDrivesTabView = new HardDrivesTabView
+  private given mediaTabView: MediaTabView = new MediaTabView
+  private given consoleView: ItsaDebugView = new ItsaDebugView(using viewModel.issueReporterService)
+
+
+
+  private val viewMenu = new Menu("_View"):
+    private val modeMenu = new Menu("_Mode"):
+      items ++= Seq(
+        new CheckMenuItem("Normal"):
+          onAction = _ => ProgramMode.mode = "Normal"
+          selected <==> ProgramMode.isModeNormal
+        ,
+        new CheckMenuItem("HardDrive"):
+          onAction = _ =>
+            ProgramMode.mode = "HardDrive"
+            selected <==> ProgramMode.isHardDriveMode
+        ,
+      )
+    end modeMenu
+    items += modeMenu
+
+  end viewMenu
+  private val menuBar = new MenuBar:
+    useSystemMenuBar = true
+    private val helpMenu = new Menu("_Help"):
+      items ++= Seq(
+        new MenuItem("Report"):
+          onAction = _ => ItsaDebugView.report(viewModel.issueReporterService.report)
+        ,
+        new MenuItem("About"):
+          onAction = _ => Dialogs.showAboutDialog()
+      )
+    menus ++= Seq(
+      viewMenu,
+      helpMenu
+    )
+  end menuBar
+
+
+  top = menuBar
+
+  private val idLabel = new Label:
+    text = "ID"
+    minWidth = 0.0
+    textAlignment = TextAlignment.Center
+    hgrow = Always
+    margin = Insets(0, 0, 0, 10.0)
+
+  private val idTextField = new TextField:
+    hgrow = Always
+    margin = Insets(0, 10.0, 0, 0)
+    text <==> viewModel.idStringProperty
+    onAction = _ =>
+      viewModel.save()
+
+  private val idErrorLabel = new Label:
+    styleClass += "error"
+    padding = Insets(0, 0, 0, 35.0)
+    margin = Insets(0, 0, 5.0, 0)
+    text <== viewModel.idErrorStringProperty
+
+
+  private val idContainer = new HBox:
+    vgrow = Always
+    margin = Insets(5.0, 0.0, 0.0, 0.0)
+    spacing = 10.0
+    children ++= Seq(idLabel, idTextField)
+
+  private val topContainer = new VBox:
+    private val region = new Region():
+      maxWidth = 10.0
+    alignment = CenterLeft
+    prefHeight = 50.0
+    prefWidth = 200.0
+    spacing = 10.0
+    children ++= Seq(region, idContainer, idErrorLabel)
+  end topContainer
+
+  private val tabPane = new TabPane:
+    prefHeight = prefWidth.get
+    prefWidth = 200.0
+    tabClosingPolicy = Unavailable
+    alignmentInParent = Pos.Center
+    vgrow = Always
+
+
+  private val reconnectButton = new Button:
+    text = "Reconnect"
+    onAction = _ => viewModel.reconnect()
+    alignment = Center
+    margin = Insets(0, 20.0, 0, 0)
+
+
+  private val reloadButton = new Button:
+    text = "Reload"
+    onAction = _ => viewModel.reload()
+    alignment = Center
+    margin = Insets(0, 20.0, 0, 0)
+
+
+  private val normalSaveButton = new Button:
+    text = "Save"
+    onAction = _ => viewModel.save()
+    alignment = Center
+    margin = Insets(0, 10.0, 0, 0)
+    disable <== !viewModel.validIDProperty
+
+  private val hardDriveModeSaveButton = new Button:
+    text = "Save"
+    onAction = _ => viewModel.save()
+    alignment = Center
+    margin = Insets(0, 10.0, 0, 0)
+
+
+  private var saveButton: Button = normalSaveButton
+  private val rightAlignRegion = new Region:
+    prefWidth = 200.0
+    prefHeight = prefWidth.get
+    hgrow = Always
+  private val buttonsContainer = new HBox:
+    alignment = Center
+    prefWidth = 200.0
+    prefHeight = 50.0
+    children += rightAlignRegion
+    children ++= Seq(reconnectButton, reloadButton, saveButton)
+  end buttonsContainer
+
+
+  private val contentBorderPane = new BorderPane():
+    alignmentInParent = Center
+    top = topContainer
+    center = new VBox:
+      BorderPane.setAlignment(this, Center)
+      children ++= Seq(buttonsContainer, tabPane)
+
+  center = contentBorderPane
+
+  private def createTab(title: String, rootContent: Node): Tab =
+    val tab: Tab = new Tab:
+
+      text = title
+      closable = false
+      content = rootContent
+      onSelectionChanged = _ =>
+        rootContent match
+          case tabDelegate: TabDelegate => tabDelegate.onSelected(this)
+          case _ => ()
+    tab
+  end createTab
+
+  viewModel.idFieldFocusProperty.onChange: (_, oldValue, newValue) =>
+    if newValue then
+      idTextField.requestFocus()
+
+  idTextField.requestFocus()
+
+  onProgramModeChanged(ProgramMode.mode)
+
+
+  given itsaID: String = viewModel.idStringProperty.get
+
+
+  def onProgramModeChanged(mode: ProgramMode): Unit =
+
+    mode match
+      case "HardDrive" =>
+        tabPane.tabs.clear()
+        tabPane.tabs.addAll(
+          createTab("HDD", hardDrivesTabView)
+        )
+
+
+        ProgramMode.isHardDriveMode.value = true
+        ProgramMode.isModeNormal.value = false
+
+
+      case "Normal" =>
+
+
+        tabPane.tabs.clear()
+        tabPane.tabs.addAll(
+          createTab("General", generalInfoTabView),
+          createTab("Memory", memoryTabView),
+          createTab("Processor", processorTabView),
+          createTab("HDD", hardDrivesTabView),
+          createTab("Media", mediaTabView)
+        )
+        ProgramMode.isHardDriveMode.value = false
+        ProgramMode.isModeNormal.value = true
+    end match
+    tabPane.tabs += createTab("Debug",
+      consoleView)
+
+    //    Seq[View[? <: ViewModel[? <: HLModel]]]
+
+
+    /** The code below is a hacky workaround to get the HDD tab's [[HardDrivesTabView]] table to display its data properly.
+     * This is hacky because this should not be needed to get the table view to display its data;
+     * also, I am dropping back down to using JavaFX, instead of staying in the ScalaFX universe. */
+    val changeListener: ChangeListener[control.Tab] = (tab: ObservableValue[? <: control.Tab], oldValue: control.Tab, newValue: control.Tab) =>
+      val t = Option(newValue).orElse(oldValue.?).getOrElse(tab.value).?
+//        if newValue == null then
+//          if oldValue eq null then
+//            if tab.value eq null then
+//              tab.value
+//            else null
+//          else oldValue
+//        else newValue
+      end t
+      if t.isDefined then
+        val name = t.get.getText.toLowerCase
+        name match
+          case "hdd" =>
+            hardDrivesTabView.viewModel.reload()
+          case "general info" =>
+            generalInfoTabView.viewModel.reload()
+          case "processor" =>
+            processorTabView.viewModel.reload()
+          case "memory" =>
+            memoryTabView.viewModel.reload()
+          case "media" =>
+            mediaTabView.viewModel.reload()
+          case _ => ()
+    end changeListener
+    tabPane.selectionModel.value.selectedItemProperty().addListener(changeListener)
+    if mode == "HardDrive" then
+      tabPane.selectionModel.get().select(1)
+      buttonsContainer.children = Seq(rightAlignRegion, reloadButton, hardDriveModeSaveButton)
+    else
+      buttonsContainer.children = Seq(rightAlignRegion, reloadButton, normalSaveButton)
+    (1 to tabPane.tabs.size).map: index =>
+      tabPane.selectionModel.get.select(index)
+    tabPane.selectionModel.get().select(0)
+
+  //viewModel.setIDToMatchValueInDB()
+
+
+  end onProgramModeChanged
+
+  viewModel.shouldCaretBeAtEnd.onChange: (op, oldValue, newValue) =>
+    if newValue then
+      idTextField.end()
+
+
+end HardwareLoggerRootView
+
+
+
+
+
+
+
+

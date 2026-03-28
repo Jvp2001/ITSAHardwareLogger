@@ -1,0 +1,16 @@
+package org.itsadigitaltrust.hardwarelogger.backend
+
+import org.itsadigitaltrust.hardwarelogger.backend.entities.{Info, Wiping}
+
+import com.augustnagro.magnum.*
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.funsuite.AnyFunSuite
+
+import scala.util.boundary
+
+
+class DBTests extends AnyFunSuite:
+  case class HardwareInfo(info: Info, wiping: Wiping)
+  def getHardwareData: Unit = ()
+
+

@@ -1,0 +1,158 @@
+package org.itsadigitaltrust.hardwarelogger.views.tabs
+
+import org.itsadigitaltrust.common.Operators.{|>, in}
+
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
+import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
+import org.itsadigitaltrust.hardwarelogger.views.Reloadable
+
+import javafx.beans.value
+import javafx.beans.value.ChangeListener
+import javafx.event.EventHandler
+import scalafx.beans.value.ObservableValue
+import scalafx.Includes.{*, given}
+import scalafx.scene.control.{TableColumn, TableRow, TableView}
+import javafx.scene.control as jfxsc
+import scalafx.event.EventType
+import scalafx.event.subscriptions.Subscription
+import scalafx.scene.Cursor
+import scalafx.scene.input.KeyEvent
+
+import scala.reflect.ClassTag
+
+
+private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
+
+  setOnMouseClicked(event =>
+    if event.clickCount == 2 then
+      rowDelegate.map: r =>
+        val item1 = getItem
+        r.onRowDoubleClicked(event.getButton, Option(item1))
+  )
+
+
+  hoverProperty().addListener: (_, _, newValue) =>
+    if showHandCursorOnHover then
+      if newValue then
+        setCursor(Cursor.Hand)
+      else
+        setCursor(Cursor.Default)
+
+  override def updateItem(item: R, empty: Boolean): Unit =
+    super.updateItem(item, empty)
+    if empty || item == null then
+      setGraphic(null)
+    else if !empty && item != null && rowDelegate.isDefined then
+      rowDelegate.get.onUpdateItem(Option(item), this)
+  end updateItem
+
+  setOnMouseClicked: event =>
+    if event.getClickCount == 2 then
+      if rowDelegate.isDefined then
+        rowDelegate.get.onRowDoubleClicked(event.getButton, Option(getItem))
+
+
+  override def updateSelected(b: Boolean): Unit =
+    super.updateSelected(b)
+
+    val item = Option(getItem)
+    if item.isDefined then
+      if rowDelegate.isDefined then
+        rowDelegate.get.onSelected(item)
+  end updateSelected
+end TableTabRow
+
+abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T]) extends TableView[T] with Reloadable :
+
+  import TabTableView.*
+
+  given viewModel: TabTableViewModel[M, T] = vm
+
+  final val rowClickedByKeyboardKeys = Seq(KeyCode.Space)
+  val rowDelegate: Option[TableRowDelegate[T]] = None
+  val showHandCursorOnHover: Boolean = false
+  val reordableColumns: Boolean = false
+  val nonEditableSelectionConfirmationPressed = (event: KeyEvent) =>
+    if event.code in rowClickedByKeyboardKeys then
+      rowDelegate.foreach(_.onRowDoubleClicked(MouseButton.Primary, Option(getSelectedItem)))
+    end if
+
+  end nonEditableSelectionConfirmationPressed
+
+  filterEvent(KeyEvent.Any): (event: KeyEvent) =>
+    event.eventType match
+      case _: EventType[KeyEvent.KeyPressed.type] if !editable.value =>
+        nonEditableSelectionConfirmationPressed(event)
+      case et: EventType[KeyEvent.KeyReleased.type] if !editable.value =>
+        rowDelegate.foreach(_.onRowKeyboardKeyReleased(event.code, Option(getSelectedItem)))
+
+
+  editable = false
+  delegate.getSelectionModel.cellSelectionEnabled <== editable
+
+
+  override def reload(shouldClearData: Boolean = true): Unit = viewModel.reload(shouldClearData)
+
+  class TableTabColumn[P] extends TableColumn[T, P]
+
+  rowFactory = _ => new TableTabRow[T](showHandCursorOnHover)(using rowDelegate)
+
+  vgrow = Always
+  items = viewModel.data
+  tableMenuButtonVisible = true
+
+
+  def getSelectedItem: T = selectionModel.apply().getSelectedItem
+
+  def createAndAddColumn[P](
+                             name: String,
+                             minWidth: Int = 50)
+                           (
+                             cellValueFactory: T => ObservableValue[P, P]
+                           ): TableTabColumn[P] =
+    val column = createColumn(name, minWidth)(cellValueFactory)
+    columns += column
+    column
+
+
+  def createColumn[P](
+                       name: String,
+                       minWidth: Int = 50)
+                     (
+                       cellValueFactory: T => ObservableValue[P, P]
+                     ): TableTabColumn[P] =
+
+    val column = new TableTabColumn[P]()
+    setupColumn(column, name, minWidth, cellValueFactory)
+    column
+  end createColumn
+
+
+  def setupColumn[P](
+                      column: TableTabColumn[P],
+                      name: String,
+                      minWidth: Int = 50,
+                      cellValueFactory: T => ObservableValue[P, P]
+                    ): Unit =
+    column.editable = false
+    column.setReorderable(reordableColumns)
+    column.text = name
+    column.minWidth = minWidth
+    column.sortable = false
+
+    column.cellValueFactory = p =>
+      cellValueFactory(p.getValue)
+  end setupColumn
+
+  selectionModel.apply().selectedItem.onChange: (op, newValue, oldValue) =>
+    rowDelegate.foreach(_.onSelected(selectionModel.apply().getSelectedItem |> Option[T]))
+
+
+end TabTableView
+
+object TabTableView:
+  private[TabTableView] var triggerRowClicked: Boolean = false

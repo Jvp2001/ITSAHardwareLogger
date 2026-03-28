@@ -1,0 +1,107 @@
+package org.itsadigitaltrust.hardwarelogger.views.tabs
+
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import scalafx.Includes.*
+import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
+import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewModel
+import org.itsadigitaltrust.hardwarelogger.views.View
+import scalafx.Includes.*
+import scalafx.util.StringConverter
+
+import scala.reflect.classTag
+
+
+class ItsaIDConverter(model: HardDriveTableRowViewModel) extends StringConverter[String]:
+  override def fromString(string: String): String =
+    model.model.itsaID = string
+    model.model.itsaID
+
+  override def toString(t: String): String =
+    t
+
+class HardDriveTableView(tabViewModel: HardDrivesTabViewModel) extends TabTableView(using classTag[HardDriveModel], tabViewModel):
+
+  requestFocus()
+
+  override val rowDelegate: Option[TableRowDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel.rowDelegate)
+
+  override val showHandCursorOnHover: Boolean = true
+
+  private val healthColumn = createAndAddColumn[String]("Health"): cellValue =>
+    StringProperty(cellValue.healthProperty.get)
+
+  private val performanceColumn = createAndAddColumn[String]("Performance"): cellValue =>
+    StringProperty(cellValue.performanceProperty.get)
+
+
+  private val sizeColumn = createAndAddColumn[String]("Size"): cellValue =>
+    cellValue.sizeProperty
+
+
+  private val modelColumn = createAndAddColumn("Model", minWidth = ColumnSize.massive): cellValue =>
+    cellValue.modelProperty
+
+  private val serialColumn = createAndAddColumn("Serial", minWidth = ColumnSize.big): cellValue =>
+    cellValue.serialProperty
+
+  private val typeColumn = createAndAddColumn("Type"): cellValue =>
+    cellValue.typeProperty
+
+  private val idColumn = createAndAddColumn("ID"): cellValue =>
+    cellValue.idProperty
+
+//
+//    else
+//      new TableCell[HardDriveTableRowViewModel, String]()
+
+
+
+  private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
+    cellValue.driveTypeProperty
+
+  
+end HardDriveTableView
+
+
+class HardDrivesTabView extends VBox with TabDelegate with View[HardDrivesTabViewModel]:
+  override given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
+
+  private val tableView = new HardDriveTableView(viewModel)
+
+
+  children += tableView
+  children += new HBox:
+    padding = Insets(5D, 5D, 0D, 0D)
+    private val region = new Region:
+      hgrow = Always
+      prefHeight = 40
+    private val moreInfoButton = new Button:
+      text = "More Info"
+      onAction = _ =>
+        viewModel.showExtraInfo(tableView.getSelectedItem)
+      disable <== viewModel.moreInfoDisabledProperty
+      padding = Insets(0D, 5D, 0D, 0D)
+      prefHeight = 40D
+      prefWidth = 100D
+      hgrow = Always
+
+    children ++= Seq(region, moreInfoButton)
+
+
+  def selectRow(index: Int = 0): Unit =
+    tableView.getSelectionModel.select(index)
+
+
+  override def onSelected(tab: Tab): Unit =
+    selectRow()
+end HardDrivesTabView
+
+
+
+
+
+
+
+
