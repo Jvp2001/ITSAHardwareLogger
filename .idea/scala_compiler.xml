@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ScalaCompilerConfiguration">
+    <option name="separateProdTestSources" value="true" />
+    <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.IssueReporter" />
+    <profile name="sbt 2" modules="ITSAHardwareLogger.HDSentinelReader.main,ITSAHardwareLogger.HDSentinelReader.main~1,ITSAHardwareLogger.HDSentinelReader.test,ITSAHardwareLogger.HDSentinelReader.test~1,ITSAHardwareLogger.main,ITSAHardwareLogger.main~1,ITSAHardwareLogger.test,ITSAHardwareLogger.test~1">
+      <parameters>
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-experimental" />
+      </parameters>
+    </profile>
+    <profile name="sbt 3" modules="ITSAHardwareLogger.Backend.main,ITSAHardwareLogger.Backend.main~1,ITSAHardwareLogger.Backend.test,ITSAHardwareLogger.Backend.test~1,ITSAHardwareLogger.Common.main,ITSAHardwareLogger.Common.main~1,ITSAHardwareLogger.Common.test,ITSAHardwareLogger.Common.test~1,ITSAHardwareLogger.IssueReporter.main,ITSAHardwareLogger.IssueReporter.main~1,ITSAHardwareLogger.IssueReporter.test,ITSAHardwareLogger.IssueReporter.test~1">
+      <parameters>
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+      </parameters>
+    </profile>
+  </component>
+</project>
