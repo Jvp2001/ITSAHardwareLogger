@@ -2,9 +2,10 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.hardwarelogger.models.GeneralInfoModel
 import scalafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.services.given
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, given}
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
-final class GeneralInfoTableRowViewModel(model: GeneralInfoModel) extends TableRowViewModel[GeneralInfoModel](model):
+final class GeneralInfoTableRowViewModel(model: GeneralInfoModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[GeneralInfoModel](model):
   def computerIDProperty: StringProperty =
     wrapper.field("computerID", _.computerID, "")(StringProperty.apply)
 

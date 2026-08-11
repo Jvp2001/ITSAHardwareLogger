@@ -1,88 +1,81 @@
+
 package org.itsadigitaltrust.hardwarelogger.services
 
-import org.itsadigitaltrust.common.*
-import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.collections.Dict
-import org.itsadigitaltrust.common.types.*
-
-import org.itsadigitaltrust.hardwarelogger.backend.*
-import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.{EntryAlreadyExists, NoEntriesFound, PCSerialNumberAlreadyExists}
-import org.itsadigitaltrust.hardwarelogger.backend.HLDatabase.Error
-import org.itsadigitaltrust.hardwarelogger.delegates
+import com.augustnagro.magnum
+import com.augustnagro.magnum.{DbCodec, DbCon, DbTx}
+import com.mysql.cj.jdbc.MysqlDataSource
+import com.mysql.cj.jdbc.exceptions.{MySQLQueryInterruptedException, MySQLTimeoutException}
+import com.somainer.nameof.NameOf
+import org.itsadigitaltrust.common.Operators.{??, toOption, |>}
+import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.common.optional
+import org.itsadigitaltrust.common.optional.!
+import org.itsadigitaltrust.common.types.DataSizeType.numericDataSize.mkNumericOps
+import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
+import org.itsadigitaltrust.common.types.FrequencyType.Frequency
+import org.itsadigitaltrust.common.types.PercentageType.Percentage
+import org.itsadigitaltrust.hardwarelogger.backend.{ConnectionErrorType, DataSourceLoaderService, HLDBErrorCode, HLSqlDataSource, HLTableInfo, repos}
+import org.itsadigitaltrust.hardwarelogger.backend.entities.*
+import org.itsadigitaltrust.hardwarelogger.backend.repos.HLRepoWithID
+import org.itsadigitaltrust.hardwarelogger.backend.types.{ECFromEntity, EntityFromEC}
+import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
+import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.services.CommonHLDatabase.toDisk
-import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService.ecClassTag
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.*
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.Reload
-import org.itsadigitaltrust.hardwarelogger.tasks.*
-import org.itsadigitaltrust.hardwarelogger.tasks.SimpleWaitHardwareLoggerGroupTaskGroupBuilder
-
-import com.somainer.nameof.NameOf
-import com.sun.tools.javac.util.Assert.error
-import org.kohsuke.github.GitHub.connect
-import org.scalafx.extras.BusyWorker
-import org.scalafx.extras.BusyWorker.SimpleTask
-import org.scalafx.extras.batch.{BatchRunnerWithProgress, ItemTask}
 import ox.either.{fail, ok}
-import sun.jvm.hotspot.runtime.PerfMemory.end
 
-import java.io.InputStream
-import java.net.URI
-import java.nio.file.{FileSystems, Paths}
 import java.sql.Timestamp
 import java.time.OffsetDateTime
-import java.util.concurrent.LinkedBlockingQueue
-import scala.annotation.tailrec
-import scala.jdk.CollectionConverters.*
+import scala.Conversion.into
+import scala.compiletime.deferred
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Try, Using, boundary}
+import scala.util.boundary.Label
 
+trait HLDatabaseService(using localhost: Boolean, dataSourceLoaderService: DataSourceLoaderService[HLSqlDataSource]) extends FrontendService:
 
-trait HLDatabaseService(using HardwareLoggerTaskContext.Background) extends FrontendService:
+  type Error <: Throwable
 
-  import HLDatabaseService.{*, given}
+  val useLocalhost: Boolean = localhost
 
-  type Error
-
-  lazy val dbPropertiesFile: String
 
   var itsaID: String = ""
 
   def testConnection(): Boolean = false
 
-  def connect()(using context: HardwareLoggerTaskContext.WaitBackground): Either[Error, HLDatabase]
-
-  def connectAsync()(finished: Either[Error, Unit] => Unit = _ => ())(using context: HardwareLoggerTaskContext.WaitBackground): Unit = connect()
-
-  def findItsaIdBySerialNumber(serial: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException,  String]
+  def connect(): Either[Error, Unit]
 
 
-  def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Unit
+  def findItsaIdBySerialNumber(serial: String): Either[HLDatabaseServiceException, String]
 
-  def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit]
 
-  def doesPCRecordExist(info: GeneralInfoModel)(using context: HardwareLoggerTaskContext.WaitBackground): Boolean
+  def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID: String): Unit
+
+  def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String): Either[HLDatabaseServiceException, Unit]
+
+  def doesPCRecordExist(info: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): Boolean
 
   /**
    * This does not include the wiping table.
    */
-  def markAllRowsWithIDInDBAsError(itsaID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit]
+  def markAllRowsWithIDInDBAsError(itsaID: String): Either[HLDatabaseServiceException, Unit]
 
-  def findByID[M <: HLModel : ClassTag](itsaID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, M]
+  def findByID[M <: HLModel : ClassTag](itsaID: String)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, M]
 
-  def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Vector[M]]
+  def findDriveBySerialNumber(serial: String): Either[HLDatabaseServiceException, HardDriveModel]
 
-  def findWipingRecord(serial: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, HardDriveModel]
+  def findWipingRecord(serial: String): Either[HLDatabaseServiceException, HardDriveModel]
 
-  def addWipingRecords(itsaID: String, drives: HardDriveModel*)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit]
+  def addWipingRecords(itsaID: String, drives: HardDriveModel*): Either[HLDatabaseServiceException, Unit]
 
-  def addPCRecord(info: GeneralInfoModel)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit]
+  def addPCRecord(info: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit]
 
-  def insertModel[M <: HLModel : ClassTag](model: M)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit]
-//
-  def insertOrUpdateModel[M <: ItsaIDModel : ClassTag](model: M)(using context: HardwareLoggerTaskContext.WaitBackground, hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit]
+  def insertModel[M <: HLModel : ClassTag](model: M)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit]
 
+  //
+  def insertOrUpdateModel[M <: ItsaIDModel : ClassTag](model: M)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit]
+
+
+  def findWipingRecordByID(itsaID: String): Either[HLDatabaseServiceException, HardDriveModel]
 
   def stop(): Unit
 end HLDatabaseService
@@ -117,22 +110,9 @@ object HLDatabaseServiceException:
   def propertiesFileError(message: String = "Failed to load propertiesFilePath file!"): HLDatabaseServiceException = new HLDatabaseServiceException(HLDBErrorCode.PropertiesError, message)
 end HLDatabaseServiceException
 
-trait CommonHLDatabase(using HardwareLoggerTaskContext.WaitBackground) extends HLDatabaseService:
+class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, dataSourceLoaderService: DataSourceLoaderService[HLSqlDataSource]) extends HLDatabaseService with HWLLoggable:
   override type Error = HLDatabaseServiceException
 
-
-  type HLDatabaseResultError[S <: HLModel] = Either[HLDatabaseServiceException, Option[S]]
-
-  private lazy val database: Either[HLDatabaseServiceException, HLDatabase] = connect()
-
-  protected def db: Either[HLDatabaseServiceException, HLDatabase] = database //revalidateDB()
-
-  override lazy val dbPropertiesFile: String =
-    (getClass.getResource("db.propertiesFilePath").toURI |> Paths.get).toFile.getAbsolutePath
-
-
-  override def testConnection(): Boolean =
-    db.map(_.testConnection()).getOrElse(false)
 
 
   /**
@@ -142,265 +122,387 @@ trait CommonHLDatabase(using HardwareLoggerTaskContext.WaitBackground) extends H
 
   var transactionErrorHandler: Throwable => Unit = _ => ()
 
-  protected val transactionQueue = new LinkedBlockingQueue[HLEntityCreatorWithItsaID]
+
   private var noIDIndex: Option[Long] = None
 
+  type HLDBTransaction[T] = Either[HLDatabaseServiceException, T]
 
-  override def connect()(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, HLDatabase] =
-    import HLDatabaseService.given
+  /**
+   * Combined transaction body function that has access to both DbTx (magnum context)
+   * and the ox.either error handling context via Label.
+   */
+  type CombinedTransactionBody[T] = DbTx ?=> Label[HLDBTransaction[T]] ?=> HLDBTransaction[T]
+
+  /**
+   * Executes a database transaction with both magnum.transact and ox.either contexts.
+   * The body function receives DbTx as a given and can use ox.either's fail/ok operations.
+   */
+  def transact[T](f: DbTx ?=> HLDBTransaction[T]): HLDBTransaction[T] =
+    ox.either.catchAll:
+      val ds: HLSqlDataSource = dataSource.ok()
+        magnum.transact(ds)(f) match
+          case Left(error) => error.fail()
+          case Right(result) => result
+
+
+    .left.map(e => HLDatabaseServiceException.connectionError("Unknown", e.getMessage))
+
+
+  val dataSource: Either[HLDatabaseServiceException, HLSqlDataSource] =  dataSourceLoaderService.dataSource.left.map(HLDatabaseServiceException(_))
+
+  end dataSource
+
+  override def connect(): Either[HLDatabaseServiceException, Unit] =
     ox.either:
-      val dbValue = HLDatabase(dbPropertiesFile)
-      dbValue match
-        case Left(error) => error match
-          case Error.ConnectionError => HLDatabaseServiceException.connectionError().fail()
-          case _ => HLDatabaseServiceException.unknownError("An unknown error has occurred when connecting to the database.").fail()
-        case Right(value) => value
+      try
+        val ds: MysqlDataSource = dataSource.ok()
+        magnum.connect(ds):
+          ()
+      catch
+        case e: MySQLTimeoutException =>
+          HLDatabaseServiceException.connectionError("Unknown", e.getMessage).fail()
+        case e: MySQLQueryInterruptedException =>
+          HLDatabaseServiceException.connectionError("Unknown", e.getMessage).fail()
+
   end connect
 
-
-  def findItsaIdBySerialNumber(serial: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, String] =
-    import CommonHLDatabase.given
-    db.flatMap: dbValue =>
-      dbValue
-        .findItsaIdByGenSerialNumber(serial)
-        .left.map:
-          case HLDBErrorCode.ConnectionError => HLDatabaseServiceException.connectionError()
-          case HLDBErrorCode.EntryNotFound => HLDatabaseServiceException.recordNotFound("Wiping Record", serial)
-          case _ => HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching wiping record from DB.")
+  override def findItsaIdBySerialNumber(serial: String): Either[HLDatabaseServiceException, String] =
+    transact[String]:
+      repos.infoRepo.findItsaIdBySerialNumber(serial).toRight(HLDatabaseServiceException.recordNotFound("General Info", serial))
 
 
-  override def findWipingRecord(serial: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, HardDriveModel] =
-    db.flatMap: dbValue =>
-      dbValue
-        .findWipingRecord(serial) // Either[HLDBErrorCode, Option[Wiping]]
-        .left.map:
-          case HLDBErrorCode.ConnectionError => HLDatabaseServiceException.connectionError()
-          case HLDBErrorCode.EntryNotFound => HLDatabaseServiceException.recordNotFound("Wiping Record", serial)
-          case _ => HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching wiping record from DB.")
-        .flatMap(_.toRight(HLDatabaseServiceException.recordNotFound("Wiping Record", serial)))
-        .flatMap(w => toModel[Wiping, HardDriveModel](w).toRight(
-          HLDatabaseServiceException.unknownError("Found wiping record, but could not map it to HardDriveModel.")
-        ))
+  override def findWipingRecord(serial: String): Either[HLDatabaseServiceException, HardDriveModel] =
+    transact:
+      repos.wipingRepo.findWipingRecord(serial).map(createHardDriveModel)
+        .toRight(HLDatabaseServiceException.noEntryFound("Wiping Record", serial))
+
+
+
   end findWipingRecord
 
 
-  override def doesPCRecordExist(info: GeneralInfoModel)(using context: HardwareLoggerTaskContext.WaitBackground): Boolean =
+  override def doesPCRecordExist(info: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): Boolean =
     findItsaIdBySerialNumber(info.serial).isRight ||
       info.itsaID.map: id =>
         findByID(id).isRight
       ?? false
 
-  import scala.reflect.Selectable.reflectiveSelectable
 
-  override def insertOrUpdateModel[M <: ItsaIDModel : ClassTag](model: M)(using context: HardwareLoggerTaskContext.WaitBackground, hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit] =
-    ox.either:
-      val dbValue: HLDatabase = database.ok()
-      val modelClassTag = classTag[M]
+  override def insertOrUpdateModel[M <: ItsaIDModel : ClassTag](model: M)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit] =
+    transact:
+      ox.either:
 
-      dbValue.insertOrUpdate(createEC(model)) match
-        case Left(error) => error match
-          case HLDBErrorCode.EntryAlreadyExists => HLDatabaseServiceException.duplicateEntry(NameOf.nameOf[M].toString(), model.serial).fail()
-          case _ => HLDatabaseServiceException.unknownError("An unknown error has occurred when inserting or updating record to DB.").fail()
-        case Right(_) => ()
+        val result = if ProgramMode.isInNormalMode && classTag[M] == classTag[HardDriveModel] then
+          val ec = toHardDrive(model.asInstanceOf[HardDriveModel])
+          repos.diskRepo.insertOrUpdate(ec)
+        else if ProgramMode.isInHardDriveMode && classTag[M] == classTag[HardDriveModel] then
+          val ec = toWiping(model.asInstanceOf[HardDriveModel])
+          repos.wipingRepo.insertOrUpdate(ec)
+        else
+          val ec = toInfo(model.asInstanceOf[GeneralInfoModel])
+          repos.infoRepo.insertOrUpdate(ec.ok())
+
+      
+
+
   end insertOrUpdateModel
-  override def insertModel[M <: HLModel : ClassTag](model: M)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit] =
+
+  override def insertModel[M <: HLModel : ClassTag](model: M)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit] =
     model match
       case info: GeneralInfoModel => addPCRecord(info)
       case _ => addWipingRecords(genID, model.asInstanceOf[HardDriveModel])
-  override def addPCRecord(info: GeneralInfoModel)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit] =
-    ox.either:
-      if doesPCRecordExist(info) then
-        HLDatabaseServiceException.duplicateEntry(NameOf.nameOf[GeneralInfoModel].toString(), info.serial).fail()
-      else
-        val dbValue: HLDatabase = db.ok()
-        db
+
+  override def addPCRecord(info: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, Unit] =
+    transact:
+      ox.either:
+        if doesPCRecordExist(info) then
+          Right(HLDatabaseServiceException.duplicateEntry(NameOf.nameOfType[GeneralInfoModel], info.serial))
+        else
+          val ec = toInfo(info)
+          repos.infoRepo.insertOrUpdate(ec.ok())
 
 
-  def addWipingRecords(itsaID: String, drives: HardDriveModel*)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit] =
+  def addWipingRecords(itsaID: String, drives: HardDriveModel*): Either[HLDatabaseServiceException, Unit] =
     val updatedDrives = drives.map: drive =>
       drive.copy(itsaID = drive.itsaID ?? itsaID)
-
-    def addRecords(): Either[HLDatabaseServiceException, Unit] =
+    transact:
       ox.either:
-        val dbValue: HLDatabase = db.ok()
-        dbValue.addWipingRecords(drives.map(toWiping) *).left.map:
-          case HLDBErrorCode.ConnectionError => HLDatabaseServiceException.connectionError()
-          case HLDBErrorCode.EntryAlreadyExists => HLDatabaseServiceException.duplicateEntriesFound("Wiping Record")
-          case _ => HLDatabaseServiceException.unknownError("Unknown error has occurred when adding wiping records to DB.")
+        val records = updatedDrives.map(toWiping)
+        records.map(repos.wipingRepo.insertOrUpdate).map: item =>
+          val result = item.left.map(code => HLDatabaseServiceException.apply(code).fail())
+
+          HLDatabaseServiceException.unknownError("Unknown error has occurred when inserting or updating record in DB.").fail()
+  end addWipingRecords
+
+  override def findDriveBySerialNumber(serial: String): Either[HLDatabaseServiceException, HardDriveModel] =
+    transact:
+      ox.either:
+        repos.diskRepo.findDiskRecord(serial) match
+          case None => HLDatabaseServiceException.noEntryFound("Disk Record", serial).fail()
+          case Some(value) => value |> createHardDriveModelFromDisk
+
+  override def findWipingRecordByID(itsaID: String): Either[HLDatabaseServiceException, HardDriveModel] =
+    transact:
+      ox.either:
+        repos.wipingRepo.findWipingRecord(itsaID) match
+          case None => HLDatabaseServiceException.noEntryFound("Wiping Record", itsaID).fail()
+          case Some(value) => value |> createHardDriveModel
+
+  def toWiping(model: HardDriveModel): WipingCreator =
 
 
-    val records = updatedDrives.map(toWiping)
-    ox.either:
-      val dbValue: HLDatabase = db.ok()
+    /// todo get if its an ssd
+    //
+    //    val lsblk = Lsblk()(using Givens.HLProcessConfig)
+    //    lsblk()(model.)
 
+    new WipingCreator(
+      hddID = model.itsaID,
+      serial = model.serial,
+      model = model.model,
+      insertionDate = OffsetDateTime.now(),
+      capacity = model.size.dbString |> Option[String],
+      `type` = model.`type`,
+      description = model.description,
+      health = model.health.toString.toByte,
+      toUpdate = true, isSsd = true, formFactor = ""
+    )
+
+  end toWiping
 
   given [U]: Conversion[U, Option[U]] with
     override def apply(x: U): Option[U] = Some(x)
 
 
-  override def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit] = ???
+  override def markAllRowsWithIDInTableAsError[M <: HLModel : ClassTag](id: String): Either[HLDatabaseServiceException, Unit] = ???
 
 
-
-  override final def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Unit =
+  override final def replaceWithIDOrMarkAsErrorInDB(oldID: String, newID: String): Unit =
     () //TODO: See if this needs implementing.
 
-  override final def markAllRowsWithIDInDBAsError(itsaID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Unit] =
+
+  private def markAllRowsWithIDAsError[EC <: HLEntityCreatorWithSomeKindOfID, E <: HLEntityWithSomeKindOfID, R <: HLRepoWithID[EC, E]](id: String)(using repo: R, dbCodec: DbCodec[E], dbCon: DbCon, tableInfo: HLTableInfo[EC, E]): Either[HLDatabaseServiceException, Unit] =
+    import org.itsadigitaltrust.common.Operators.or
     ox.either:
-      val theDB: HLDatabase = db.ok()
-      val taskGroupBuilder = new SimpleWaitHardwareLoggerGroupTaskGroupBuilder[Unit]()
+      logger.info(s"Marking rows with id: $id as error!")
+      if id == null || id.isEmpty then
+        Right[HLDatabaseServiceException, Unit](())
+      else
+        val nonErrorRows = repo.findAllByItsaID(id)
+        val allRows = repo.findAllByIDStartingWith(id) or Vector.empty[Option[E]] |> Option.apply
+        val numberOfErrorRows = Math.abs(allRows.size - nonErrorRows.size)
+        if numberOfErrorRows > 0 then
+          val errorIndices = Range(numberOfErrorRows, allRows.size + 1)
+          val newIDs = errorIndices.map: index =>
+            s"${if id.length >= 2 && id(id.length - 2) == '.' then id else s"$id.0"}-E$index"
+          val oldToNew = nonErrorRows.flatten.map(_.map(_.id)).zip(newIDs)
+          oldToNew.foreach: item =>
+            val id = item._1 ?? HLDatabaseServiceException.unknownError("Unknown error has occurred when marking rows as error!").fail()
+            repo.replaceIDByPrimaryKey(id, item._2)(using summon[DbCon])
+        end if
+      end if
+  end markAllRowsWithIDAsError
 
-      taskGroupBuilder.addAll("Tasks")(
-        theDB.markAllRowsWithIDAsError[InfoCreator, Info](itsaID),
-        theDB.markAllRowsWithIDAsError[DiskCreator, Disk](itsaID),
-        theDB.markAllRowsWithIDAsError[MemoryCreator, Memory](itsaID),
-        theDB.markAllRowsWithIDAsError[MediaCreator,Media](itsaID)
-      )(using HardwareLoggerTaskContext.waitBackground)
 
-      taskGroupBuilder.run("Marking all current rows as error.")()
+  override final def markAllRowsWithIDInDBAsError(itsaID: String): HLDBTransaction[Unit] =
+    transact:
+      markAllRowsWithIDAsError(itsaID)(using repos.infoRepo, summon[magnum.DbCodec[Info]])
+
+      markAllRowsWithIDAsError(itsaID)(using repos.memoryRepo, summon[magnum.DbCodec[Memory]])
+      markAllRowsWithIDAsError(itsaID)(using repos.mediaRepo, summon[magnum.DbCodec[Media]])
+      markAllRowsWithIDAsError(itsaID)(using repos.diskRepo, summon[magnum.DbCodec[Disk]])
+      markAllRowsWithIDAsError(itsaID)(using repos.wipingRepo, summon[magnum.DbCodec[Wiping]])
+
+
   end markAllRowsWithIDInDBAsError
 
-  type HLEntityFromModel[M <: HLModel] =
-    M match
-      case HardDriveModel => Disk
-      case MemoryModel => Memory
-      case GeneralInfoModel => Info
-      case ProcessorModel => Info
-      case MediaModel => Media
-      case HLModel => HLEntity
-  type HLECFromModel[M <: HLModel] =
-    M match
-      case HardDriveModel => DiskCreator
-      case MemoryModel => MemoryCreator
-      case GeneralInfoModel => InfoCreator
-      case ProcessorModel => InfoCreator
-      case MediaModel => MediaCreator
-      case HLModel => HLEntityCreatorWithItsaID
 
-  type HLEntityClassTagFromModel[M <: HLModel] =
-    M match
-      case HardDriveModel => ClassTag[Disk]
-      case MemoryModel => ClassTag[MemoryModel]
-      case GeneralInfoModel | ProcessorModel => ClassTag[Info]
-      case MediaModel => ClassTag[Media]
-      case HardDriveModel => ClassTag[Wiping]
-      case HLModel => ClassTag[HLEntity]
+  private lazy val letters = 'A' to 'Z'
+  private final val lettersInTheAlphabet = 26
 
 
-  type HLTableInfoFromModel[M <: HLModel] = HLTableInfo[HLECFromModel[M], HLEntityFromModel[M]]
+  // Supports up to ZZ (702 letters) for the hddID prefix
+  //    val newDisks: Seq[WipingCreator] =
+  //      val foundDrives: Seq[WipingCreator] = findAllByIdStartingWith[WipingCreator](disks.head.hddID).map(_.map(WipingCreator.apply)) ?? Seq.empty[WipingCreator]
+  //      val suffixStartIndex = if foundDrives.size > 1 then foundDrives.size else 0
+  //      if foundDrives.size == 0 then
+  //        // If no drives found, we can use the first drive as is
+  //        disks.toSeq
+  //      else if foundDrives.size > lettersInTheAlphabet then
+  //        // If more than 26 drives found, we need to add a prefix
+  //        val times = foundDrives.size / lettersInTheAlphabet
+  //        val prefix = letters(times - 1) + letters(foundDrives.size % lettersInTheAlphabet)
+  //        disks.map(_.copy(hddID = disks.head.hddID + prefix))
+  //      else if foundDrives.size == 1 then
+  //        // If only one drive found, we can use the first drive as is
+  //        disks.map(_.copy(hddID = disks.head.hddID + letters(suffixStartIndex)))
+  //      else
+  //        // If multiple drives found, we need to add a prefix to each drive
+  //        disks.indices.map: index =>
+  //          disks(index).copy(hddID = disks.head.hddID + letters(suffixStartIndex + disks.indexOf(index)))
+  //
+  ////      boundary:
+  //        val allDisks: Seq[WipingCreator] =
+  //          if disks.size == 1 then
+  //            val foundDisks: Seq[WipingCreator] = findAllByIdStartingWith[WipingCreator](disks.head.hddID) match
+  //              case Some(value) => value.map(WipingCreator.apply)
+  //              case None => Seq.empty[WipingCreator]
+  //            if foundDisks.isEmpty then
+  //              if foundDisks.size > lettersInTheAlphabet then
+  //                val times = foundDisks.size / lettersInTheAlphabet
+  //                val prefix = letters(times - 1) + letters(foundDisks.size % lettersInTheAlphabet)
+  //                Seq(disks.head.copy(hddID = disks.head.hddID + prefix))
+  //              else
+  //                Seq(disks.head.copy(hddID = disks.head.hddID + letters(foundDisks.size)))
+  //            else
+  //              disks
+  //          else
+  //            disks
+  //        end allDisks
+  //        if allDisks != disks then
+  //          boundary.break(allDisks)
 
-  private def fetch[M <: HLModel : ClassTag, E <: EntityFromEC[EC] : ClassTag, EC <: ItsaEC : ClassTag](itsaID: String): Either[HLDatabaseServiceException, Vector[EntityFromEC[EC]]] =
-    val result = db.flatMap: dbValue =>
-      dbValue.findAllByIdStartingWith[E, EC](itsaID).left.flatMap:
-        case HLDBErrorCode.ConnectionError => Left(HLDatabaseServiceException.connectionError())
-        case HLDBErrorCode.EntryNotFound => Left(HLDatabaseServiceException.noEntryFound(classTag[M].toString, itsaID))
-        case HLDBErrorCode.UnknownError => Left(HLDatabaseServiceException.unknownError())
-        case HLDBErrorCode.NoEntriesFound => Left(HLDatabaseServiceException.noEntriesFound(itsaID))
-        case HLDBErrorCode.EntryAlreadyExists => Left(HLDatabaseServiceException.duplicateEntriesFound(classTag[M].toString))
-        case _ => Left(HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching records from DB."))
-    result
+  //        val noIDDrives = disks.groupBy(_.hddID) //filter(d => d.hddID.isEmpty || d.hddID == "NOT LOGGED")
+  //        noIDDrives.values.flatMap: driveGroup =>
+  //          if driveGroup.size >= 2 then
+  //            val drives = driveGroup.drop(1)
+  //            val first = drives.head
+  //            val mappedDisks = (1 until drives.size).map: index =>
+  //              val i = index - 1 // Start from 0
+  //              val times = if i > 26 then i / lettersInTheAlphabet else 0
+  //              val prefix = if times > 0 then letters(times - 1) + letters(i) else letters(i)
+  //              val newDisk = drives(index).copy(hddID = drives(index).hddID + prefix)
+  //              logger.info(s"New Disk: $newDisk")
+  //              newDisk
+  //            Seq(first) ++ mappedDisks
+  //          else
+  //            disks.toSeq
+  //        .toSeq
+  //      eitherTransact[Seq[WipingCreator], Wiping,WipingCreator](dataSource,HLDBErrorCode.UnknownError,wipingTable):
+  //        markAllRowsMatchingRecordsWithIDAsError(newDisks*)
+  //      .get
 
-  override def findAllStartingWithID[M <: HLModel : ClassTag](itsaID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, Vector[M]] =
+
+  def addWipingRecords(disks: WipingCreator*): HLDBTransaction[Unit] =
+    // This supports up to 702 drives with the same ID prefix, e.g. "HDD1234A", "HDD1234B", ..., "HDD1234ZZ"
+    def getSuffix(start: Int, current: Int): String =
+      val index = start + current
+      if index > lettersInTheAlphabet then
+        val times = index / lettersInTheAlphabet
+        s"${letters(times - 1)}${letters(index % lettersInTheAlphabet)}"
+
+      else
+        letters(index).toString
+    end getSuffix
+
+    given ct: ClassTag[WipingCreator] = classTag[WipingCreator]
+
+    logger.info(s"Wiping disks: $disks")
+    transact:
+      ox.either:
+        val result = findAllEntitiesStartingWithIDInTable[WipingCreator, Wiping](disks.head.hddID)
+        val foundDrives: Vector[EntityFromEC[ECFromEntity[Wiping]]] = result ??
+          HLDatabaseServiceException.noEntriesFound(disks.head.hddID).fail()
+
+        val suffixStartIndex = if foundDrives.size > 1 then foundDrives.size else 0
+        val newDisks: Seq[WipingCreator] =
+          if suffixStartIndex > 0 then
+            logger.info(s"Found ${foundDrives.size} drives with the same ID prefix: ${disks.head.hddID}")
+            disks.indices.map: index =>
+              val suffix = getSuffix(suffixStartIndex, index)
+              disks(index).copy(hddID = disks.head.hddID + suffix)
+
+          else
+            logger.info(s"No drives found with the same ID prefix: ${disks.head.hddID}")
+            disks.indices.map: index =>
+              val suffix = if index == 0 then "" else getSuffix(0, index - 1)
+              disks(index).copy(hddID = disks.head.hddID + suffix)
+        end newDisks
+
+
+        newDisks.map(_.getItsaID).map(_ => markAllRowsWithIDAsError[WipingCreator, Wiping, repos.WipingRepo](_))
+
+  end addWipingRecords
+
+  private def findAllEntitiesStartingWithIDInTable[EC <: HLEntityCreatorWithSomeKindOfID : ClassTag, E <: HLEntityWithSomeKindOfID](itsaID: String)(using repo: HLRepoWithID[EC, E], dbCodec: DbCodec[E], table: HLTableInfo[EC, E], dbTx: DbTx): Either[HLDatabaseServiceException, Vector[E]] =
     ox.either:
-      val dbValue: HLDatabase = db.ok()
+      val result =
+        repo.findAllByIDStartingWith(itsaID).map: item =>
+          item
+        .filter(_.isDefined)
+        .map(_.get)
+      result ?? HLDatabaseServiceException.noEntriesFound(itsaID).fail()
 
-      def mapDbError(code: HLDBErrorCode): HLDatabaseServiceException = code match
-        case HLDBErrorCode.ConnectionError => HLDatabaseServiceException.connectionError()
-        case HLDBErrorCode.EntryNotFound => HLDatabaseServiceException.noEntryFound(classTag[M].toString, itsaID)
-        case HLDBErrorCode.NoEntriesFound => HLDatabaseServiceException.noEntriesFound(itsaID)
-        case _ => HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching records from DB.")
+  override def findByID[M <: HLModel : ClassTag](itsaID: String)(using hardwareGrabberService: HardwareGrabberService): Either[HLDatabaseServiceException, M] =
+        def notFound: HLDatabaseServiceException =
+          HLDatabaseServiceException.noEntryFound(classTag[M].runtimeClass.getSimpleName, itsaID)
 
-      val result: Vector[M] = classTag[M] match
-        case ct if ct == classTag[HardDriveModel] =>
-          dbValue
-            .findAllByIdStartingWith[Disk, DiskCreator](itsaID)
-            .left.map(mapDbError)
-            .flatMap: entities =>
-              Right(entities.flatMap(disk => toModel[Disk, M](disk)))
-            .ok()
+        def dbError(code: HLDBErrorCode): HLDatabaseServiceException =
+          HLDatabaseServiceException(code, classTag[M].runtimeClass.getSimpleName, itsaID)
 
-        case ct if ct == classTag[MemoryModel] =>
-          dbValue
-            .findAllByIdStartingWith[Memory, MemoryCreator](itsaID)
-            .left.map(mapDbError)
-            .flatMap: entities =>
-              Right(entities.flatMap(mem => toModel[Memory, M](mem)))
-            .ok()
+        def asRequestedModel[A <: HLModel](result: Either[HLDBErrorCode, A]): Either[HLDatabaseServiceException, M] =
+          result
+            .left
+            .map(dbError)
+            .map(_.asInstanceOf[M])
 
-        case ct if ct == classTag[MediaModel] =>
-          dbValue
-            .findAllByIdStartingWith[Media, MediaCreator](itsaID)
-            .left.map(mapDbError)
-            .flatMap: entities =>
-              Right(entities.flatMap(media => toModel[Media, M](media)))
-            .ok()
+        transact:
+          if classTag[M] == classTag[HardDriveModel] then
+            if ProgramMode.isInNormalMode then
+              asRequestedModel:
+                repos.diskRepo
+                  .findFirstByItsaID(itsaID)
+                  .map(createHardDriveModelFromDisk)
+            else
+              asRequestedModel:
+                repos.wipingRepo
+                  .findFirstByItsaID(itsaID)
+                  .map(createHardDriveModel)
 
-        case ct if ct == classTag[GeneralInfoModel] =>
-          dbValue
-            .findAllByIdStartingWith[Info, InfoCreator](itsaID)
-            .left.map(mapDbError)
-            .flatMap: entities =>
-              Right(entities.flatMap(info => toModel[Info, M](info)))
-            .ok()
+          else if classTag[M] == classTag[MemoryModel] then
+            asRequestedModel:
+              repos.memoryRepo
+                .findFirstByItsaID(itsaID)
+                .map(createMemoryModel)
 
-        case ct if ct == classTag[ProcessorModel] =>
-          dbValue
-            .findAllByIdStartingWith[Info, InfoCreator](itsaID)
-            .left.map(mapDbError)
-            .flatMap: entities =>
-              Right(entities.flatMap(info => toModel[Info, M](info)))
-            .ok()
+          else if classTag[M] == classTag[MediaModel] then
+            asRequestedModel:
+              repos.mediaRepo
+                .findFirstByItsaID(itsaID)
+                .map(createMediaModel)
 
-        case _ =>
-          Left(HLDatabaseServiceException.noEntryFound(classTag[M].toString, itsaID)).ok()
+          else if classTag[M] == classTag[ProcessorModel] then
+            asRequestedModel:
+              repos.infoRepo
+                .findFirstByItsaID(itsaID)
+                .map: processor =>
+                  ProcessorModel(
+                    name = processor.genId,
+                    frequency = Frequency(processor.cpuSpeed),
+                    shortDescription = processor.cpuVendor ?? "",
+                    longDescription = processor.cpuDescription,
+                    serial = processor.cpuSerial ?? "",
+                    width = processor.cpuWidth.map(_.toInt) ?? 64,
+                    cores = processor.cpuCores.map(_.toInt) ?? 1,
+                    threads = hardwareGrabberService.processors.map(_.headOption.map(_.threads) ?? 0) ?? 0
+                  )
 
-      result
-
-  end findAllStartingWithID
-
-  def findByID[M <: HLModel : ClassTag](itsaID: String)(using context: HardwareLoggerTaskContext.WaitBackground): Either[HLDatabaseServiceException, M] =
-    import HLDatabaseService.given
-    def noEntriesFound = HLDatabaseServiceException.apply(HLDBErrorCode.NoEntriesFound, classTag[M].toString, itsaID)
-
-    ox.either:
-      val dbValue: HLDatabase = db.ok()
-
-      def mapDbError(code: HLDBErrorCode): HLDatabaseServiceException = code match
-        case HLDBErrorCode.ConnectionError => HLDatabaseServiceException.connectionError()
-        case HLDBErrorCode.EntryNotFound => HLDatabaseServiceException.noEntryFound(classTag[M].toString, itsaID)
-        case HLDBErrorCode.NoEntriesFound => HLDatabaseServiceException.noEntriesFound(itsaID)
-        case _ => HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching record from DB.")
-
-      val out: Either[HLDatabaseServiceException, M] =
-        classTag[M] match
-          case ct if ct == classTag[HardDriveModel] =>
-            dbValue
-              .findByID[WipingCreator, Wiping](itsaID)
-              .left.map(mapDbError)
-              .flatMap:
-                case wiping =>
-                  toModel[Wiping, HardDriveModel](wiping) match
-                    case Some(hd) => Right(hd.asInstanceOf[M])
-                    case None => Left(noEntriesFound)
-                case _ =>
-                  Left(noEntriesFound)
-
-
-          case _ =>
-            Left(noEntriesFound)
-
-      out.ok()
-
-
+          else
+            Left(notFound)
+          end if
   end findByID
 
 
-  override final def stop(): Unit = db.foreach(_.close())
 
+  override final def stop(): Unit = ()
+
+  given Conversion[OffsetDateTime, java.sql.Timestamp] with
+    override def apply(x: OffsetDateTime): Timestamp =
+      Timestamp.from(x.toInstant)
 
   protected var processor: Option[ProcessorModel] = None
 
-  private def createHardDriveModel[M <: HLModel : ClassTag, E <: HLEntity](hardDrive: Wiping) =
+  private def createHardDriveModel(hardDrive: Wiping) =
     HardDriveModel(
       model = hardDrive.model,
       size = DataSize(0, DataSizeUnit.GB),
@@ -411,7 +513,10 @@ trait CommonHLDatabase(using HardwareLoggerTaskContext.WaitBackground) extends H
       connectionType = HardDriveConnectionType.NVME
     )
 
-  private def createHardDriveModel[M <: HLModel : ClassTag, E <: HLEntity](hardDrive: Disk) =
+  private inline def createHardDriveModel(disk: Disk): HardDriveModel =
+    createHardDriveModelFromDisk(disk)
+
+  private def createHardDriveModelFromDisk(hardDrive: Disk) =
 
     HardDriveModel(
       model = hardDrive.model,
@@ -422,38 +527,7 @@ trait CommonHLDatabase(using HardwareLoggerTaskContext.WaitBackground) extends H
       performance = Percentage(100),
       connectionType = HardDriveConnectionType.NVME
     )
-
-  /**
-   * Maps a DB entity into a frontend model.
-   *
-   * Notes:
-   *  - Call sites currently use it like: toModel[Wiping, HardDriveModel](wiping)
-   *  - We gate casts via both runtime pattern matching on the entity and ClassTag on M
-   *  - Returns None if the mapping is unknown / mismatched.
-   */
-  private def toModel[E <: HLEntity, M <: HLModel : ClassTag](entity: E): Option[M] =
-    val mCt = classTag[M]
-
-    (mCt, entity) match
-      // Wiping row -> HardDriveModel (used by findWipingRecord / findByID)
-      case (ct, wiping: Wiping) if ct == classTag[HardDriveModel] =>
-        Some(
-          createHardDriveModel[HardDriveModel, HLEntity](wiping)
-            .asInstanceOf[M]
-        )
-
-      // Disk row -> HardDriveModel (useful if you later query diskTable in normal mode)
-      case (ct, disk: Disk) if ct == classTag[HardDriveModel] =>
-        Some(
-          createHardDriveModel[HardDriveModel, HLEntity](disk.asInstanceOf[HLEntity & Disk])
-            .asInstanceOf[M]
-        )
-
-      case _ =>
-        None
-
-  private def createInfoModel[M <: HLModel : ClassTag, E <: HLEntity](info: E & Info) =
-  {
+  private def createInfoModel[M <: HLModel : ClassTag](info: Info) =
     GeneralInfoModel(
       computerID = info.genId,
       itsaID = info.itsaID,
@@ -463,39 +537,20 @@ trait CommonHLDatabase(using HardwareLoggerTaskContext.WaitBackground) extends H
       model = info.cpuProduct ?? "",
       description = info.genDesc,
     )
-  }
 
-  private def createProcessorModel[M <: HLModel : ClassTag, E <: HLEntity](info: E & Info) =
-  {
-    ProcessorModel(
-      name = info.cpuProduct.get,
-      serial = info.cpuSerial ?? "",
-      cores = info.cpuCores.map(_.toInt) ?? 2,
-      frequency = Frequency(info.cpuSpeed.toLong, FrequencyUnit.GHz),
-      width = info.cpuWidth.map(_.toInt) ?? 64,
-      longDescription = info.cpuDescription,
-      shortDescription = ""
+  end createInfoModel
+
+
+  protected def createMemoryModel(memory: Memory) =
+    MemoryModel(
+      size = DataSize.from(memory.size) ?? DataSize(0, DataSizeUnit.GB),
+      description = memory.description ?? ""
     )
-  }
-
-  protected transparent inline def createEC[M <: HLModel](model: M)(using hardwareGrabberService: HardwareGrabberService): Any =
-
-    model match
-      case memory: MemoryModel => toMemory(memory)
-      case hardDriveModel: HardDriveModel =>
-        if ProgramMode.isInNormalMode then
-          toHardDrive(hardDriveModel)
-        else
-          toWiping(hardDriveModel)
-      case infoModel: GeneralInfoModel => toInfo(infoModel)
-      case mediaModel: MediaModel => toMedia(mediaModel)
-      case processorModel: ProcessorModel =>
-        processor = processorModel
-        val info: GeneralInfoModel = hardwareGrabberService.generalInfo
-        toInfo(info)
-      case null => scala.sys.error("Unknown Type!")
-
-
+  protected def createMediaModel(media: Media) =
+    MediaModel(
+      description = media.descr ?? "",
+      handle = media.handle ?? ""
+    )
   protected def toMemory(memoryModel: MemoryModel): MemoryCreator =
     MemoryCreator(memoryModel.size.dbString, itsaID, memoryModel.description)
 
@@ -503,86 +558,56 @@ trait CommonHLDatabase(using HardwareLoggerTaskContext.WaitBackground) extends H
     DiskCreator(itsaID, hardDriveModel.model, hardDriveModel.size.dbString, hardDriveModel.serial, hardDriveModel.connectionType.toString, "ATA Disk")
 
 
-  protected def toInfo(infoModel: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): InfoCreator =
-    val totalMemory = hardwareGrabberService.memory.map(_.size.value).sum
-    val processor = hardwareGrabberService.processors.head
-    val creator = InfoCreator(cpuVendor = infoModel.vendor,
-      itsaID = itsaID, cpuSerial = Some(processor.serial), totalMemory = s"$totalMemory GB",
-      cpuSpeed = processor.frequency.toString, cpuDescription = processor.longDescription, cpuProduct = processor.name,
-      genDesc = "", genId = genID, genProduct = "CPU", genSerial = infoModel.serial, genVendor = infoModel.vendor,
-      cpuWidth = processor.width.toString, os = infoModel.os, cpuCores = processor.cores.toString, insertionDate = Timestamp.from(OffsetDateTime.now().toInstant), lastUpdated = Timestamp.from(OffsetDateTime.now().toInstant))
-    creator
-  end toInfo
+  protected def toInfo(infoModel: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService): Either[Error, InfoCreator] =
+    ox.either:
+      val totalMemoryResult = hardwareGrabberService.memory.map: mem =>
+        mem.map(m => m.size)
+      ??
+        HLDatabaseServiceException.unknownError("Could not get total memory").fail()
+        
+      val totalMemory: Seq[Double] = totalMemoryResult.map(_.map(_.toDouble)) ?? Seq.empty[Double]
+      
+      
+      this.processor = hardwareGrabberService.processors.map(_.head) ?? HLDatabaseServiceException.unknownError("Could not get processor").fail()
+      val processor = this.processor.get
+  
+      InfoCreator(cpuVendor = infoModel.vendor,
+        genId = genID + s" ${BuildInfo.version}",
+        itsaID = itsaID, cpuSerial = Some(processor.serial),
+        insertionDate = OffsetDateTime.now(),
+        lastUpdated = OffsetDateTime.now(),
+        os = infoModel.os,
+        cpuProduct = infoModel.model,
+        cpuSpeed = processor.frequency.dbString,
+        cpuCores = processor.cores.toString,
+        cpuWidth = processor.width.toString,
+        cpuDescription = processor.longDescription,
+        genDesc = infoModel.description,
+        genProduct = infoModel.computerID,
+        genVendor = infoModel.vendor,
+        genSerial = infoModel.serial,
+        totalMemory = totalMemory.toString.toOption
+      )
 
-  protected def toWiping(model: HardDriveModel): WipingCreator =
-    val serial = if model.serial != "?" then model.serial else ""
-    WipingCreator(hddID = model.itsaID,
-      serial = serial, model = model.model,
-      insertionDate = OffsetDateTime.now, capacity = model.size.dbString,
-      `type` = model.`type`, toUpdate = true, isSsd = model.`type` == "SSD",
-      description = model.connectionType.toString, health = model.health.toByte, formFactor = "")
-  end toWiping
+end MySQLHardwareLoggerDatabaseService
 
-  private def toMedia(media: MediaModel): MediaCreator =
-    MediaCreator(itsaID, media.description, media.handle)
-end CommonHLDatabase
+object  MySQLHardwareLoggerDatabaseService:
+  //from
+  // db.username=itsa
+  //db.password=itsa123
+  //db.name=hwlogger
+  //db.port=3306
+  //db.unit7.address=10.0.1.230
+  //db.unit9.address=192.168.100.230
+  //db.local.address=localhost
+  //
+  //#Time in seconds
+  //db.timeout=1
+  //
+  //db.autoReconnect=true
+  //db.maxReconnects=3
+  //db.useLocalhost=true
+  //db.localhost.username=root
+  //db.localhost.password=root
 
-object CommonHLDatabase:
-  type Error = HLDatabase.Error
-
-  extension (wiping: Wiping)
-    def toDisk: Disk =
-      Disk(wiping.id, wiping.hddID, wiping.model, wiping.capacity ?? "", wiping.serial, wiping.`type` ?? "", wiping.description ?? "")
-
-end CommonHLDatabase
-
-
-object HLDatabaseService:
-  type ModelToEntity[M <: HLModel] = M match
-    case MemoryModel => Memory
-    case HardDriveModel => Disk
-    case GeneralInfoModel => Info
-    case MediaModel => Media
-    case ProcessorModel => Info
-  type ModelToEC[M <: HLModel] = ECFromEntity[ModelToEntity[M]]
-  type ModelToTableInfo[M <: HLModel] = HLTableInfo[ModelToEC[M], ModelToEntity[M]]
-
-  given ecClassTag[M <: HLModel : ClassTag]: ClassTag[ItsaEC] =
-    val result = classTag[M] match
-      case ct if ct == classTag[HardDriveModel] =>
-        if delegates.ProgramMode.mode == "HardDrive" then
-          classTag[WipingCreator]
-        else
-          classTag[DiskCreator]
-      case ct if ct == classTag[MediaModel] =>
-        classTag[MediaCreator]
-      case ct if ct == classTag[MemoryModel] =>
-        classTag[MemoryCreator]
-      case ct if ct == classTag[GeneralInfoModel] || ct == classTag[ProcessorModel] =>
-        classTag[InfoCreator]
-      case _ =>
-        classTag[InfoCreator]
-    result.asInstanceOf[ClassTag[ItsaEC]]
-  end ecClassTag
-
-
-  given modelToTable[M <: HLModel : ClassTag]: ModelToTableInfo[M] =
-    val result = classTag[M] match
-      case ct if ct == classTag[HardDriveModel] =>
-        if delegates.ProgramMode.mode == "HardDrive" then
-          tables.wipingTable
-        else
-          tables.diskTable
-      case ct if ct == classTag[MediaModel] =>
-        tables.mediaTable
-      case ct if ct == classTag[MemoryModel] =>
-        tables.memoryTable
-      case ct if ct == classTag[GeneralInfoModel] || ct == classTag[ProcessorModel] =>
-        tables.infoTable
-      case _ =>
-        tables.infoTable
-    result.asInstanceOf[ModelToTableInfo[M]]
-end HLDatabaseService
-
-
-object MySQLHLDatabaseService extends NotificationCentreModule, HardwareGrabberModule
+end MySQLHardwareLoggerDatabaseService

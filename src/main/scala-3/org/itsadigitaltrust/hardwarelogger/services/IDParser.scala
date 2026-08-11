@@ -10,6 +10,7 @@ import ox.either.{fail, ok}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Seq as :++
+
 import scala.compiletime.uninitialized
 import scala.util.boundary
 import scala.util.boundary.Label
@@ -154,10 +155,13 @@ final class IDParser:
       handleTokens(tokens)
 
   @tailrec
-  private def handleTokens(tokens: Seq[Token], index: Int = 0, result: ParsedResult = ParsedResult())(using label: ContextLabel[ParsedResult]): ![ParsedResult] =
+  private def handleTokens(tokens: Seq[Token], index: Int = 0, result: ParsedResult = ParsedResult())
+                          (using label: ContextLabel[ParsedResult]): ![ParsedResult] =
 
+    if tokens.isEmpty || tokens.length == 1 && tokens.head == Token.End then
+      ParsedResult().ok()
     if index == tokens.length then
-      return result
+      result.ok()
 
     val token: Token = tokens(index)
     if index == 0 then
@@ -221,6 +225,11 @@ object IDParser:
     override def toString: String =
       s"${prefix ?? ""}${number.get}${decimal ?? ""}${checkDigit ?? ""}${suffix ?? ""}"
 
+    def isEmpty: Boolean =
+      prefix.isEmpty && number.isEmpty && decimal.isEmpty && checkDigit.isEmpty && suffix.isEmpty
+
+    def nonEmpty =
+      !isEmpty
 
   extension(tokenError: Token.Error)
     def toParserError: ParserError =

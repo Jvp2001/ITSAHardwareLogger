@@ -2,11 +2,11 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import scalafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.services.given
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, given}
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
-final class ProcessorTableRowViewModel(model: ProcessorModel) extends TableRowViewModel[ProcessorModel](model):
+final class ProcessorTableRowViewModel(model: ProcessorModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[ProcessorModel](model):
   def nameProperty: StringProperty =
-    logger.info(s"Name Prop val: ${model.name}")
     wrapper.field("name", _.name, "")(StringProperty.apply)
 
   def speedProperty: StringProperty =

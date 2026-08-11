@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.backend.entities
 import com.augustnagro.magnum.Id
 
 
-private[backend] transparent trait ItsaIDOfSomeKind:
+ transparent trait ItsaIDOfSomeKind:
   def getItsaID: String
 
 
@@ -23,10 +23,10 @@ sealed trait HLEntity:
   @Id val id: Long
 trait HLEntityWithItsaID extends HLEntity with ItsaID
 trait HLEntityWithHardDiskID extends HLEntity with HddID
-
+type HLEntityWithSomeKindOfID = (HLEntityWithItsaID | HLEntityWithHardDiskID) & ItsaIDOfSomeKind
 
 sealed trait HLEntityCreator
 transparent trait HLEntityCreatorWithItsaID extends HLEntityCreator with ItsaID
 transparent trait HLEntityCreatorWithHardDiskID extends HLEntityCreator with HddID
-  
+type HLEntityCreatorWithSomeKindOfID = (HLEntityCreatorWithItsaID | HLEntityCreatorWithHardDiskID) & ItsaIDOfSomeKind
 

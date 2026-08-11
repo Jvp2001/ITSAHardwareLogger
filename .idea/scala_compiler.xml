@@ -1,21 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
+    <option name="featureWarnings" value="true" />
+    <option name="continuations" value="true" />
+    <option name="debuggingInfoLevel" value="Notailcalls" />
+    <option name="incrementalityType" value="IDEA" />
     <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.IssueReporter" />
-    <profile name="sbt 2" modules="ITSAHardwareLogger.HDSentinelReader.main,ITSAHardwareLogger.HDSentinelReader.main~1,ITSAHardwareLogger.HDSentinelReader.test,ITSAHardwareLogger.HDSentinelReader.test~1,ITSAHardwareLogger.main,ITSAHardwareLogger.main~1,ITSAHardwareLogger.test,ITSAHardwareLogger.test~1">
+    <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.IssueReporter,ITSAHardwareLogger.itsaLogger,ITSAHardwareLogger.itsaLoggerFX,ITSAHardwareLogger.itsaLoggerFX~1,ITSAHardwareLogger.itsaLogger~1,itsahardwarelogger_7881,itsahardwarelogger_7881.main,itsahardwarelogger_7881.test" />
+    <profile name="sbt 2" modules="ITSAHardwareLogger.HDSentinelReader.main~1,ITSAHardwareLogger.HDSentinelReader.test~1,ITSAHardwareLogger.main~1,ITSAHardwareLogger.test~1">
       <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
         <parameter value="-experimental" />
       </parameters>
     </profile>
-    <profile name="sbt 3" modules="ITSAHardwareLogger.Backend.main,ITSAHardwareLogger.Backend.main~1,ITSAHardwareLogger.Backend.test,ITSAHardwareLogger.Backend.test~1,ITSAHardwareLogger.Common.main,ITSAHardwareLogger.Common.main~1,ITSAHardwareLogger.Common.test,ITSAHardwareLogger.Common.test~1,ITSAHardwareLogger.IssueReporter.main,ITSAHardwareLogger.IssueReporter.main~1,ITSAHardwareLogger.IssueReporter.test,ITSAHardwareLogger.IssueReporter.test~1">
+    <profile name="sbt 3" modules="ITSAHardwareLogger.Backend.main~1,ITSAHardwareLogger.Backend.test~1,ITSAHardwareLogger.Common.main~1,ITSAHardwareLogger.Common.test~1,ITSAHardwareLogger.IssueReporter.main~1,ITSAHardwareLogger.IssueReporter.test~1">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+      </parameters>
+    </profile>
+    <profile name="sbt 4" modules="ITSAHardwareLogger.HDSentinelReader.main,ITSAHardwareLogger.HDSentinelReader.test,ITSAHardwareLogger.main,ITSAHardwareLogger.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-experimental" />
+      </parameters>
+    </profile>
+    <profile name="sbt 5" modules="ITSAHardwareLogger.Backend.main,ITSAHardwareLogger.Backend.test,ITSAHardwareLogger.Common.main,ITSAHardwareLogger.Common.test,ITSAHardwareLogger.IssueReporter.main,ITSAHardwareLogger.IssueReporter.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+      </parameters>
+    </profile>
+    <profile name="sbt 7" modules="ITSAHardwareLogger.itsaLogger.main,ITSAHardwareLogger.itsaLogger.test,ITSAHardwareLogger.itsaLoggerFX.main,ITSAHardwareLogger.itsaLoggerFX.test,ITSAHardwareLogger.itsaLoggerFX~1.main,ITSAHardwareLogger.itsaLoggerFX~1.test,ITSAHardwareLogger.itsaLogger~1.main,ITSAHardwareLogger.itsaLogger~1.test">
       <parameters>
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
       </parameters>
     </profile>
   </component>

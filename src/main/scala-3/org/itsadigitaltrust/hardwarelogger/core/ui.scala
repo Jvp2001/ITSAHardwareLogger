@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.core
 
 
 object ui:
-//  export scalafx.Includes.*
+  export scalafx.Includes.*
   export scalafx.stage.Window
   export scalafx.scene.{Node, Group}
   export scalafx.scene.control.{Tab, TableColumn, TableView, TabPane, Button, Label, TextField, Alert, ButtonType}
@@ -14,6 +14,7 @@ object ui:
   export scalafx.scene.text.Font
 
   export scalafx.scene.input.{KeyCode, KeyEvent, MouseEvent, MouseButton}
+  export scalafx.event.EventType
   export scalafx.beans.property.{StringProperty, IntegerProperty, DoubleProperty, BooleanProperty, ObjectProperty}
   export scalafx.collections.ObservableBuffer
  

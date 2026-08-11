@@ -1,43 +1,58 @@
-package org.itsadigitaltrust.hardwarelogger.viewmodels
+    package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
-import org.itsadigitaltrust.common.Operators.{??, in, or}
-import org.itsadigitaltrust.common.Result
-import org.itsadigitaltrust.common.collections.Dict
-
+import javafx.concurrent
+import org.itsadigitaltrust.common.Operators.{??, toOption, |>}
+import org.itsadigitaltrust.common.forkJoin
+import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, MediaModel, ProcessorModel}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
-import org.itsadigitaltrust.hardwarelogger.services
-import org.itsadigitaltrust.hardwarelogger.services.HardwareIDValidationService.ValidationError
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.*
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{ContinueWithDuplicateDriveArgs, DuplicateDrivesErrorArgs, NotificationName, NotificationUserInfo, ReloadMessageArgs, SaveMessageArgs}
-import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HardwareIDValidationService, IDParser}
-import org.itsadigitaltrust.hardwarelogger.tasks.SimpleWaitHardwareLoggerGroupTaskGroupBuilder
-
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
+import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService, HardwareIDValidationService, IDParser, OshiHardwareGrabberApplicationService}
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
+import org.itsadigitaltrust.hardwarelogger.tasks.{CommonHardwareLoggerTasksAndWorkers, HardwareLoggerSimpleTask}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{GeneralInfoTableRowViewModel, MediaTableRowViewModel, MemoryTableRowViewModel, ProcessorTableRowViewModel}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, MemoryTabViewModel, TabTableViewModel}
+import org.scalafx.extras
+import org.scalafx.extras.{BusyWorker, ShowMessage, ShowMessageLogger, offFX, offFXAndWait, parentWindow, runTask}
+import ox.EitherMode
+import ox.either.{fail, ok}
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType
-import scalafx.scene.control.Alert.AlertType.{Confirmation, Information, Warning}
+import scalafx.scene.control.Alert.AlertType.Information
 import scalafx.scene.control.{Alert, ButtonType}
+import scalafx.stage.Window
 
+import scala.concurrent.duration.DurationInt
 import scala.util.boundary
-final class HardwareLoggerRootViewModel(using taskGroupBuilder: SimpleWaitHardwareLoggerGroupTaskGroupBuilder[Unit]) extends ViewModel, ApplicationServicesRegistry:
 
+final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGrabberService, hardwareIDValidationService: HardwareIDValidationService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)
+  extends RootViewModel, HWLoggerShowMessage:
+
+
+  override protected def messageLogger: Option[ShowMessageLogger] = this.toOption
+
+  private val _idStringProperty: StringProperty = StringProperty("")
+  val idStringProperty: StringProperty = _idStringProperty
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
-  val idStringProperty: StringProperty = StringProperty("")
   val idErrorStringProperty: StringProperty = StringProperty("")
   val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
-
   val shouldCaretBeAtEnd: BooleanProperty = BooleanProperty(false)
-
   private var wasDuplicateIDWarningAlreadyShown = false
-  private val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
+  private lazy val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
     contentText <== idErrorStringProperty
+
+//
+  given optionTaskMessageProperty: Option[StringProperty] = Option(taskMessageProperty)
+  given optionTaskProgressProperty: Option[DoubleProperty] = Option(taskProgressProperty)
+  given optionDisabledNodesWhileTaskIsRunning: Option[BooleanProperty] = Option(disableNodeWhileTaskRunningProperty)
 
   given itsaID: String = idStringProperty.value
 
-  hardwareIDValidationService.validate(idStringProperty.get)
   idStringProperty.onChange: (observable, oldValue, newValue) =>
     if newValue.isEmpty || newValue == null then
       idErrorStringProperty.value = "ID must not be empty!"
@@ -48,65 +63,38 @@ final class HardwareLoggerRootViewModel(using taskGroupBuilder: SimpleWaitHardwa
 
 
 
-  notificationCentre.addObserver(NotificationName.ShowDuplicateDriveWarning)(onDBSuccess)
+  def continueWithDuplicateDrives(drives: Seq[String]): Unit =
+    val alertContentText =
+      if drives.length == 1 then
+        s"A drive with the serial number '${drives.head} already exists. Do you want to continue?"
+      else
+        s"Drives with the serial numbers '${drives.mkString(", ")} already exist. Do you want to continue?"
+    end alertContentText
 
-  private def onDBSuccess(message: Message): Unit = ()
-//    ToastHelper.makeText(null, "Data has been saved!", 3000, 200, 200)
-//    wasDuplicateIDWarningAlreadyShown = false
+    if showConfirmation("Serial Number is duplicated", "Continue With Duplicate Drives?", alertContentText) then
+      reload()
 
-  private def duplicateDrives(args: DuplicateDrivesErrorArgs) =
-    val serial = args.duplicateRows.size match
-      case 1 => args.duplicateRows.head
-      case _ => args.duplicateRows.mkString(", ")
+    else
+      ()
 
-    new Alert(Warning, "Duplicate Drive Found!", ButtonType.Yes, ButtonType.No):
-      contentText = s"A drive with the serial number '$serial' already exists. Do you want to continue?"
-      showAndWait() match
-        case Some(ButtonType.Yes) =>
-          notificationCentre.post(ContinueWithDuplicateDrive, ContinueWithDuplicateDriveArgs(args.duplicateRows))
-        case _ =>
-          reload()
-  end duplicateDrives
+  end continueWithDuplicateDrives
 
-
-  //TODO: Validate and fix the data actually going into the database.
-  private def onDuplicateIDFound(message: Message) =
-//    if !wasDuplicateIDWarningAlreadyShown then
-    new Alert(AlertType.Warning, "Do you want to continue with saving this data? If so, the current data with the same ID will be marked as an error.", ButtonType.Yes, ButtonType.No):
-      headerText = s"ID '${idStringProperty.value}' is already in use."
-      showAndWait() match
-        case Some(ButtonType.Yes) =>
-          databaseService.markAllRowsWithIDInDBAsError(idStringProperty.value)
-          //    reload()
-          notificationCentre.post[SaveMessageArgs](Save, SaveMessageArgs())
-          wasDuplicateIDWarningAlreadyShown = true
-        case _ =>
-          wasDuplicateIDWarningAlreadyShown = false
-//    end if
-
-  private def onReload(args: Unit): Unit =
-    if ProgramMode.isInNormalMode then
-      val pcInfo = hardwareGrabberService.generalInfo
-      val info = pcInfo
-      val itsaId = info.itsaID
-      idStringProperty.value = itsaId ?? ""
-      logger.info(s"Itsa ID: $itsaId")
-
-
-  override def setup(): Unit =
+  
+  def setup(): Unit =
     reload()
     setIDToMatchValueInDB()
 
 
+  given Conversion[() => Unit, Runnable] with
+    override def apply(x: () => Unit): Runnable = x
+
+
+  given toOptionConv[T]: Conversion[T, Option[T]] = Option.apply
+  
+  
   def reconnect(): Unit =
-    databaseService.connectAsync():
-      case Right(_) =>
-        logger.info("Database connection established successfully.")
-      case Left(err) =>
-        logger.info(s"Database connection failed: $err")
-        Dialogs.showDBConnectionError()
-    if !databaseService.testConnection() then
-      Dialogs.showDBConnectionError()
+    CommonHardwareLoggerTasksAndWorkers.performReconnectWorker()
+
 
   end reconnect
 
@@ -115,84 +103,114 @@ final class HardwareLoggerRootViewModel(using taskGroupBuilder: SimpleWaitHardwa
     isInNormalMode.value = mode == "Normal"
 
   def save(): Unit =
-    //HLTaskRunner.runLater("Save"): () =>
-    validateID(true)
-    if !validIDProperty.value then
-      idFieldFocusProperty.value = true
-      return
-    if ProgramMode.isInNormalMode then
-      val notWipedDrives = findNonWipedDrives()
-      if notWipedDrives.nonEmpty then
-        showDrivesNotWipedAlert(notWipedDrives)
+    ox.either:
+      import scala.languageFeature.implicitConversions
+      //    given context: BusyWorkerContext.Prompt = BusyWorkerContext.Prompt(s"${idStringProperty.value} is already in use.", "Do you want to save the data?")
 
-    databaseService.itsaID = idStringProperty.value
-    val userInfo = Dict:
-      val id = idStringProperty.value
+
+      databaseService.itsaID = idStringProperty.value
+
+
+      showConfirmationYesNoCancel("Save?", s"{{${idStringProperty.value}}} is already in use.", "Do you want to save the data?") match
+        case Some(true) =>
+          validateID(true)
+          if !validIDProperty.value then
+            idFieldFocusProperty.value = true
+
+          if ProgramMode.isInNormalMode then
+            val notWipedDrives = findNonWipedDrives().ok()
+            if notWipedDrives.nonEmpty then
+              showDrivesNotWipedAlert(notWipedDrives)
+  def dbSuccess(): Unit = ()
+//    NotificationCentre.on
+//
+//    val task = new RootViewModelBatchedTask(5000.milliseconds, list)
+//    val result = new RootViewModelBusyWorker("Saving to Database", disabledNodes = disabledNodes.toSeq)
+//      .doTask(task)
+//
 //    reload()
-    notificationCentre.post[userInfo.type](NotificationName.Save, userInfo)
-    taskGroupBuilder.run("Saving"): () =>
-      val _ = Alert(AlertType.Information, "Saved Successfully!", ButtonType.OK).showAndWait()
-  end save
+//    extras.onFX:
+//      showInformation("Database Connection Successful", "Successfully connected to the database.", "")
+//pedDrives)
+//
+//          reload()
+//        case _ => ()
+//
+//    .showIfFailed()
+//
+//
+//  end save
 
+
+  lazy val idValidatorSchedule = new javafx.concurrent.ScheduledService[Unit]:
+    override def createTask(): concurrent.Task[Unit] = () =>
+
+      hardwareIDValidationService.validate(idStringProperty.get()) match
+        case Left(error) => idErrorStringProperty.value = error.toString
+        case Right(value) => idErrorStringProperty.value = ""
+      ()
+  end idValidatorSchedule
+  
+  
+
+  def duplicateIDWasFound(itsaID: String): Unit =
+
+    _idStringProperty.value = itsaID
+  end duplicateIDWasFound
 
   private def validateID(showAlert: Boolean = false): Unit =
-    val currentID: String = Option(idStringProperty.get()).getOrElse("")
-    if currentID == "" then
-      idErrorStringProperty.set("ID cannot be empty!")
-      return
-    val result = hardwareIDValidationService.validate(currentID.strip())
-    result match
-      case Left(value) =>
-        validIDProperty.value = false
-        idErrorStringProperty.value = value.toString
-        if idErrorStringProperty.value ==  IDParser.ParserError.MissingCheckDigit.toString && idErrorStringProperty.value.contains(".") then
-          idErrorStringProperty.value = ""
-        if showAlert then
-          value match
-            case ValidationError.ParserError(error) => idErrorStringProperty.value = error.toString
-            case error@ValidationError.IncorrectCheckDigit(expected, got) =>
-              idErrorAlert.showAndWait() match
-                case _ => idFieldFocusProperty.value = true
-      case Right(value) =>
-        validIDProperty.value = true
-        //TODO: Check if you want to wipe the ID after saving.
-        if databaseService.doesPCRecordExist(hardwareGrabberService.generalInfo) then
-          idErrorStringProperty.value = s"The database contains a PC with the same serial number '${hardwareGrabberService.generalInfo.serial}!"
-        else
-          idErrorStringProperty.value = ""
-          idStringProperty.value = value.toString
+    ox.either:
+      val currentID: String = Option(idStringProperty.get()).getOrElse("")
+      if currentID == "" then
+        idErrorStringProperty.set("ID cannot be empty!")
+        return
+      val result = hardwareIDValidationService.validate(currentID.strip())
+      result match
+        case Left(value) =>
+          validIDProperty.value = false
+          idErrorStringProperty.value = value.toString
+          if idErrorStringProperty.value == IDParser.ParserError.MissingCheckDigit.toString && idErrorStringProperty.value.contains(".") then
+            idErrorStringProperty.value = ""
+
+        case Right(value) =>
+          validIDProperty.value = true
+          //TODO: Check if you want to wipe the ID after saving.
+          applicationState.generalInfo.map(_.head).map: info =>
+            if databaseService.doesPCRecordExist(info) then
+              idErrorStringProperty.value = s"The database contains a PC with the same serial number '${info.serial}!"
+            else
+              idErrorStringProperty.value = ""
+              _idStringProperty.value = value.toString
   end validateID
 
-  def reload(): Unit =
-    hardwareGrabberService.load(): () =>
-      notificationCentre.post(Reload, ReloadMessageArgs())
-      setIDToMatchValueInDB()
-      taskGroupBuilder.run(): () =>
-        val result = Alert(AlertType.Information, "Reload Successful!", ButtonType.OK).showAndWait()
+  def onProgramModeChanged(mode: ProgramMode): Unit =
+    NotificationCentre.programModeChanged(mode)
 
+  def reload(): Unit =
+    disableNodeWhileTaskRunningProperty() = true
 
   end reload
 
+
   def setIDToMatchValueInDB(): Unit =
-    if isInNormalMode.value then
-      idStringProperty.value = hardwareGrabberService.generalInfo.itsaID ?? ""
+    ox.either:
+      if isInNormalMode.value then
+        _idStringProperty.value = applicationState.generalInfo.map(_.head).ok().itsaID ?? ""
+      else
+        _idStringProperty.value = applicationState.hardDrives.ok().headOption.ok().itsaID ?? ""
+      shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
+    .showIfFailed()
 
-    else
-      idStringProperty.value = hardwareGrabberService.hardDrives.headOption.map(_.itsaID) ?? ""
-    shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
+  def programModeChanged(mode: ProgramMode): Unit =
+    onProgramModeChanged(mode)
 
-  
-  notificationCentre.addObserver(NotificationName.ProgramModeChanged)(onProgramModeChanged)
-
-  def onProgramModeChanged(mode: ProgramMode): Unit =
-    isInNormalMode.value = mode == "Normal"
-    reload()
 
 
   private def findNonWipedDrives() =
-    hardwareGrabberService.hardDrives.filterNot: hardDrive =>
-      databaseService.findWipingRecord(hardDrive.serial).isLeft
-
+    ox.either:
+      applicationState.hardDrives.ok()
+        .filterNot: hardDrive =>
+          databaseService.findWipingRecord(hardDrive.serial).isLeft
 
 
   private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =
@@ -217,7 +235,7 @@ final class HardwareLoggerRootViewModel(using taskGroupBuilder: SimpleWaitHardwa
       new Alert(Information, s"The $word '$serials' have not been logged. Do you want to log them now?", ButtonType.Yes, ButtonType.No):
         headerText = "No Wiping Records Found"
         showAndWait() match
-          case Some(ButtonType.Yes) => databaseService.addWipingRecords(itsaID, hardwareGrabberService.hardDrives *)
+          case Some(ButtonType.Yes) => databaseService.addWipingRecords(itsaID, applicationState.hardDrives ?? Seq.empty[HardDriveModel] *)
           case _ => ()
   end showDrivesNotWipedAlert
 

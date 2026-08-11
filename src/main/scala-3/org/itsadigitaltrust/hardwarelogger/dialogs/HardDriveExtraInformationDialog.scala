@@ -6,7 +6,7 @@ import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
 import org.scalafx.extras.generic_pane.GenericDialogFX
 import scalafx.scene.control.Label
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import scalafx.Includes.*
+
 
 
 private[dialogs] class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDialogFX(s"${model.serial}'s Information"):

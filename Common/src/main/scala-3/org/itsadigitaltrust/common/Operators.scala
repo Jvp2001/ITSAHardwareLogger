@@ -28,6 +28,11 @@ object Operators:
   extension[E, T](either: Either[E, T])
     def ??(default: => T): T =
       either.getOrElse(default)
+    def ??[E2](func: E => E2) : Either[E2, T] =
+      either.left.map(func)
+    
+    
+
   extension[T](t: T)
     def ? : Option[T] = Option(t)
     def toOption: Option[T] = Option(t)
@@ -36,6 +41,7 @@ object Operators:
     def ??(default: => T): T =
       option.getOrElse(default)
 
+  
   extension[T](option: Option[T] | T | Try[T] | Try[Option[T]])
 
     infix def or(other: Option[T]): Option[T] =
@@ -46,10 +52,16 @@ object Operators:
         case t: Try[T] => t.toOption.orElse(other)
   end extension
 
+  
+  extension[A](seq: Seq[A])
+    inline def ||>[B](inline f: A => B): Seq[B] =
+      seq.map(f)
+  
   extension[A](a: A)
     inline def |>[B](inline f: A => B): B =
       a.pipe(f)
 
+    
     inline def ||>[C,B](inline f: C ?=> A => B)(using C): B =
       a.pipe(_ => f(a))
   extension [A](inline option: Option[A])

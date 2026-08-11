@@ -4,6 +4,8 @@ import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewModel
 import org.itsadigitaltrust.hardwarelogger.views.View
@@ -21,7 +23,7 @@ class ItsaIDConverter(model: HardDriveTableRowViewModel) extends StringConverter
   override def toString(t: String): String =
     t
 
-class HardDriveTableView(tabViewModel: HardDrivesTabViewModel) extends TabTableView(using classTag[HardDriveModel], tabViewModel):
+class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView(using applicationState)(using classTag[HardDriveModel], tabViewModel):
 
   requestFocus()
 
@@ -65,8 +67,8 @@ class HardDriveTableView(tabViewModel: HardDrivesTabViewModel) extends TabTableV
 end HardDriveTableView
 
 
-class HardDrivesTabView extends VBox with TabDelegate with View[HardDrivesTabViewModel]:
-  override given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
+class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends VBox with TabDelegate with View[HardDrivesTabViewModel]:
+  override given viewModel: HardDrivesTabViewModel =  new HardDrivesTabViewModel
 
   private val tableView = new HardDriveTableView(viewModel)
 

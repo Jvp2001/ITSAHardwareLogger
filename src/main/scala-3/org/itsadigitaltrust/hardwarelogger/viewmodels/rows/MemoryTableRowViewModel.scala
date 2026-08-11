@@ -6,9 +6,10 @@ import org.itsadigitaltrust.common.types.*
 import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit.GB
 
 import scala.math.Numeric.Implicits.infixNumericOps
-import org.itsadigitaltrust.hardwarelogger.services.given
+import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, given}
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
-final class MemoryTableRowViewModel(model: MemoryModel) extends TableRowViewModel[MemoryModel](model):
+final class MemoryTableRowViewModel(model: MemoryModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[MemoryModel](model):
 
   def sizeProperty: StringProperty =
     wrapper.field("size", s => s.size.dbString, "0 GB")(StringProperty.apply)

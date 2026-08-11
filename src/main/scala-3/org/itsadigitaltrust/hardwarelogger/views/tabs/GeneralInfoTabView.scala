@@ -1,19 +1,19 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.common.Operators.|>
-
 import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
 import org.itsadigitaltrust.hardwarelogger.models.GeneralInfoModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.GeneralInfoTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
-
+import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import scalafx.beans.property.StringProperty
 
 import scala.reflect.classTag
-
 import scala.language.experimental.modularity
-private[views] final class GeneralInfoTabView extends TabTableView(using classTag[GeneralInfoModel], TabTableViewModel(GeneralInfoTableRowViewModel.apply, _.generalInfo)):
-  viewModel.reload()
+private[views] final class GeneralInfoTabView(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView(using applicationState)(using classTag[GeneralInfoModel],
+  TabTableViewModel(GeneralInfoTableRowViewModel.apply, _ =>
+    applicationState.generalInfo )):
   private val computerIDColumn = createAndAddColumn("Version ID", minWidth=ColumnSize.big): cellValue =>
     val string = cellValue.computerIDProperty.value + s" ${BuildInfo.version.replace("-SNAPSHOT", "")}"
     string.replace("null ", "ITSAHardwareLogger ")

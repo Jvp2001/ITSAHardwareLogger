@@ -25,7 +25,7 @@ trait IssueReporterServiceComponent:
   given issueReporterService: IssueReporterService = compiletime.deferred
 
 private[services] class GitHubIssueReporterService extends IssueReporterService:
-  import org.itsadigitaltrust.hardwarelogger.core.issueReporterDefaults
+  import org.itsadigitaltrust.hardwarelogger.core.Givens.issueReporterDefaults
   lazy val issueReporter: GitHubIssueReporter =
     GitHubIssueReporter(getClass.getResourceAsStream("src/main/resources/org/itsadigitaltrust/hardwarelogger/services/issuesReporter.propertiesFilePath").readAllAsString().?)
 

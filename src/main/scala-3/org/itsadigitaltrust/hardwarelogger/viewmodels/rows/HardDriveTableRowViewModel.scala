@@ -6,11 +6,13 @@ import scalafx.beans.property.*
 import org.itsadigitaltrust.common.percent
 import org.itsadigitaltrust.common.types.DataSizeType.DataSizeUnit
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
+import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
 import java.lang
 
 
-final case class HardDriveTableRowViewModel(_model: HardDriveModel) extends TableRowViewModel[HardDriveModel](_model):
+final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[HardDriveModel](_model):
 
 
   def healthProperty: StringProperty =

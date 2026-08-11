@@ -1,0 +1,8 @@
+package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
+
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.MediaModel
+import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MediaTableRowViewModel
+
+final class MediaTabViewModel(using hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends TabTableViewModel[MediaModel, MediaTableRowViewModel](MediaTableRowViewModel.apply, _.media)

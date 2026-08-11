@@ -13,7 +13,9 @@ final case class Disk(
                        `type`: String,
                        @SqlName("description") description: String,
                      ) extends HLEntityWithItsaID derives DbCodec
-
+object Disk:
+  val DiskTable = TableInfo[DiskCreator, Disk, Long]
+  given diskTable: TableInfo[DiskCreator, Disk, Long] = DiskTable
 final case class DiskCreator(
                               @SqlName("itsaid") itsaID: String,
                               model: String,

@@ -21,6 +21,10 @@ final case class Wiping(
                          @SqlName("form_factor") formFactor: Option[String]
                        ) extends HLEntityWithHardDiskID derives DbCodec
 
+object Wiping:
+  val WipingTable = TableInfo[WipingCreator, Wiping, Long]
+  given wipingTable: TableInfo[WipingCreator, Wiping, Long] = TableInfo[WipingCreator, Wiping, Long]
+
 final case class WipingCreator(
                                 @SqlName("hdd_id") hddID: String,
                                 serial: String,

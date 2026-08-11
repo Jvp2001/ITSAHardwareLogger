@@ -1,40 +1,33 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
-import org.itsadigitaltrust.common.{NetworkUtils, OSUtils}
-import org.itsadigitaltrust.common.Operators.*
-import org.itsadigitaltrust.common.Types.{Percentage, asPercentage}
+import org.itsadigitaltrust.common.Operators.{??, *}
 import org.itsadigitaltrust.common.processes.lshw.types.CdRom
-import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk, lshw}
+import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk}
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.common.types.FrequencyUnit
-
-import org.itsadigitaltrust.hardwarelogger.core.HLProcessConfig
+import org.itsadigitaltrust.common.{NetworkUtils, OSUtils}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode.databaseService
-import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.models.HLModel.HardDriveType
-import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerTaskContext.Background
-import org.itsadigitaltrust.hardwarelogger.tasks.{HardwareLoggerTaskContext, SimpleHardwareLoggerTaskGroupBuilder, SimpleWaitHardwareLoggerGroupTaskGroupBuilder, SimpleWaitHardwareLoggerTaskGroupBuilder}
-
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, HardDriveConnectionType, HardDriveModel, HardDriveType, MediaModel, MemoryModel, ProcessorModel}
 import org.itsadigitaltrust.hdsentinelreader.HDSentinalReader
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
-import org.scalafx.extras
+import org.itsadigitaltrust.common.asPercentage
+import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.databaseService
+import org.itsadigitaltrust.hardwarelogger.core.Givens.HLProcessConfig
 import oshi.SystemInfo
-import ox.either.{fail, ok}
-import scalafx.application.Platform
-import sun.jvm.hotspot.runtime.PerfMemory.end
+import ox.EitherMode
+import ox.either.{fail, ok, orThrow}
 
-import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.CollectionConverters.*
+import scala.util.NotGiven
 
 extension (either: Either[HLDatabaseServiceException, String])
   def toOption: Option[String] =
     either match
       case Right(s) => Option(s)
       case _        => None
-trait OshiHardwareGrabberService extends HardwareGrabberService:
+trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) extends HardwareGrabberService:
 
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
@@ -112,103 +105,124 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
 
 
 
-  protected def findDriveIdBySerialNumber(serial: String)(using HardwareLoggerTaskContext.Background): Either[HLDatabaseServiceException, String]
-
-  protected def findItsaIdBySerialNumber(serial: String)(using HardwareLoggerTaskContext.Background): Either[HLDatabaseServiceException, String]
-
-  override def loadGeneralInfo()(using HardwareLoggerTaskContext.Background): Unit =
-
-    val serialNumber = hal.getComputerSystem.getSerialNumber
-    val model = hal.getComputerSystem.getModel
-    val vendor = hal.getComputerSystem.getManufacturer
-    val os = System.getProperty("os.name")
-    val id = findItsaIdBySerialNumber(serialNumber).toOption
-    generalInfo = GeneralInfoModel("itsa-hwlogger", description =  Dmidecode("chassis-type"), model = model, vendor = vendor, serial = /*serialNumber*/ serialNumber, os = os, itsaID = id)
 
 
-  override def loadHardDrives()(using HardwareLoggerTaskContext.Background): Unit =
+  override def loadGeneralInfo(): Result[GeneralInfoModel] =
+    import org.itsadigitaltrust.hardwarelogger.core.Givens.given
     ox.either:
-      val hdSentinelReader =
-        if OSUtils.onLinux then
-          HDSentinalReader[HardDiskSummary]()
-        else
-          HDSentinalReader[HardDiskSummary](xml)
-      end hdSentinelReader
-
-      val hardDiskSummaries: Seq[HardDiskSummary] =
-        hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
-      val lsblk = Lsblk()
-
-      hardDrives = hardDiskSummaries.map: hardDiskSummary =>
-
-        val driveId: String =
-          findDriveIdBySerialNumber(hardDiskSummary.hardDiskSerialNumber).ok()
-
-        val pcItsaId: String =
-          val id = findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber).ok() |> Option.apply
-          (id or generalInfo.itsaID) ?? ""
-
-
-        val id: String =
-          driveId ?? pcItsaId ?? ""
+      try
+        val serialNumber = hal.getComputerSystem.getSerialNumber
+        val model = hal.getComputerSystem.getModel
+        val vendor = hal.getComputerSystem.getManufacturer
+        val os = System.getProperty("os.name")
+        val id = databaseService.findItsaIdBySerialNumber(serialNumber).toOption
+        val description = Dmidecode("chassis-type").orThrow ?? "Unknown"
+        val info = GeneralInfoModel("itsa-hwlogger", description = description,
+          model = model,
+          vendor = vendor,
+          serial = serialNumber,
+          os = os,
+          itsaID = id)
+        Seq(info)
+      catch
+        case e: Exception =>
+          logger.trace("Error while loading hardware info", e)
+          LoadError(e).fail()
+  end loadGeneralInfo
 
 
-        val hdType: HardDriveType =
+  override def loadHardDrives(): Result[HardDriveModel] =
+    import org.itsadigitaltrust.hardwarelogger.core.Givens.given
+    ox.either:
+      try
+        val hdSentinelReader =
           if OSUtils.onLinux then
-            val rotaOpt = lsblk(hardDiskSummary.hardDiskDevice).map(_.rota)
-            rotaOpt match
-              case Some(true)  => "HDD"
-              case Some(false) => "SSD"
-              case None        => "UNKNOWN"
+            HDSentinalReader[HardDiskSummary]().left.map(LoadError.apply).ok()
           else
-            "UNKNOWN"
+            HDSentinalReader[HardDiskSummary](xml)
+        end hdSentinelReader
 
-        def sizeStringToBytes(s: String): Long =
-          val parts = s.trim.split("\\s+").toList
-          val numberOpt: Option[Long] =
-            parts.headOption
-              .map(_.replaceAll("[^0-9]", "")) // keep digits only
-              .filter(_.nonEmpty)
-              .flatMap(_.toLongOption)
+        val hardDiskSummaries: Seq[HardDiskSummary] =
+          hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+        val lsblk = Lsblk()
 
-          val unitOpt = parts.drop(1).headOption.map(_.toUpperCase)
 
-          (numberOpt, unitOpt) match
-            case (Some(n), Some(u)) if u.startsWith("TB") => n * 1_000_000_000_000L
-            case (Some(n), Some(u)) if u.startsWith("GB") => n * 1_000_000_000L
-            case (Some(n), Some(u)) if u.startsWith("MB") => n * 1_000_000L
-            case (Some(n), Some(u)) if u.startsWith("KB") => n * 1_000L
-            case (Some(n), Some(u)) if u.startsWith("B")  => n
-            case (Some(n), None)                           => n
-            case _                                         => 0L
-        end sizeStringToBytes
+        hardDiskSummaries.map: hardDiskSummary =>
 
-        val totalBytes: Long = sizeStringToBytes(hardDiskSummary.totalSize)
-        val dataSize = DataSize(totalBytes.toDouble, DataSizeUnit.GB) // value treated as bytes (converted to GB)
-        logger.info(s"Drive size: ${dataSize.dbString}")
+          val generalInfo = loadGeneralInfo().ok()
+          val driveId: String =
+            val drive = databaseService.findDriveBySerialNumber(hardDiskSummary.hardDiskSerialNumber)
+            drive.map(_.itsaID) ?? ""
 
-        val drive = HardDriveModel(
-          hardDiskSummary.health.asPercentage,
-          hardDiskSummary.performance.asPercentage,
-          dataSize,
-          hardDiskSummary.hardDiskModelId,
-          hardDiskSummary.hardDiskSerialNumber,
-          itsaID = id,
-          connectionType = hardDiskSummary.interfaceType,
-          `type` = hdType,
-          actions = hardDiskSummary.tip,
-          description = hardDiskSummary.description,
-          powerOnTime = hardDiskSummary.powerOnTime,
-          estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
-        )
-        drive
+          val pcItsaId =
+            val id = databaseService.findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber)
+            id ?? ""
+
+
+          val id: String =
+            driveId ?? pcItsaId ?? ""
+
+
+          val hdType: HardDriveType =
+            if OSUtils.onLinux then
+              val rotaOpt = lsblk(hardDiskSummary.hardDiskDevice).map(_.rota)
+              rotaOpt match
+                case Some(true)  => "HDD"
+                case Some(false) => "SSD"
+                case None        => "UNKNOWN"
+            else
+              "UNKNOWN"
+
+          def sizeStringToBytes(s: String): Long =
+            val parts = s.trim.split("\\s+").toList
+            val numberOpt: Option[Long] =
+              parts.headOption
+                .map(_.replaceAll("[^0-9]", "")) // keep digits only
+                .filter(_.nonEmpty)
+                .flatMap(_.toLongOption)
+
+            val unitOpt = parts.drop(1).headOption.map(_.toUpperCase)
+
+            (numberOpt, unitOpt) match
+              case (Some(n), Some(u)) if u.startsWith("TB") => n * 1_000_000_000_000L
+              case (Some(n), Some(u)) if u.startsWith("GB") => n * 1_000_000_000L
+              case (Some(n), Some(u)) if u.startsWith("MB") => n * 1_000_000L
+              case (Some(n), Some(u)) if u.startsWith("KB") => n * 1_000L
+              case (Some(n), Some(u)) if u.startsWith("B")  => n
+              case (Some(n), None)                           => n
+              case _                                         => 0L
+          end sizeStringToBytes
+
+          val totalBytes: Long = sizeStringToBytes(hardDiskSummary.totalSize)
+          val dataSize = DataSize(totalBytes.toDouble, DataSizeUnit.GB) // value treated as bytes (converted to GB)
+          logger.info(s"Drive size: ${dataSize.dbString}")
+
+          val drive = HardDriveModel(
+            hardDiskSummary.health.asPercentage,
+            hardDiskSummary.performance.asPercentage,
+            dataSize,
+            hardDiskSummary.hardDiskModelId,
+            hardDiskSummary.hardDiskSerialNumber,
+            itsaID = id,
+            connectionType = hardDiskSummary.interfaceType,
+            `type` = hdType,
+            actions = hardDiskSummary.tip,
+            description = hardDiskSummary.description,
+            powerOnTime = hardDiskSummary.powerOnTime,
+            estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
+          )
+          drive
+      catch
+        case e: Exception =>
+          logger.trace("Error while loading hard drive info", e)
+          LoadError(e.getMessage).fail()
 
   end loadHardDrives
 
 
 
-  override def loadMemory()(using HardwareLoggerTaskContext.Background): Unit =
-    memory =
+  override def loadMemory(): Result[MemoryModel] =
+    ox.either:
       hal.getMemory.getPhysicalMemory.asScala.map: memory =>
         val size = memory.getCapacity.GiB
         val description = memory.getManufacturer
@@ -217,49 +231,51 @@ trait OshiHardwareGrabberService extends HardwareGrabberService:
   end loadMemory
 
 
-  override def loadProcessors()(using HardwareLoggerTaskContext.Background): Unit =
-    val proc = hal.getProcessor
-    val pi = proc.getProcessorIdentifier
-    val name = pi.getName
-    val desc = pi.getFamily
-    val width = if pi.isCpu64bit then 64 else 32
-    val longDesc = pi.getVendor
-    val cores = hal.getProcessor.getPhysicalProcessorCount
-    val threads = proc.getLogicalProcessorCount
-    val freq = hal.getProcessor.getCurrentFreq
-    val avgFreq = freq.sum / freq.length
-    val maxFreq = proc.getMaxFreq
-    val freqToUse = if maxFreq != -1 then maxFreq else avgFreq
-    val frequency = Frequency(freqToUse, FrequencyUnit.GHz)
-    processors = List(ProcessorModel(name, frequency, desc, longDesc, pi.getProcessorID, width, cores, threads))
+  override def loadProcessors(): Result[ProcessorModel] =
+    ox.either:
+      try
+        val proc = hal.getProcessor
+        val pi = proc.getProcessorIdentifier
+        val name = pi.getName
+        val desc = pi.getFamily
+        val width = if pi.isCpu64bit then 64 else 32
+        val longDesc = pi.getVendor
+        val cores = hal.getProcessor.getPhysicalProcessorCount
+        val threads = proc.getLogicalProcessorCount
+        val freq = hal.getProcessor.getCurrentFreq
+        val avgFreq = freq.sum / freq.length
+        val maxFreq = proc.getMaxFreq
+        val freqToUse = if maxFreq != -1 then maxFreq else avgFreq
+        val frequency = Frequency(freqToUse, FrequencyUnit.GHz)
+        Seq(ProcessorModel(name, frequency, desc, longDesc, pi.getProcessorID, width, cores, threads))
+      catch
+        case e: Exception =>
+          logger.trace("Error while loading hard drive info", e)
+          LoadError(e.getMessage).fail()
   end loadProcessors
 
 
-  override def loadMedia()(using HardwareLoggerTaskContext.Background): Unit =
-    val cds = org.itsadigitaltrust.common.processes.Lshw.readDisks()
-    def toModel(cd: CdRom): MediaModel = MediaModel(cd.description, cd.handle)
-    media = cds.map(_.map(_ |> toModel)) ?? Seq()
 
+  override def loadMedia(): Result[MediaModel] =
+    ox.either:
+      try
+        val cds: Seq[CdRom] = org.itsadigitaltrust.common.processes.Lshw.readDisks().orThrow
 
+        def toModel(cd: CdRom): MediaModel = MediaModel(cd.description, cd.handle)
+        val result = cds.map(_ |> toModel)
+        result
+      catch
+        case e: Exception =>
+          logger.trace("Error while loading hard drive info", e)
+          LoadError(e).fail()
+  
 
 end OshiHardwareGrabberService
 
-object OshiHardwareGrabberApplicationService extends ApplicationServicesRegistry, OshiHardwareGrabberService:
-
-
-  override protected def findItsaIdBySerialNumber(serial: String)(using HardwareLoggerTaskContext.Background): Either[HLDatabaseServiceException, String] =
-    databaseService.findItsaIdBySerialNumber(serial)
-
-
-  override protected def findDriveIdBySerialNumber(serial: String)(using HardwareLoggerTaskContext.Background): Either[HLDatabaseServiceException, String] =
-    ox.either:
-      if ProgramMode.isInNormalMode && NetworkUtils.isConnected then
-        databaseService.findItsaIdBySerialNumber(serial).ok()
-      else
-        databaseService.findWipingRecord(serial).map(_.itsaID).ok()
-
-
+object OshiHardwareGrabberApplicationService extends ApplicationServicesRegistry, OshiHardwareGrabberService
   
+
+
 
 
 end OshiHardwareGrabberApplicationService

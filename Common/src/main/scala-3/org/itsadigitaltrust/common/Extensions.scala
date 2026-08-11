@@ -2,9 +2,11 @@ package org.itsadigitaltrust.common
 
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.{Frequency, FrequencyUnit}
+import ox.Ox
 
 import java.io.InputStream
 import java.net.URI
+import java.util.concurrent.CompletableFuture
 import scala.annotation.{tailrec, targetName}
 import scala.reflect.{ClassTag, classTag}
 import scala.util.{Try, Using}
@@ -34,7 +36,7 @@ extension[T](vec: Vector[T])
 object Maths:
 
 
-  extension (long: Double)
+  extension (long: scala.Double)
     @targetName("pow")
     infix def **(raiseBy: Double): Double =
       Math.pow(long, raiseBy)
@@ -95,3 +97,15 @@ end TryExtensions
 
 
 export TryExtensions.*
+
+
+extension[E <: Throwable, T] (e: Either[E, T])
+  def orThrowOption: Option[T] =
+    ox.either.orThrow(e) |> Option.apply
+    
+extension[A](x: => A)
+  def forkUserJoin()(using Ox): A =
+    ox.forkUser(x).join()
+  def forkJoin()(using Ox): A =
+    ox.fork(x).join()
+      

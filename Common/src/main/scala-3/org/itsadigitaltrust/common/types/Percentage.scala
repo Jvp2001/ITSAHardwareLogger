@@ -2,6 +2,7 @@ package org.itsadigitaltrust.common.types
 
 import scala.compiletime.ops.int.*
 import scala.compiletime.*
+import scala.compiletime.ops.string.Matches
 object PercentageType:
   opaque type Percentage = String
   object Percentage:
@@ -16,10 +17,9 @@ object PercentageType:
       def dbstring: String = p
       def toByte: Byte =
         p.replace("%", "").trim.toByteOption.get
-    extension (i: Int)
+    extension (i: scala.Int)
       inline def percent: Percentage = Percentage(i)
 
-    import scala.compiletime.ops.string.*
     extension (s: String)
 
       inline def percent: Percentage =
@@ -38,7 +38,8 @@ object PercentageType:
         else
           scala.sys.error("String must end with %")
   end Percentage
+  given Conversion [String, Percentage] = _.asPercentage
 
 end PercentageType
 export PercentageType.{Percentage,*}
-export Percentage.{percent, asPercentage, dbstring}
+export PercentageType.Percentage.{percent, asPercentage, dbstring}

@@ -1,0 +1,22 @@
+
+.splash-screen
+{
+    -fx-text-fill: #1a2e40;
+    -fx-font-size: 13px;
+    -fx-font-weight: "bold";
+}
+.splash-screen > Label
+{
+    -fx-text-fill: #1a2e40;
+    -fx-font-size: 13px;
+    -fx-font-weight: "bold";
+}
+.splash-screen > .root-layout
+{
+    -fx-background-color: #f4f4f4;
+}
+
+.splash-screen > .status-label
+{
+    -fx-font-size: 14px;
+}

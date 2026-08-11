@@ -4,6 +4,7 @@ import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.collections.{ApacheFuzzyMap, FuzzyMap}
 import org.itsadigitaltrust.common.logging.HWLLoggable
+import ox.either.ok
 
 import scala.annotation.tailrec
 
@@ -44,13 +45,15 @@ class Lsblk private:
       loop(output.split("\n").drop(1))
   end parse
   
-  def apply()(using ProcessConfig, HWLLoggable): FuzzyMap[DiskInfo] =
-    if OSUtils.onLinux then
-      val result  = sudo"lsblk -d -o name,rota"
-      info = parse(result)
-      info
-    else 
-      info
+  def apply()(using ProcessConfig, HWLLoggable): Either[SudoError, FuzzyMap[DiskInfo]] =
+    ox.either:
+      if OSUtils.onLinux then
+        val result = sudo"lsblk -d -o name,rota".ok()
+      
+        info = parse(result)
+        info
+      else 
+        info
   end apply
   
   def apply(devicePath: String): Option[DiskInfo] =

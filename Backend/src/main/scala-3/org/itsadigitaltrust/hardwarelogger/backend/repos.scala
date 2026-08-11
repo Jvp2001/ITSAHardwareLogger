@@ -2,46 +2,33 @@ package org.itsadigitaltrust.hardwarelogger.backend
 
 
 import com.augustnagro.magnum.*
-import org.itsadigitaltrust.common.Operators.{in, ||>}
+import org.itsadigitaltrust.common.Operators.in
 import org.itsadigitaltrust.common.logging.HWLLoggable
-import org.itsadigitaltrust.common.processes.proc
 import org.itsadigitaltrust.common.{Result, toVectorOfOptions}
-import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.EntryAlreadyExists
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
-import org.itsadigitaltrust.hardwarelogger.backend.repos.doesGenSerialExist
-import org.itsadigitaltrust.hardwarelogger.backend.tables.HLTableInfo
 import org.itsadigitaltrust.hardwarelogger.backend.types.{EntityFromEC, ItsaEC}
-import ox.either
-import sun.jvm.hotspot.runtime.PerfMemory.end
+import ox.either.fail
 
 import java.sql.Timestamp
 import java.time.OffsetDateTime
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Failure, Success, Using}
-
+import scala.compiletime.deferred
+import scala.util.boundary.Label
 extension [EC, E, ID](table: TableInfo[EC, E, ID])
   def hasColumn(scalaName: String): Boolean =
     table.all.columnNames.exists(_.scalaName == scalaName)
 
 type ECTableInfo[EC <: ItsaEC] = TableInfo[EC, EntityFromEC[EC], Long]
 
-private[backend] object repos:
-  type HLRepo[EC, E] = Repo[EC, E, Long]
+ object repos:
 
-  private def timed[T](f: => T): (T, FiniteDuration) =
-    val start = System.currentTimeMillis()
-    val res = f
-    val execTime = FiniteDuration(
-      System.currentTimeMillis() - start,
-      TimeUnit.MILLISECONDS
-    )
-    (res, execTime)
 
-  inline def HLRepo[EC <: HLEntityCreator : ClassTag, E <: HLEntity](using RepoDefaults[EC, E, Long]): HLRepo[EC, E] = Repo[EC, E, Long]
+  trait HLRepo[EC <: HLEntityCreator : ClassTag, E <: HLEntity] extends Repo[EC, E, Long]:
+    given table: TableInfo[EC, E, Long] = deferred
 
-  extension [EC <: HLEntityCreator : ClassTag, E <: HLEntity](repo: HLRepo[EC, E])
+  trait HLRepoWithID[EC <: HLEntityCreatorWithSomeKindOfID : ClassTag, E <: HLEntityWithSomeKindOfID] extends HLRepo[EC, E]:
   //    private transparent inline def dbCodec = repo match
   //      case _: HLRepo[InfoCreator, Info]  => summon[DbCodec[Info]]
   //      case _: HLRepo[DiskCreator, Disk] => summon[DbCodec[Disk]]
@@ -70,16 +57,14 @@ private[backend] object repos:
         HWLLoggable.default().info("ItsaID Field name: itsaID")
         "itsaID"
 
-    private[backend] def findAllByItsaID(id: String)(using DbCon)(using DbCodec[E])(using table: HLTableInfo[EC, E]): Vector[Option[E]] =
-
-
+    def findAllByItsaID(id: String)(using DbCon)(using DbCodec[E])(using table: HLTableInfo[EC, E]): Vector[Option[E]] =
       val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} = $id"
       val result = frag.query.run().map(Option.apply)
       result
     end findAllByItsaID
 
 
-    private[backend] def findAllByIDStartingWith(id: String)(using DbCon)(using DbCodec[E])(using table: HLTableInfo[EC, E]): Vector[Option[E]] =
+     def findAllByIDStartingWith(id: String)(using DbCon)(using DbCodec[E])(using table: HLTableInfo[EC, E]): Vector[Option[E]] =
 
       var tableName = classTag[EC].runtimeClass.getSimpleName.replace("Creator", "").toLowerCase
       // Either itsaid or hdd_id
@@ -92,7 +77,7 @@ private[backend] object repos:
     end findAllByIDStartingWith
 
 
-    private[backend] def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
+     def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
       val scalaName = (idScalaName, old)
       val frag =
         sql"""update $table set ${table.selectDynamic(scalaName._1)} = ${`new`}
@@ -124,9 +109,18 @@ private[backend] object repos:
     //        case Success(value) => Right(value)
     //    end myInsert
 
-    def insertOrUpdate(creator: EC)(using DbCon)(using logger: HWLLoggable)(using table: HLTableInfo[EC, E]): HLDBTransactionResult[Unit] =
+
+    def insertOrUpdateAll(creators: EC*)(using DbCon)(using logger: HWLLoggable): HLDBTransactionResult[Unit] =
+      logger().info(s"Inserting or updating: $creators")
+      ox.either:
+        creators.map: item =>
+          insertOrUpdate(item).left.map(_.fail())
+
+
+
+    def insertOrUpdate(creator: EC)(using DbCon)(using logger: HWLLoggable): HLDBTransactionResult[Unit] =
       logger().info(s"Inserting or updating: $creator")
-      Result:
+      ox.either:
         creator match
           case infoCreator: InfoCreator =>
             logger().info(infoCreator.itsaID)
@@ -134,10 +128,10 @@ private[backend] object repos:
               case Some(info) if info != "" =>
                 logger().info(s"Updating lastupdated for itsaid: ${infoCreator.itsaID}")
                 sql"update $table set lastupdated = ${Timestamp.from(OffsetDateTime.now().toInstant)} where itsaid = $info".update.run()
-              case Some(value) if value == "" => repo.insert(creator)
-              case None => repo.insert(creator)
-              case Some(_) => repo.insert(creator)
-              case null => repo.insert(creator)
+              case Some(value) if value == "" => this.insert(creator)
+              case None => this.insert(creator)
+              case Some(_) => this.insert(creator)
+              case null => this.insert(creator)
             end match
           case c: HLEntityCreatorWithItsaID =>
             val result = sql"select itsaid from $table where itsaid = ${c.itsaID}".query[String].run()
@@ -145,58 +139,72 @@ private[backend] object repos:
               case Some(info) => ()
               case None =>
                 logger().info(s"Inserting new itsaid: ${c.itsaID}")
-                repo.insert(creator)
+                this.insert(creator)
 
-              case _: Option[String] => repo.insert(creator)
+              case _: Option[String] => this.insert(creator)
             end match
           case _: org.itsadigitaltrust.hardwarelogger.backend.entities.
           HLEntityCreatorWithHardDiskID => ()
         end match
     end insertOrUpdate
 
-  end extension
+    def findFirstByItsaID(itsaID: String)(using DbCon)(using DbCodec[E]): HLDBTransactionResult[E] =
+      val query = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} = $itsaID"
+      val result = findAllByItsaID(itsaID).head
+      result.toRight(HLDBErrorCode.EntryNotFound)
 
 
-  given diskRepo: HLRepo[DiskCreator, Disk] = HLRepo[DiskCreator, Disk]
-
-  given wipingRepo: HLRepo[WipingCreator, Wiping] = HLRepo[WipingCreator, Wiping]
-
-  given mediaRepo: HLRepo[MediaCreator, Media] = HLRepo[MediaCreator, Media]
-
-  given infoRepo: HLRepo[InfoCreator, Info] = HLRepo[InfoCreator, Info]
-
-  given memoryRepo: HLRepo[MemoryCreator, Memory] = HLRepo[MemoryCreator, Memory]
+  end HLRepoWithID
 
 
-  extension (repo: HLRepo[InfoCreator, Info])
-    def findItsaIdBySerialNumber(serial: String)(using DbCon)(using table: HLTableInfo[InfoCreator, Info]): Option[String] =
+
+  given diskRepo: DiskRepo = DiskRepo()
+
+  given wipingRepo: WipingRepo = WipingRepo()
+
+  given mediaRepo: MediaRepo = MediaRepo()
+
+  given infoRepo: InfoRepo = InfoRepo()
+
+  given memoryRepo: MemoryRepo = MemoryRepo()
+
+   class InfoRepo extends HLRepoWithID[InfoCreator, Info]:
+    given infoTable: HLTableInfo[InfoCreator, Info] = summon[HLTableInfo[InfoCreator, Info]]
+    def findItsaIdBySerialNumber(serial: String)(using DbCon): Option[String] =
       val frag = sql"select itsaid from info where genserial = $serial"
       frag.query[String].run().lastOption
 
 
-    def doesGenSerialExist(serial: String)(using DbCon)(using table: HLTableInfo[InfoCreator, Info]): Boolean =
+    def doesGenSerialExist(serial: String)(using DbCon): Boolean =
       val result = sql"select genserial from info where genserial =  ${table.selectDynamic("genSerial")}".query[Int].run().head > 0
       print(s"Result = ${result}")
       result
+  end InfoRepo
 
-
-  end extension
-
-  extension (repo: HLRepo[DiskCreator, Disk])
+  class DiskRepo extends HLRepoWithID[DiskCreator, Disk]:
+    given diskTable: HLTableInfo[DiskCreator, Disk] = summon[HLTableInfo[DiskCreator, Disk]]
     def sameDriveWithSerialNumber(serial: String)(using DbCon)(using table: HLTableInfo[DiskCreator, Disk]): Seq[Disk] =
       val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
       frag.query[Disk].run()
-  end extension
 
-  extension (repo: HLRepo[WipingCreator, Wiping])
-    private[backend] def findWipingRecord(serial: String)(using DbCon)(using table: HLTableInfo[WipingCreator, Wiping]): Option[Wiping] =
+    def findDiskRecord(serial: String)(using DbCon)(using table: HLTableInfo[DiskCreator, Disk]): Option[Disk] =
+      val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
+      frag.query[Disk].run().headOption
+  end DiskRepo
+
+  class WipingRepo extends HLRepoWithID[WipingCreator, Wiping]:
+    given wipingTable: HLTableInfo[WipingCreator, Wiping] = summon[HLTableInfo[WipingCreator, Wiping]]
+     def findWipingRecord(serial: String)(using DbCon): Option[Wiping] =
       val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
       frag.query[Wiping].run().headOption
 
-    private[backend] def getLatestNoIDValue(using DbCon): Option[String] =
+     def getLatestNoIDValue(using DbCon): Option[String] =
       sql"select MAX(itsahw.wiping.hdd_id) from wiping".query[String].run().headOption
-  end extension
+  end WipingRepo
 
+  class MemoryRepo extends HLRepoWithID[MemoryCreator, Memory]
+
+  class MediaRepo extends HLRepoWithID[MediaCreator, Media]
 end repos
 
 

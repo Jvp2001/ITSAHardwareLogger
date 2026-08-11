@@ -31,10 +31,11 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
 import org.itsadigitaltrust.hardwarelogger.models.MediaModel
 import scalafx.beans.property.*
-import org.itsadigitaltrust.hardwarelogger.services.ApplicationServicesRegistry
+import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HardwareGrabberService}
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
 
-final class MediaTableRowViewModel(model: MediaModel) extends TableRowViewModel[MediaModel](model):
+final class MediaTableRowViewModel(model: MediaModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[MediaModel](model):
   def descriptionProperty: StringProperty =
     wrapper.field("description", _.description, "")(StringProperty.apply)
 

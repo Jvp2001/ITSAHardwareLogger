@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.dialogs
 
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Operators.or
-import org.itsadigitaltrust.common.processes.proc
+
 
 import org.itsadigitaltrust.hardwarelogger.issuereporter.Description
 import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue

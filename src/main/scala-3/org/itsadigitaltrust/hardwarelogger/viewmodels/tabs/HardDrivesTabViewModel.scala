@@ -1,43 +1,33 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
+import javafx.scene.control.ButtonType
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
-import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationName.Save
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
-import org.itsadigitaltrust.common.*
-
-import org.itsadigitaltrust.hardwarelogger.services.ApplicationServicesRegistry
-
-import scalafx.beans.property.{BooleanProperty, StringProperty}
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationName, SaveMessageArgs}
-import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerTaskContext
-
-import javafx.scene.control.ButtonType
+import scalafx.beans.property.BooleanProperty
 import scalafx.scene.control.{TableRow, TextInputDialog}
-import scalafx.scene.input.{KeyCode, MouseButton}
+import scalafx.scene.input.MouseButton
 import scalafx.scene.input.MouseButton.Primary
-import sun.jvm.hotspot.runtime.PerfMemory.end
+import ox.either
+import either.ok
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.compiletime.summonFrom
+import scala.util.boundary
+import scala.util.boundary.break
 
 
 
 
-final class HardDrivesTabViewModel extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel] with ApplicationServicesRegistry:
+
+final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel]:
   private final val unhealthyDriveClass = "unhealthy-drive"
 
   val editIDColumn = BooleanProperty(false)
 
   var moreInfoDisabledProperty: BooleanProperty = BooleanProperty(false)
   val rowDelegate: TableRowDelegate[HardDriveTableRowViewModel] = this
-  override def setup(): Unit =
-    super.setup()
-
-  def setData(): Unit =
-    hardwareGrabberService.hardDrives.map(HardDriveTableRowViewModel.apply).foreach: datum =>
-      logger.info(datum.toString)
-      data.add(datum)
 
   override def onUpdateItem(row: Option[HardDriveTableRowViewModel], tableRow: TableRow[HardDriveTableRowViewModel]): Unit =
     tableRow.styleClass += row.map: rowModel =>
@@ -79,15 +69,35 @@ final class HardDrivesTabViewModel extends TabTableViewModel(HardDriveTableRowVi
   override def onSelected(selectedRow: Option[HardDriveTableRowViewModel]): Unit =
     moreInfoDisabledProperty.value = selectedRow.isEmpty
 
-    notificationCentre.addObserver(NotificationName.Save)(onSave)
-    notificationCentre.addObserver(NotificationName.ProgramModeChanged): _ =>
-      editIDColumn.value = ProgramMode.isInHardDriveMode
 
-  private def onSave(args: SaveMessageArgs): Unit =
+  override def onProgramModeChanged(mode: ProgramMode): Either[Error, Unit] =
+      editIDColumn() = ProgramMode.isInHardDriveMode
+      Right(())
 
-    taskBuilder <<- models.map(databaseService.insertOrUpdateModel)
-    taskBuilder --> reload(shouldClearData = false)
-  end onSave
+  override def save(): Either[Error, Unit] =
+    ox.either:
+
+      if models.isEmpty then
+        logger.info("No models to save.")
+        ()
+      else
+        models.map(databaseService.insertOrUpdateModel)
+  end save
+
+
+  extension (inline t: None.type)
+    /** Unwrap the value of the `Option`, short-circuiting the computation to the enclosing [[either]] on guaranteed `None`. */
+    transparent inline def failAndShow(): Nothing =
+      summonFrom:
+        case given boundary.Label[Either[Unit, Nothing]] => break(Left(()))
+        case given boundary.Label[Either[Nothing, Nothing]] =>
+          scala.compiletime.error(
+            "The enclosing `either` call uses a different error type.\nIf it's explicitly typed, is the error type correct?\nNote that for options, the error type must contain a `Unit`."
+          )
+        case _ => scala.compiletime.error("`.ok()` can only be used within an `either` call.\nIs it present?")
+      
+  end extension
+
 end HardDrivesTabViewModel
 
 

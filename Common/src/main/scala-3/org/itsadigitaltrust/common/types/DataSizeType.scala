@@ -44,6 +44,12 @@ object DataSizeType:
 
   opaque type DataSize = (value: Double, unit:DataSizeUnit)
 
+  given Conversion[Seq[DataSize], Seq[Double]] = _.map(_.value)
+
+
+  given Conversion[DataSize, Double] = _.value
+  given Conversion[DataSize, Long] = _.toLong
+
   object DataSize:
     inline def apply(): DataSize = DataSize.default
     def apply(value: Double, unit: DataSizeUnit, inBytes: Boolean = true): DataSize =
@@ -77,10 +83,8 @@ object DataSizeType:
       (newValue, targetUnit)
     def toLong: Long = ds.value.toLong
     def dbString: String =
-      HWLLoggable.default().info(s"Size: $toBytes")
       val newUnit = if unit == DataSizeUnit.GiB then DataSizeUnit.GB else unit
       val result = s"${value.toString.replaceFirst("(e|E[\\-?]\\d+)|(\\[e|E\\d+])", "").replaceFirst("\\[\\]","").replace(".", "")} $newUnit"
-      HWLLoggable.default().info(s"Result: $result")
       if result.endsWith(s"0 $newUnit") then result.replace(s"0 $newUnit", s" $newUnit") else result
     def +(rhs: DataSize): DataSize = DataSize((toBytes + rhs.toBytes) / unit.factorToBytes, unit)
     def -(rhs: DataSize): DataSize = DataSize((toBytes - rhs.toBytes) / unit.factorToBytes, unit)

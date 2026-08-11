@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
-import org.itsadigitaltrust.common.Operators.{|>, in}
-
+import org.itsadigitaltrust.common.Operators.{in, |>}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
@@ -9,7 +8,6 @@ import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.views.Reloadable
-
 import javafx.beans.value
 import javafx.beans.value.ChangeListener
 import javafx.event.EventHandler
@@ -17,6 +15,8 @@ import scalafx.beans.value.ObservableValue
 import scalafx.Includes.{*, given}
 import scalafx.scene.control.{TableColumn, TableRow, TableView}
 import javafx.scene.control as jfxsc
+import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import scalafx.event.EventType
 import scalafx.event.subscriptions.Subscription
 import scalafx.scene.Cursor
@@ -66,10 +66,11 @@ private class TableTabRow[R](val showHandCursorOnHover: Boolean)(using rowDelega
   end updateSelected
 end TableTabRow
 
-abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](using vm: TabTableViewModel[M, T]) extends TableView[T] with Reloadable :
+abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](using applicationState: HardwareLoggerApplicationState)(using vm: TabTableViewModel[M, T], hardwareGrabberService: HardwareGrabberService) extends TableView[T] with Reloadable :
 
   import TabTableView.*
 
+  style() += "-fx-background-color: \"red\";"
   given viewModel: TabTableViewModel[M, T] = vm
 
   final val rowClickedByKeyboardKeys = Seq(KeyCode.Space)
@@ -151,6 +152,8 @@ abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](
   selectionModel.apply().selectedItem.onChange: (op, newValue, oldValue) =>
     rowDelegate.foreach(_.onSelected(selectionModel.apply().getSelectedItem |> Option[T]))
 
+
+  
 
 end TabTableView
 

@@ -2,6 +2,9 @@ package org.itsadigitaltrust.common.processes
 
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.logging.HWLLoggable
+import ox.either.ok
+
+import scala.Conversion.into
 
 object Dmidecode:
   type Keyword =
@@ -32,8 +35,13 @@ object Dmidecode:
       "processor-version" |
       "processor-frequency"
 
-  def apply(keyword: Keyword)(using ProcessConfig, HWLLoggable): String =
-    if OSUtils.onLinux then
-      sudo"dmidecode -s $keyword"
-    else
-      ""
+  given Conversion[Keyword, String] with
+    def apply(keyword: Keyword): String = keyword
+
+  def apply(keyword: Keyword)(using ProcessConfig, HWLLoggable): Either[SudoError, String] = 
+    ox.either:
+      if OSUtils.onLinux then
+        sudo"dmidecode -s $keyword".ok()
+      else
+        ""
+

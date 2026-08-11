@@ -1,60 +1,79 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.models.HLModel.HardwareModel
-
-import javafx.scene.control.Alert
-import javafx.scene.control.Alert.AlertType
+import com.somainer.nameof.NameOf
+import org.itsadigitaltrust.common.Operators.{??, toOption, |>, ||>}
+import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentreService, NotificationName}
-import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HardwareGrabberService, OshiHardwareGrabberApplicationService, given}
-import org.itsadigitaltrust.hardwarelogger.tasks.SimpleWaitHardwareLoggerGroupTaskGroupBuilder
+import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.ViewModel
-
-import scalafx.collections.*
-
-import scala.runtime.{AbstractFunction1, AbstractPartialFunction}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
-
 import scalafx.beans.property.BooleanProperty
+import scalafx.collections.*
+import scalafx.scene.control.TableView
+import scalafx.scene.input.KeyCode
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.services.OshiHardwareGrabberApplicationService.LoadError
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
+import org.scalafx.extras
+import ox.either.{fail, ok}
+import scalafx.application.Platform
 
-import scala.reflect.ClassTag
-class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](rowCtor: M => VM, reloadData: => HardwareGrabberService => Seq[M], saveDataMode: ProgramMode = "Normal")(using SimpleWaitHardwareLoggerGroupTaskGroupBuilder[Unit]) extends ViewModel with ApplicationServicesRegistry:
-  given taskBuilder: SimpleWaitHardwareLoggerGroupTaskGroupBuilder[Unit] = summon[SimpleWaitHardwareLoggerGroupTaskGroupBuilder[Unit]]
+import scala.reflect.{ClassTag, classTag}
+
+
+class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](using hardwareGrabberService: HardwareGrabberService, hardwareLoggerApplicationState: HardwareLoggerApplicationState)(rowCtor: M => VM, reloadData: HardwareLoggerApplicationState => Option[Seq[M]], saveDataMode: ProgramMode = "Normal") extends ViewModel:
 
   type RowViewModel = VM
   val data: ObservableBuffer[VM] = ObservableBuffer()
-  data.onChange: (source, change) =>
-    if change.isEmpty then
-      reload()
-  notificationCentre.addObserver(NotificationName.Reload): _ =>
-    reload()
-
-  notificationCentre.addObserver(NotificationName.Save): args =>
-    if saveDataMode == "Both" || saveDataMode == ProgramMode.mode then
-      logger.info(s"Saving ${models.size} models")
-      taskBuilder <-- save()
-
-  val editable: BooleanProperty = BooleanProperty(false)
-  editable.bind(ProgramMode.isHardDriveMode)
-  def models: Seq[M] = data.map(_.model).toSeq
-
-  override def setup(): Unit =
-    super.setup()
-
-  def scheduleReload(shouldClearData: Boolean = true): Unit =
-    taskBuilder --> reload(shouldClearData)
-
-
-  override def reload(shouldClearData: Boolean = true): Unit =
-    given hardwareGrabberService: HardwareGrabberService = summon[HardwareGrabberService]
-    if shouldClearData then
-      data.clear()
-    data ++= reloadData(hardwareGrabberService).map(rowCtor)
+  reloadData(hardwareLoggerApplicationState).map: rdata =>
+    rdata.map(rowCtor)
+  .foreach(data.addAll)
+//  data.onChange: (source, change) =>
+//    if change.isEmpty then
+//      extras.offFX:
+//        ox.supervised:
+//          reload()
 
   
-  protected def save(): Unit =
-    ()
+
+  def add(model: M): this.type =
+    data.add(rowCtor(model))
+    this
+
+
+
+  override def onProgramModeChanged(mode: ProgramMode): Either[Error, Unit] =
+    ox.either:
+      if saveDataMode == "Both" || saveDataMode == ProgramMode.mode then
+        logger.info(s"Saving ${models.size} models")
+      
+      val editable: BooleanProperty = BooleanProperty(false)
+      editable.bind(ProgramMode.isHardDriveMode)
+    
+  end onProgramModeChanged
+  
+  def models: Seq[M] = data.map(_.model).toSeq
+
+  override def reload(shouldClearData: Boolean = true)(using applicationState: HardwareLoggerApplicationState): Either[Error, Unit] =
+    import TabTableViewModel.toLoadEitherError
+    ox.either:
+      logger.info(s"Reloading ${classTag[M].runtimeClass.getSimpleName} data")
+      val result = reloadData(applicationState).toLoadEitherError.ok()
+
+      data.clear()
+      data ++= result.map(rowCtor)
+      logger.info(s"Added ${data.size} item(s).")
+
+
+
+//      extras.onFX:
+
 
 end TabTableViewModel
 
+
+
+object TabTableViewModel:
+  extension[M <: HLModel : ClassTag](option: Option[Seq[M]])
+    def toLoadEitherError: Either[LoadError, Seq[M]] =
+      option.toRight(LoadError(s"Failed to load data of type ${classTag[M].runtimeClass.getSimpleName}"))

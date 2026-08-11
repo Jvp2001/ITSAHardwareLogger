@@ -5,7 +5,7 @@ object entities:
     Disk, DiskCreator, InfoCreator, Info, MemoryCreator, 
     Memory, Media, MediaCreator, Wiping, WipingCreator,
     HLEntity, HLEntityCreator, HLEntityWithItsaID, HLEntityCreatorWithItsaID, 
-    HLEntityWithHardDiskID, HLEntityCreatorWithHardDiskID, ItsaIDOfSomeKind, ItsaID
+    HLEntityWithHardDiskID, HLEntityCreatorWithHardDiskID, ItsaIDOfSomeKind, ItsaID, HLEntityCreatorWithSomeKindOfID, HLEntityWithSomeKindOfID
    }
 
 

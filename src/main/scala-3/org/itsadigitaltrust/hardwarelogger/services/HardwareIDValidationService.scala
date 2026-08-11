@@ -16,6 +16,8 @@ trait HardwareIDValidationService extends FrontendService:
 
   import HardwareIDValidationService.*
 
+  def apply(input: String): ValidationResult =
+    validate(input)
   def validate(input: String): ValidationResult
 end HardwareIDValidationService
 
@@ -34,11 +36,13 @@ object HardwareIDValidationService:
   enum ValidationError:
     case ParserError(error: IDParser.ParserError)
     case IncorrectCheckDigit(expected: String, got: String)
+    case NoIDProvided
 
     override def toString: String =
       this match
         case ParserError(error) => error.toString()
         case IncorrectCheckDigit(expected, got) => s"Not a valid ID. Check if the ID is correct on the device."
+        case NoIDProvided => "ID must not be empty!"
 
   given Conversion[IDParser.ParserError, ValidationError] with
     override def apply(x: IDParser.ParserError): ValidationError =
@@ -58,9 +62,10 @@ private[services] class SimpleHardwareIDValidationService extends HardwareIDVali
 
   override def validate(input: String): ValidationResult =
     IDParser(input, ProgramMode.isInHardDriveMode) match
-        case Right(value) =>
+        case Right(value) if value.nonEmpty =>
           val userCheckDigit = value.checkDigit.getOrElse("0").toInt
           validateCheckDigit(value, userCheckDigit)
+        case Right(value) if value.isEmpty => Left(NoIDProvided)
         case Left(error) => Left(error)
   end validate
 

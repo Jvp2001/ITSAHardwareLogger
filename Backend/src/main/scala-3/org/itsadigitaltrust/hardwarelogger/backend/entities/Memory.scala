@@ -11,6 +11,10 @@ final case class Memory(
                          @SqlName("description") description: Option[String]
                        ) extends HLEntityWithItsaID derives DbCodec
 
+object Memory:
+  val MemoryTable = TableInfo[MemoryCreator, Memory, Long]
+  given memoryTable: TableInfo[MemoryCreator, Memory, Long] = TableInfo[MemoryCreator, Memory, Long]
+
 final case class MemoryCreator(
                                 size: String,
                                 @SqlName("itsaid") itsaID: String,

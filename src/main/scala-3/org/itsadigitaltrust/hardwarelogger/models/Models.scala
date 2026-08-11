@@ -7,6 +7,7 @@ import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
 import org.itsadigitaltrust.hdsentinelreader.data.HDSentinelInterfaceTypeName
 
+import scala.Conversion.into
 import scala.annotation.experimental
 
 /**
@@ -36,7 +37,17 @@ object HLModel:
   end GeneralInfoModel
   
   type HardDriveType = "SSD" | "HHD" | "HDD" | "UNKNOWN"
-  
+
+  given Conversion [String, HardDriveType] with
+    def apply(str: String): HardDriveType = (str.toUpperCase match
+    case "SSD" => "SSD"
+    case "HHD" => "HHD"
+    case "HDD" => "HDD"
+    case _ => "UNKNOWN"
+    ).asInstanceOf[HardDriveType]
+  end given
+
+
   /**
    * The case class represents the information, for a single row, in the [[org.itsadigitaltrust.hardwarelogger.views.tabs.HardDriveTableView HardDriveTableView]] and [[org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs.HardDriveExtraInformationDialog HardDriveExtraInformationDialog]].
    *
@@ -57,14 +68,14 @@ object HLModel:
    * @param maximumTemperature
    */
   final case class HardDriveModel(
-                                   health: Percentage,
-                                   performance: Percentage,
+                                   health: into[Percentage],
+                                   performance: into[Percentage],
                                    size: DataSize,
                                    model: String,
                                    serial: String,
                                    connectionType: HardDriveConnectionType,
                                    var itsaID: String = "NOT LOGGED",
-                                   `type`: HardDriveType = "SSD",
+                                   `type`: into[HardDriveType] = "SSD",
                                    description: String = "",
                                    actions: String = "No actions needed.",
                                    powerOnTime: String = "",
@@ -85,7 +96,7 @@ object HLModel:
   
   final case class MediaModel(description: String, handle: String) extends HLModel
   
-  final case class MemoryModel(size: DataSize, description: String, `type`: String = "") extends HLModel
+  final case class MemoryModel(size: into[DataSize], description: String, `type`: String = "") extends HLModel
   
   final case class ProcessorModel(
                                    name: String,
