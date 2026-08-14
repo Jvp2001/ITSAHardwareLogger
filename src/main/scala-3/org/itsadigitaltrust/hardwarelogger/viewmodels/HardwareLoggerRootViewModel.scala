@@ -37,6 +37,7 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
   private val _idStringProperty: StringProperty = StringProperty("")
   val idStringProperty: StringProperty = _idStringProperty
+  idStringProperty() = applicationState.itsaID ?? ""
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
   val idErrorStringProperty: StringProperty = StringProperty("")
@@ -188,7 +189,8 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
   def reload(): Unit =
     disableNodeWhileTaskRunningProperty() = true
-
+    extras.offFX:
+      CommonHardwareLoggerTasksAndWorkers.performReloadWorker()
   end reload
 
 

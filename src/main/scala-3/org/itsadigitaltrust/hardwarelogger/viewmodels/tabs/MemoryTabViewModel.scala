@@ -1,23 +1,27 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
-import org.itsadigitaltrust.common.Operators.or
-import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
-import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
+import org.itsadigitaltrust.common.Operators.{??, |>}
+import org.itsadigitaltrust.common.types.DataSizeType.total
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
-import scalafx.Includes.*
-import scalafx.beans.property.StringProperty
+import org.itsadigitaltrust.hardwarelogger.viewmodels.ViewModel
+
+import scala.Conversion.into
+import scala.math.Numeric.Implicits.infixNumericOps
 
 
-final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends TabTableViewModel[MemoryModel, MemoryTableRowViewModel](MemoryTableRowViewModel.apply, _.memory):
-  val totalMemoryProperty: StringProperty = StringProperty("")
+final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends ViewModel: //TableViewItemsDataContainer(MemoryTableRowViewModel.apply, _.memory): //TabTableViewModel[MemoryModel, MemoryTableRowViewModel](MemoryTableRowViewModel.apply, _.memory):
 
-  data.onChange: (source, change) =>
-    totalMemoryProperty.value = source.map: datum =>
-      datum.sizeProperty.value.split(" ").head.toLong
-    .sum
-    .toString + " GB"
+  def totalMemoryValue: String =
+    applicationState.memory.map: mem =>
+      val result = mem.map(_.size)
+        .map: i =>
+          val long: into[Long] = i
+          long
+        .reduce: (a,b) =>
+          a + b
+      result.toString + " GB"
+    ?? "-42 GB"
 
 
 end MemoryTabViewModel

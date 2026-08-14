@@ -3,15 +3,17 @@ package org.itsadigitaltrust.hardwarelogger.state
 import org.itsadigitaltrust.common.Operators.{toOption, |>}
 import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.common.{forkJoin, forkUserJoin, orThrowOption}
+import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.*
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
-import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerSimpleTask
 import org.itsadigitaltrust.hardwarelogger.views.Reloadable
 import org.scalafx.extras
 import org.scalafx.extras.BusyWorker.SimpleTask
 import ox.Ox
 import ox.either.{catching, fail, ok, orThrow}
+import scalafx.application.Platform
 
 import scala.::
 import scala.languageFeature.implicitConversions
@@ -82,34 +84,49 @@ case class HardwareLoggerApplicationState() extends HWLLoggable:
    * @tparam R
    * @return The new index for the current part of the task it is at.
    */
-  def reload[T <: SimpleTask[R], R](task: T, currentIndex: Double = 0D)(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, totalNumberOfItems: Int = 0)(using Ox): Either[hardwareGrabberService.type#Error, Double] =
-    val mode = ox.EitherMode[hardwareGrabberService.type#Error]()
+  def reload[T <: SimpleTask[R], R](task: T, currentIndex: Double = 0D)(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, totalNumberOfItems: Int = 0)(using Ox): Either[Throwable, Double] =
+    val mode = ox.EitherMode[Throwable]()
     ox.supervisedError(mode):
       var index = currentIndex
-      index += 1
-      task.progress() = index /  totalNumberOfItems  // TODO put setting itsa id here.
-      def performAsTask[A](msg: String)(body: scala.util.boundary.Label[Either[hardwareGrabberService.type#Error, Unit]] ?=> Either[hardwareGrabberService.type#Error, A]) =
+      def performAsTask(msg: String)(using allowedMode: ProgramMode = "Normal")(body: scala.util.boundary.Label[Either[Throwable, Unit]] ?=> Either[Throwable, Any]) =
         ox.forkUserError:
           ox.either:
-            task.message() = msg
+            if ProgramMode.mode != allowedMode && allowedMode != "Both" then
+              ()
+            else
+              Platform.runLater:
+                task.message() = msg
 
-            body.map: res =>
-              index += 1
-              task.progress() = index / totalNumberOfItems
-              res
+              body.map: res =>
+                index += 1
+
+                Platform.runLater(task.progress() = index / totalNumberOfItems)
+                res
         .join()
       end performAsTask
 
-      performAsTask("Loading info..."):
+
+      performAsTask("Loading info...")(using allowedMode = "Both"):
         val option = hardwareGrabberService.loadGeneralInfo()
         data = data.copy(info = option.ok().toOption)
         option
+
+      performAsTask("Checking for ITSA ID..."):
+        val id = databaseService.findItsaIdBySerialNumber(data.info.get.head.serial)
+        data = data.copy(itsaID = id.ok().toOption)
+        if ProgramMode.mode == "Normal" then
+          val newInfo = data.info.get.map: info =>
+            info.copy(itsaID = id.ok().toOption)
+          data = data.copy(info = newInfo.toOption)
+        id
+
+
       performAsTask("Loading memory..."):
         val value = hardwareGrabberService.loadMemory()
         data = data.copy(memory = value.ok().toOption)
         value
 
-      performAsTask("Loading drives..."):
+      performAsTask("Loading drives...")(using allowedMode = "Both"):
         val value = hardwareGrabberService.loadHardDrives()
         data = data.copy(drives = value.ok().toOption)
         value
@@ -124,6 +141,7 @@ case class HardwareLoggerApplicationState() extends HWLLoggable:
         val media = hardwareGrabberService.loadMedia()
         data = data.copy(media = media.ok().toOption)
         media
+
 
       Right(index)
   end reload

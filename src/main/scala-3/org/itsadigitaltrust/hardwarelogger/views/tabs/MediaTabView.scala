@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
+import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
@@ -10,15 +11,18 @@ import org.itsadigitaltrust.hardwarelogger.delegates.TabDelegate
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.views.View
 
+import scala.jdk.CollectionConverters.*
+import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.classTag
 private[tabs] given[T]: Conversion[T, Seq[T]] with
   override def apply(x: T): Seq[T] = Seq(x)
 
-private[views] final class MediaTabTableView private[tabs](using applicationState: HardwareLoggerApplicationState)(mediaTabViewModel: MediaTabViewModel)(using HardwareGrabberService) extends TabTableView(using applicationState)(using classTag[MediaModel], mediaTabViewModel):
-  private val descriptionColumn = createAndAddColumn("Description", minWidth = 125): cellValue =>
+private[views] final class MediaTabTableView private[tabs](using applicationState: HardwareLoggerApplicationState)(mediaTabViewModel: MediaTabViewModel)(using HardwareGrabberService) extends TabTableView[MediaModel, MediaTableRowViewModel]:
+  MediaTableRowViewModel.apply ||> applicationState.media ?? Seq() |> asJavaCollection |> items.value.setAll 
+  private val descriptionColumn = createAndAddColumn("Description", minimumWidth = 125): cellValue =>
     cellValue.descriptionProperty
 
-  private val handleColumn = createAndAddColumn("Handle", minWidth = 125): cellValue =>
+  private val handleColumn = createAndAddColumn("Handle", minimumWidth = 125): cellValue =>
     cellValue.handleProperty
 end MediaTabTableView
 
@@ -28,4 +32,6 @@ class MediaTabView(using databaseService: HLDatabaseService, hardwareGrabberServ
   private val tableView = new MediaTabTableView(viewModel)
   
   children += tableView
+  
+  
 end MediaTabView

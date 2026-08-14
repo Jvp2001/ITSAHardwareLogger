@@ -89,6 +89,7 @@ object DataSizeType:
     def +(rhs: DataSize): DataSize = DataSize((toBytes + rhs.toBytes) / unit.factorToBytes, unit)
     def -(rhs: DataSize): DataSize = DataSize((toBytes - rhs.toBytes) / unit.factorToBytes, unit)
     def *(rhs: Double): DataSize = DataSize(value * rhs, unit)
+    def add(rhs: DataSize): DataSize = DataSize((toBytes + rhs.toBytes) / unit.factorToBytes, unit)
   end extension
 
   given numericDataSize: Numeric[DataSize] with
@@ -105,7 +106,10 @@ object DataSizeType:
     def compare(x: DataSize, y: DataSize): Int = x.toBytes.compare(y.toBytes)
   end numericDataSize
 
+  extension (seq: Seq[DataSize])
+    def total: DataSize =
+      seq.sum
 
 end DataSizeType
 
-export DataSizeType.{DataSize,DataSizeUnit, numericDataSize}
+export DataSizeType.{DataSize,DataSizeUnit, numericDataSize, total}

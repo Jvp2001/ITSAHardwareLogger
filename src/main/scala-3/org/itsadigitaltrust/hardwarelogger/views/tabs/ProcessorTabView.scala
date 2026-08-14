@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
+import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.ProcessorTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
@@ -8,10 +9,13 @@ import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.views.tabs.given
 
+import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.{ClassTag, classTag}
 
-private[views] final class ProcessorTabView(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView(using applicationState)(using classTag[ProcessorModel], TabTableViewModel(ProcessorTableRowViewModel.apply, _.processors)):
-  private val nameColumn = createAndAddColumn("Chip Type", minWidth = ColumnSize.massive): cellValue =>
+private[views] final class ProcessorTabView(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView[ProcessorModel, ProcessorTableRowViewModel](using applicationState):
+  ProcessorTableRowViewModel.apply ||> applicationState.processors ?? Seq() |> asJavaCollection |> items.value.setAll
+
+  private val nameColumn = createAndAddColumn("Chip Type", minimumWidth = ColumnSize.massive): cellValue =>
     cellValue.nameProperty
   private val speedColumn = createAndAddColumn("Speed"): cellValue =>
     cellValue.speedProperty

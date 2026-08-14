@@ -1,5 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
+import javafx.scene.control.cell.TextFieldTableCell
+import javafx.scene.control.{TableCell, cell}
+import javafx.scene.{control, input, control as jfxsc}
+import javafx.util.{Callback, converter}
+import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
@@ -8,10 +13,15 @@ import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, Hardware
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewModel
-import org.itsadigitaltrust.hardwarelogger.views.View
+import org.itsadigitaltrust.hardwarelogger.views.{View, createAndAddColumn}
 import scalafx.Includes.*
+import scalafx.beans.value.ObservableValue
+import scalafx.scene.control.TableSelectionModel
 import scalafx.util.StringConverter
+import scalafx.util.converter.DefaultStringConverter
 
+import scala.jdk.javaapi.CollectionConverters.asJavaCollection
+import scala.ref.WeakReference
 import scala.reflect.classTag
 
 
@@ -23,15 +33,24 @@ class ItsaIDConverter(model: HardDriveTableRowViewModel) extends StringConverter
   override def toString(t: String): String =
     t
 
-class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView(using applicationState)(using classTag[HardDriveModel], tabViewModel):
+
+class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
+
 
   requestFocus()
 
-  override val rowDelegate: Option[TableRowDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel.rowDelegate)
+  HardDriveTableRowViewModel.apply ||> applicationState.hardDrives ?? Seq.empty |>  asJavaCollection |> items.value.setAll
+//  items.value.setAll(applicationState.hardDrives.map(_.map(HardDriveTableRowViewModel.apply)) ?? Seq() *)
 
-  override val showHandCursorOnHover: Boolean = true
+  private given rowDelegate: Option[TableRowDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel)
+//  override val rowDelegate: WeakReference[TableRowDelegate[HardDriveTableRowViewModel]] = tabViewModel.rowDelegate
+//
+//  override val showHandCursorOnHover: Boolean = true
 
-  private val healthColumn = createAndAddColumn[String]("Health"): cellValue =>
+  rowFactory = _ => new TableTabRow[HardDriveTableRowViewModel](true)
+  
+  
+  private val healthColumn = createAndAddColumn("Health"): cellValue =>
     StringProperty(cellValue.healthProperty.get)
 
   private val performanceColumn = createAndAddColumn[String]("Performance"): cellValue =>
@@ -42,10 +61,10 @@ class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using application
     cellValue.sizeProperty
 
 
-  private val modelColumn = createAndAddColumn("Model", minWidth = ColumnSize.massive): cellValue =>
+  private val modelColumn = createAndAddColumn("Model", ColumnSize.massive): cellValue =>
     cellValue.modelProperty
 
-  private val serialColumn = createAndAddColumn("Serial", minWidth = ColumnSize.big): cellValue =>
+  private val serialColumn = createAndAddColumn("Serial", ColumnSize.big): cellValue =>
     cellValue.serialProperty
 
   private val typeColumn = createAndAddColumn("Type"): cellValue =>
@@ -54,40 +73,37 @@ class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using application
   private val idColumn = createAndAddColumn("ID"): cellValue =>
     cellValue.idProperty
 
-//
-//    else
-//      new TableCell[HardDriveTableRowViewModel, String]()
+  idColumn.setCellFactory((param: control.TableColumn[HardDriveTableRowViewModel, String]) =>
+    new TextFieldTableCell[HardDriveTableRowViewModel, String](new converter.DefaultStringConverter):
+      override def startEdit(): Unit =
+        if tabViewModel.isCellEditable(selectionModel.value.getSelectedItem) then
+          super.startEdit()
 
-
+  )
 
   private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
     cellValue.driveTypeProperty
 
-  
 end HardDriveTableView
 
 
-class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends VBox with TabDelegate with View[HardDrivesTabViewModel]:
+class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends BorderPane with TabDelegate with View[HardDrivesTabViewModel]:
+  private val tableView = new HardDriveTableView(viewModel)
   override given viewModel: HardDrivesTabViewModel =  new HardDrivesTabViewModel
 
-  private val tableView = new HardDriveTableView(viewModel)
 
 
-  children += tableView
-  children += new HBox:
+  center = tableView
+  bottom = new HBox:
     padding = Insets(5D, 5D, 0D, 0D)
     private val region = new Region:
       hgrow = Always
-      prefHeight = 40
     private val moreInfoButton = new Button:
-      text = "More Info"
+      text = "More Info (i)"
       onAction = _ =>
-        viewModel.showExtraInfo(tableView.getSelectedItem)
+        viewModel.showExtraInfo(tableView.selectionModel().getSelectedItem)
       disable <== viewModel.moreInfoDisabledProperty
-      padding = Insets(0D, 5D, 0D, 0D)
-      prefHeight = 40D
-      prefWidth = 100D
-      hgrow = Always
+
 
     children ++= Seq(region, moreInfoButton)
 

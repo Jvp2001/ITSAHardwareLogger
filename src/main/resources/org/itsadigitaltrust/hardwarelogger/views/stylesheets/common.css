@@ -43,10 +43,7 @@
     -fx-background-color: tomato;
 }
 
-.table-view
-{
-    -fx-background-color: tomato;
-}
+
 .tab-pane
 {
  --fx-background-color: purple;

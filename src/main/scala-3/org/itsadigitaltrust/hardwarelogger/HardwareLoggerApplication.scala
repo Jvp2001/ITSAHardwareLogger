@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger
 
 
+import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.core.{HWLoggerShowMessage, HardwareLoggerDefaultUncaughtExceptionHandler}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
@@ -27,10 +28,14 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   private var applicationStage: Stage | Null = uninitialized
 
 
+
+
   Platform.implicitExit = false
 
 
-  def setProgramMode(): Unit =
+
+
+  private def setProgramMode(): Unit =
     ProgramMode.mode =
       if parameters.raw.map(_.toLowerCase).contains("--harddrive") then "HardDrive"
       else "Normal"
@@ -40,8 +45,8 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   private final val applicationSize = (1024D, 768D)
 
   private val hardwareLoggerSplashScreenViewModel: HardwareLoggerSplashScreenViewModel = new HardwareLoggerSplashScreenViewModel()(applicationState =>
-      Platform.runLater:
-        showApplication()
+    Platform.runLater:
+      showApplication()
   )
 
   override def start(): Unit =
@@ -58,7 +63,7 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
 
 
     stage = splashStage
-    stage.onShown = _ => 
+    stage.onShown = _ =>
       splashScreen.load()
     stage.show()
 
@@ -74,19 +79,15 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
       minWidth = applicationSize._1
       minHeight = applicationSize._2
       resizable = false
-      private val view: HardwareLoggerRootView =
-        new HardwareLoggerRootView:
+      
+      scene = new Scene(applicationSize._1, applicationSize._2):
+        root =   new HardwareLoggerRootView:
           onKeyPressed = (event: KeyEvent) =>
             val code = event.code
             if code == KeyCode.F5 then
               viewModel.reload()
             end if
 
-          override protected def parentWindow: Option[Window] = Option(thisStage)
-      end view
-
-      scene = new Scene(applicationSize._1, applicationSize._2):
-        root = view
 //
       onCloseRequest = event =>
         Platform.exit()
@@ -100,9 +101,7 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   end createApplicationStage
 
   private def showApplication()(using applicationState: HardwareLoggerApplicationState): Unit =
-
-      stage.hide()
-      applicationStage = createApplicationStage()
+     applicationStage = createApplicationStage()
 //
 //    val applicationTransition = new FadeTransition(Duration(1500), applicationStage.getScene.getRoot):
 //      fromValue = 0D
@@ -121,8 +120,8 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
 //
 //    splashScreenTransition.play()
 
+
       stage.hide()
-//      ProgramMode()
       applicationStage.show()
 
 

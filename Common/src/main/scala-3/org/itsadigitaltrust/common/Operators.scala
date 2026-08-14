@@ -53,8 +53,13 @@ object Operators:
   end extension
 
   
-  extension[A](seq: Seq[A])
-    inline def ||>[B](inline f: A => B): Seq[B] =
+  extension[A, B](f: A => B)
+    /**
+     * Maps a function over a sequence of elements and returns a sequence of the results.
+     * @param seq The sequence to map over.
+     * @return A sequence of the results of applying the function to each element of the input sequence.
+     */
+    def ||>(seq: Seq[A]): Seq[B] =
       seq.map(f)
   
   extension[A](a: A)

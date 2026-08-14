@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
 import com.somainer.nameof.NameOf
-import org.itsadigitaltrust.common.Operators.{??, toOption, |>, ||>}
+import org.itsadigitaltrust.common.Operators.{??, toOption, |>}
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HardwareGrabberService}
@@ -40,6 +40,7 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](usi
     data.add(rowCtor(model))
     this
 
+  def models: Seq[M] = data.map(_.model).toSeq
 
 
   override def onProgramModeChanged(mode: ProgramMode): Either[Error, Unit] =
@@ -52,7 +53,7 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](usi
     
   end onProgramModeChanged
   
-  def models: Seq[M] = data.map(_.model).toSeq
+//  def models: Seq[M] = data.map(_.model).toSeq
 
   override def reload(shouldClearData: Boolean = true)(using applicationState: HardwareLoggerApplicationState): Either[Error, Unit] =
     import TabTableViewModel.toLoadEitherError
@@ -60,8 +61,7 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]](usi
       logger.info(s"Reloading ${classTag[M].runtimeClass.getSimpleName} data")
       val result = reloadData(applicationState).toLoadEitherError.ok()
 
-      data.clear()
-      data ++= result.map(rowCtor)
+      data.setAll (result.map(rowCtor)*)
       logger.info(s"Added ${data.size} item(s).")
 
 

@@ -10,7 +10,7 @@ import org.itsadigitaltrust.hardwarelogger.tasks.DelegatedSimpleTask
 import org.scalafx.extras
 import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.{BusyWorker, ShowMessage}
-import ox.Ox
+import ox.{Ox, OxError}
 import ox.either.{fail, ok}
 import scalafx.application.Platform
 import scalafx.concurrent.WorkerStateEvent
@@ -21,7 +21,7 @@ import java.util.concurrent.Future
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.boundary
 
-trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, ox.OxErrorModeWaitSimpleTask[E, R]:
+trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, ox.OxErrorModeSimpleTask[E, R]:
 
   override val exitIfFailed: Boolean = true
 
@@ -62,8 +62,7 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
   override protected given totalNumberOfItems: Int = 8
 
 
-
-  override def onCall()(using Ox): Either[Throwable, Unit] =
+  override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
     var index = 0D
     val task = this
     val result = ox.supervisedError(ox.EitherMode[Throwable]):
@@ -100,6 +99,7 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
 
 
   override protected def parentWindow: Option[Window] = None
+
 end HardwareLoggerSplashScreenViewModel
 
 

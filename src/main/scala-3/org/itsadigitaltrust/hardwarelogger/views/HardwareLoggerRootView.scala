@@ -1,16 +1,22 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 
+import org.itsadigitaltrust.TupleUtils
+import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IssueReporterService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{MemoryTableRowViewModel, TableRowViewModel}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.*
 import scalafx.Includes.*
+import scalafx.beans.value.ObservableValue
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar}
 
@@ -27,22 +33,15 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
 
 
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
-
-  private lazy val generalInfoTabView: GeneralInfoTabView = new GeneralInfoTabView
-  private lazy val processorTabView: ProcessorTabView = new ProcessorTabView
-  private lazy val memoryTabView: MemoryTabView = new MemoryTabView
-  private lazy val hardDrivesTabView: HardDrivesTabView = new HardDrivesTabView
-  private lazy val mediaTabView: MediaTabView = new MediaTabView
-  private lazy val consoleView: ItsaDebugView = new ItsaDebugView
-
+  
   private type TabsMapKey = "General" | "Memory" | "Processor" | "HDD" | "Media" | "Debug"
 
-  private val generalTab = createTab("General", generalInfoTabView)
-  private val memoryTab = createTab("Memory", memoryTabView)
-  private val processorTab = createTab("Processor", processorTabView)
-  private val hardDrivesTab = createTab("HDD", hardDrivesTabView)
-  private val mediaTab = createTab("Media", mediaTabView)
-  private val debugTab = createTab("Debug", consoleView)
+    private val generalTab = createTab("General", new GeneralInfoTabView)
+    private val memoryTab = createTab("Memory", new MemoryTabView)
+    private val processorTab = createTab("Processor", new ProcessorTabView)
+    private val hardDrivesTab = createTab("HDD", new HardDrivesTabView)
+    private val mediaTab = createTab("Media", new MediaTabView)
+    private val debugTab = createTab("Debug", new ItsaDebugView)
 
 
   private final val viewMenu = new Menu("_View"):
@@ -187,24 +186,9 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
       minWidth = 600D
       minHeight = 600D
       BorderPane.setAlignment(this, Center)
-      //      onProgramModeChanged(ProgramMode.mode)
 
-      tabPane.tabs.clear()
-      if ProgramMode.isInHardDriveMode then
-        tabPane.tabs ++= Seq(
-          createTab("HDD", hardDrivesTabView),
-          createTab("Debug", consoleView)
-        )
-      else
-        tabPane.tabs ++= Seq(
-//          createTab("General", generalInfoTabView),
-          createTab("Memory", memoryTabView),
-//          createTab("Processor", processorTabView),
-//          createTab("HDD", hardDrivesTabView),
-//          createTab("Media", mediaTabView),
-//          createTab("Debug", consoleView)
-        )
-      end if
+      refreshTabs()
+
       children ++= Seq(buttonsContainer, tabPane)
 
   end contentBorderPane
@@ -216,7 +200,7 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
       text <== viewModel.taskMessageProperty
       text.onChange: (_, oldValue, newValue) =>
         ()
-      visible <== viewModel.disableNodeWhileTaskRunningProperty
+      visible <== !viewModel.disableNodeWhileTaskRunningProperty
       styleClass += "status-label"
       maxWidth = Double.PositiveInfinity
       minWidth = 200.0
@@ -225,12 +209,12 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
     end statusLabel
     private final val progressBar = new ProgressBar:
       progress <== viewModel.taskProgressProperty
-      visible <== viewModel.disableNodeWhileTaskRunningProperty
+      visible <== !viewModel.disableNodeWhileTaskRunningProperty
       minWidth = 200.0
       alignment = CenterRight
       padding = Insets(0, 10.0, 0, 0)
     end progressBar
-    visible <== viewModel.disableNodeWhileTaskRunningProperty
+    visible <== !viewModel.disableNodeWhileTaskRunningProperty
     children ++= Seq(statusLabel, progressBar)
 
 
@@ -256,15 +240,46 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
   private given itsaID: String = viewModel.idStringProperty.get
 
 
-  def onProgramModeChanged(mode: ProgramMode): Unit =
+    def onProgramModeChanged(mode: ProgramMode): Unit =
 
-    mode match
-      case "HardDrive" =>
-        tabPane.tabs.clear()
+      mode match
+        case "HardDrive" =>
+          tabPane.tabs.clear()
+          tabPane.tabs.addAll(hardDrivesTab, debugTab)
+
+        case "Normal" =>
+          tabPane.tabs.clear()
+          tabPane.tabs.addAll(
+            generalTab,
+            memoryTab,
+            processorTab,
+            hardDrivesTab,
+            mediaTab,
+            debugTab
+          )
+        case "Both" => ()
+      end match
+
+
+  //  end onProgramModeChanged
+
+
+  this.viewModel.disabledNodes += this
+  viewModel.shouldCaretBeAtEnd.onChange: (op, oldValue, newValue) =>
+    if newValue then
+      idTextField.end()
+
+  private def switchMode(newMode: ProgramMode): Unit =
+    ProgramMode.mode = newMode
+    refreshTabs()
+    viewModel.reload()
+
+
+  private def refreshTabs() =
+    tabPane.tabs.clear()
+      if ProgramMode.isInHardDriveMode then
         tabPane.tabs.addAll(hardDrivesTab, debugTab)
-
-      case "Normal" =>
-        tabPane.tabs.clear()
+      else
         tabPane.tabs.addAll(
           generalTab,
           memoryTab,
@@ -273,40 +288,8 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
           mediaTab,
           debugTab
         )
-      case "Both" => ()
-    end match
-
-
-  end onProgramModeChanged
-
-
-  this.viewModel.disabledNodes += this
-  viewModel.shouldCaretBeAtEnd.onChange: (op, oldValue, newValue) =>
-    if newValue then
-      idTextField.end()
-
-  private def switchMode(newMode: ProgramMode) =
-    ProgramMode.mode = newMode
-    refreshTabs()
-    viewModel.reload()
-
-
-  private def refreshTabs() =
-    tabPane.tabs.clear()
-    if ProgramMode.isInHardDriveMode then
-      tabPane.tabs.addAll(hardDrivesTab, debugTab)
-    else
-      tabPane.tabs.addAll(
-        generalTab,
-        memoryTab,
-        processorTab,
-        hardDrivesTab,
-        mediaTab,
-        debugTab
-      )
-    end if
+  //    end if
   end refreshTabs
-
 
 
   override protected def parentWindow: Option[Window] = None
