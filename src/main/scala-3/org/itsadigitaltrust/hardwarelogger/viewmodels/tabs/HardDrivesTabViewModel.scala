@@ -7,7 +7,7 @@ import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import scalafx.beans.property.{BooleanProperty, ObjectProperty}
-import scalafx.scene.control.{TableRow, TextInputDialog}
+import scalafx.scene.control.{TableRow, TableView, TextInputDialog}
 import scalafx.scene.input.{KeyCode, MouseButton}
 import scalafx.Includes.*
 import scalafx.scene.input.MouseButton.Primary
@@ -59,8 +59,8 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
 
 
   override def onRowKeyboardKeyReleased(event: KeyEvent, row: Option[HardDriveTableRowViewModel]): Unit =
-    val tableRowOption = Option(event.getSource).collect { case tr: TableRow[HardDriveTableRowViewModel] => tr }
-    tableRowOption.foreach: tableRow =>
+    val tableViewOption = Option(event.getSource).collect { case tv: jfxsc.TableView[?] => tv }
+    tableViewOption.foreach: tableView =>
       super.onRowKeyboardKeyReleased(event, row)
       if event.getCode.equals(jfxsi.KeyCode.I) then
         showExtraInfo(row.get)
@@ -68,12 +68,11 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
       else if event.getCode.equals(jfxsi.KeyCode.ENTER) then
         event.consume()
 
-        tableRow.tableView.requestFocus()
-        tableRow.tableView.selectionModel().getSelectedIndex |> tableRow.tableView.selectionModel().select
+
 
         Platform.runLater:
-          tableRow.tableView.edit(tableRow.tableView.selectionModel().getSelectedIndex,
-            tableRow.tableView.getColumns.stream().filter(c => c.getText `equals` "ID").findFirst().get)
+          tableView.edit(tableView.selectionModel().getSelectedIndex,
+            tableView.getColumns.stream().filter(c => c.getText `equals` "ID").findFirst().get)
 
       end if
   end onRowKeyboardKeyReleased

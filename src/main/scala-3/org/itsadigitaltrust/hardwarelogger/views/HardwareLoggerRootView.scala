@@ -5,7 +5,7 @@ import org.itsadigitaltrust.TupleUtils
 import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
+import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TabDelegate}
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
@@ -16,6 +16,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{MemoryTableRowViewMo
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.*
 import scalafx.Includes.*
+import scalafx.application.Platform
 import scalafx.beans.value.ObservableValue
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar}
@@ -128,7 +129,13 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
     tabClosingPolicy = Unavailable
     alignmentInParent = Pos.Center
     vgrow = Always
-
+    selectionModel().selectedItemProperty.onChange: (_, _, newTab) =>
+      if newTab ne null then
+        Platform.runLater:
+          newTab match
+            case tabDelegate: TabDelegate =>
+              tabDelegate.onSelected(newTab)
+            case _ => ()
 
   private final val reconnectButton = new Button:
     text = "Reconnect"
@@ -140,7 +147,7 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
 
 
   private final val reloadButton = new Button:
-    text = "Reload"
+    text = "Reload (F5)"
     disable <== viewModel.disableNodeWhileTaskRunningProperty
     onAction = _ =>
       viewModel.reload()
@@ -173,7 +180,7 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
   private final val buttonsContainer = new HBox:
     alignment = Center
     prefWidth = 200.0
-    prefHeight = 50.0
+    minHeight = 50.0
     children ++= Seq(rightAlignRegion, reconnectButton, reloadButton, saveButton)
   end buttonsContainer
 
@@ -183,8 +190,8 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
     top = topContainer
     disable <== viewModel.disableNodeWhileTaskRunningProperty
     center = new VBox:
-      minWidth = 600D
-      minHeight = 600D
+      prefWidth = 600D
+      prefHeight = 600D
       BorderPane.setAlignment(this, Center)
 
       refreshTabs()
@@ -200,22 +207,25 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
       text <== viewModel.taskMessageProperty
       text.onChange: (_, oldValue, newValue) =>
         ()
-      visible <== !viewModel.disableNodeWhileTaskRunningProperty
+      visible <== viewModel.disableNodeWhileTaskRunningProperty
       styleClass += "status-label"
       maxWidth = Double.PositiveInfinity
       minWidth = 200.0
       alignment = CenterLeft
       padding = Insets(0, 0, 0, 10.0)
     end statusLabel
+    private val region = new Region:
+      hgrow = Always
     private final val progressBar = new ProgressBar:
       progress <== viewModel.taskProgressProperty
-      visible <== !viewModel.disableNodeWhileTaskRunningProperty
+      visible <== viewModel.disableNodeWhileTaskRunningProperty
       minWidth = 200.0
       alignment = CenterRight
       padding = Insets(0, 10.0, 0, 0)
     end progressBar
-    visible <== !viewModel.disableNodeWhileTaskRunningProperty
-    children ++= Seq(statusLabel, progressBar)
+    visible <== viewModel.disableNodeWhileTaskRunningProperty
+    managed <== viewModel.disableNodeWhileTaskRunningProperty
+    children ++= Seq(statusLabel, region, progressBar)
 
 
   private def createTab(title: TabsMapKey)(rootContent: => Node): Tab =
@@ -227,6 +237,13 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
       text = title
       closable = false
       content = rootContent
+      selected.onChange: (_, _, isNowSelected) =>
+        if isNowSelected then
+          rootContent match
+            case tabDelegate: TabDelegate =>
+              tabDelegate.onSelected(this)
+            case _ => ()
+
     tab
   end createTab
 

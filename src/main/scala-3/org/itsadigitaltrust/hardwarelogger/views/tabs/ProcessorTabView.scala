@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
+import javafx.scene.control
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.ProcessorTableRowViewModel
@@ -8,6 +9,7 @@ import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.views.tabs.given
+import scalafx.scene.control.TableCell
 
 import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.{ClassTag, classTag}
@@ -20,6 +22,20 @@ private[views] final class ProcessorTabView(using applicationState: HardwareLogg
   private val speedColumn = createAndAddColumn("Speed"): cellValue =>
     cellValue.speedProperty
 
+  speedColumn.delegate.setCellFactory(tableColumn => new control.TableCell[ProcessorTableRowViewModel, String]:
+
+    override def updateItem(item: String, empty: Boolean): Unit =
+      super.updateItem(item, empty)
+      if item == null || empty then
+        setText(null)
+
+      else
+        item.substring(0, 4) + " GHz" |> setText
+  )
+
+
+
+
   //  private val shortDescriptionColumn = createAndAddColumn("Short Description"): cellValue =>
   //    cellValue.shortDescriptionProperty
 
@@ -31,6 +47,7 @@ private[views] final class ProcessorTabView(using applicationState: HardwareLogg
 
   //  private val widthColumn = createAndAddColumn("Width"): cellValue =>
   //    cellValue.widthProperty
+
 
   private val coresColumn = createAndAddColumn("Cores"): cellValue =>
     cellValue.coresProperty

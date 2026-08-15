@@ -29,7 +29,7 @@ import scala.reflect.ClassTag
 
 
 private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
-  
+
 
 
 
@@ -70,6 +70,7 @@ private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using
     if item.isDefined then
       if rowDelegate.isDefined then
         rowDelegate.get.onSelected(item)
+    
   end updateSelected
 
 
@@ -115,11 +116,12 @@ abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](
 //
 
 
+
   class TableTabColumn[P] extends TableColumn[T, P]
 
 //  rowFactory = _ => new TableTabRow[T](showHandCursorOnHover)(using rowDelegate.get)
 
-  vgrow = Always
+//  vgrow = Always
 
   protected def createAndAddColumn[P](name: String, minimumWidth: Double = 50D )(f: T => ObservableValue[P, P]): TableColumn[T, P] =
     val column = new TableColumn[T, P]():
@@ -127,8 +129,10 @@ abstract class TabTableView[M <: HLModel : ClassTag, T <: TableRowViewModel[M]](
       minWidth = minimumWidth
       cellValueFactory = _.value |> f
       sortable = false
+      delegate.setReorderable(false)
     columns += column
     column
+
 //  selectionModel.apply().selectedItem.onChange: (op, newValue, oldValue) =>
 //    onValidRowDelegate(_.foreach(_.onSelected(selectionModel.apply().getSelectedItem |> Option[T])))
 
