@@ -82,6 +82,9 @@ class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using application
   private val idColumn = createAndAddColumn("ID"): cellValue =>
     cellValue.idProperty
 
+  idColumn.editable <== tabViewModel.editIDColumn
+
+  
   idColumn.setCellFactory((param: control.TableColumn[HardDriveTableRowViewModel, String]) =>
     new TextFieldTableCell[HardDriveTableRowViewModel, String](new converter.DefaultStringConverter):
       override def startEdit(): Unit =
@@ -92,6 +95,9 @@ class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using application
 
   private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
     cellValue.driveTypeProperty
+
+
+  editable <== tabViewModel.editableProperty
 
 
 end HardDriveTableView

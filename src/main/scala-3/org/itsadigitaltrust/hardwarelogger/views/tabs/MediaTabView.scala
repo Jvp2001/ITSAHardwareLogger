@@ -8,6 +8,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.*
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MediaTabViewModel, TabTableViewModel}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.TabDelegate
+import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.views.View
 

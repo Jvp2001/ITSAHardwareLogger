@@ -1,12 +1,15 @@
 package org.itsadigitaltrust.hardwarelogger.state
 
-import org.itsadigitaltrust.common.Operators.{toOption, |>}
+import org.itsadigitaltrust.common.Operators.{??, ???, toOption, |>}
 import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.common.{forkJoin, forkUserJoin, orThrowOption}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.*
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
+import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService}
+import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerSimpleTask
 import org.itsadigitaltrust.hardwarelogger.views.Reloadable
 import org.scalafx.extras
@@ -22,18 +25,12 @@ import scala.concurrent.duration.DurationInt
 import scala.math.Fractional.Implicits.infixFractionalOps
 import scala.math.Integral.Implicits.infixIntegralOps
 
-private[state] final case class Data(
-                                      itsaID: Option[String] = None,
-                                      info: Option[Seq[GeneralInfoModel]] = None,
-                                      memory: Option[Seq[MemoryModel]] = None,
-                                      drives: Option[Seq[HardDriveModel]] = None,
-                                      media: Option[Seq[MediaModel]] = None,
-                                      processors: Option[Seq[ProcessorModel]] = None
-                                    )
-
-case class HardwareLoggerApplicationState() extends HWLLoggable:
-  private var data: Data = Data()
-
+private[state] type Data = HardwareLoggerSharedData
+case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDatabaseService) extends HWLLoggable:
+  private var data: Data = HardwareLoggerSharedData()
+  private val globalValidationContext: GlobalValidationContext[? <: HLModel] = GlobalValidationContext()
+  
+  def getData: Data = data
   def generalInfo: Option[Seq[GeneralInfoModel]] = data.info
 
   def memory: Option[Seq[MemoryModel]] =
@@ -48,22 +45,36 @@ case class HardwareLoggerApplicationState() extends HWLLoggable:
 
   def itsaID: Option[String] = data.itsaID
 
-  def itsaID_=(id: into[Option[String]]): Unit = data = data.copy(itsaID = id)
+  def itsaID_=(id: into[Option[String]]): Unit =
+    data = data.copy(itsaID = id)
+    itsaID.foreach(NotificationCentre.sendItsaIDChangedNotification)
 
   def reload()(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService): Either[HardwareGrabberService#Error, Unit] =
     given [A]: Conversion[A, Option[A]] = Option.apply
-    ox.either[HardwareGrabberService#Error, Data]:
-      data = data.copy(
-        info = hardwareGrabberService.loadGeneralInfo().ok(),
-        memory = hardwareGrabberService.loadMemory().ok(),
-        drives = hardwareGrabberService.loadHardDrives().ok(),
-        media = hardwareGrabberService.loadMedia().ok(),
-        processors = hardwareGrabberService.loadProcessors().ok()
-      )
-      data
+      ox.supervisedError(ox.EitherMode[HardwareGrabberService#Error]):
+        ox.either[HardwareGrabberService#Error, HardwareLoggerSharedData]:
+          val infoFork = ox.fork(hardwareGrabberService.generalInfo)
+          val drivesFork = ox.fork(hardwareGrabberService.hardDrives)
+          val processorsFork = ox.fork(hardwareGrabberService.processors)
+          val memoryFork = ox.fork(hardwareGrabberService.memory)
+          val mediaFork = ox.fork(hardwareGrabberService.media)
 
-    .map: result =>
-      ()
+          val info = infoFork.join().ok()
+          val drives = drivesFork.join().ok()
+          val processors = processorsFork.join().ok()
+          val memory = memoryFork.join().ok()
+          val media = mediaFork.join().toOption ??? Seq()
+          data = data.copy(
+            info = info,
+            drives = drives,
+            processors = processors,
+            memory = memory,
+            media = media,
+            itsaID = data.itsaID
+          )
+          data
+        Right(())
+
 
 
 
@@ -112,14 +123,21 @@ case class HardwareLoggerApplicationState() extends HWLLoggable:
         option
 
       performAsTask("Checking for ITSA ID..."):
-        val id = databaseService.findItsaIdBySerialNumber(data.info.get.head.serial)
-        data = data.copy(itsaID = id.ok().toOption)
-        if ProgramMode.mode == "Normal" then
-          val newInfo = data.info.get.map: info =>
-            info.copy(itsaID = id.ok().toOption)
-          data = data.copy(info = newInfo.toOption)
-        id
+        // No fork here: `.ok()` breaks to the `ox.either` label created in `performAsTask`, which
+        // lives on this thread. Breaking from inside a fork lets the `boundary.Break` escape on the
+        // fork's thread and surface as `ExecutionException: scala.util.boundary$Break`.
+        // The explicit `[GeneralInfoModel]` matters too: without it `M` is minimised to `Nothing`,
+        // no mapper can be summoned and the lookup always fails with "no entry found".
+        // A PC that is not in the database yet is normal, so a failed lookup means "no ID", not an error.
+        val id = data.info
+          .flatMap(_.headOption)
+          .flatMap: info =>
+            databaseService.findBySerialNumber[GeneralInfoModel](info.serial).toOption.flatMap(_.itsaID)
 
+        data = data.copy(itsaID = id)
+        if ProgramMode.mode == "Normal" then
+          data = data.copy(info = data.info.map(_.map(_.copy(itsaID = id))))
+        Right(id)
 
       performAsTask("Loading memory..."):
         val value = hardwareGrabberService.loadMemory()
@@ -145,6 +163,41 @@ case class HardwareLoggerApplicationState() extends HWLLoggable:
 
       Right(index)
   end reload
+
+  NotificationCentre.bindToFetchData:
+    ox.supervisedError(ox.EitherMode[HardwareGrabberService#Error]):
+      ox.forkUserError:
+        ox.either(reload())
+      .join()
+//      Right(NotificationCentre.reload()(using data))
+
+  NotificationCentre.bindToGetData:
+    Option(data)
+
+  NotificationCentre.bindToFetchGlobalValidationContext(globalValidationContext)
+  
+  NotificationCentre.bindToUpdateSharedData: newData =>
+    val currentData = this.data
+    if newData.info.isDefined then
+      data = data.copy(info = newData.info)
+    if newData.drives.isDefined then
+      data = data.copy(drives = newData.drives)
+    if newData.processors.isDefined then
+      data = data.copy(processors = newData.processors)
+    if newData.memory.isDefined then
+      data = data.copy(memory = newData.memory)
+    if newData.drives.isDefined then
+      data = data.copy(drives = newData.drives)
+    if newData.media.isDefined then
+      data = data.copy(media = newData.media)
+    if newData.itsaID.isDefined then
+      data = data.copy(itsaID = newData.itsaID)
+    
+        
+    
+
+
+
 
 
 end HardwareLoggerApplicationState

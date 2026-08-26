@@ -123,12 +123,12 @@ lazy val loggingDeps = Seq(
 
 lazy val commonDependencies = Seq(
   "com.augustnagro" %% "magnum" % "1.3.1",
-  "com.mysql" % "mysql-connector-j" % "9.7.0",
+  "com.mysql" % "mysql-connector-j" % "26.7.0",
   "org.apache.commons" % "commons-text" % "1.15.0",
   //  "org.checkerframework" % "checker" % "3.54.0",
-  "com.softwaremill.ox" %% "core" % "1.0.4",
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.21.3",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.21.3",
+  "com.softwaremill.ox" %% "core" % "1.0.6",
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.2",
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.2",
   "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
   "com.somainer" %% "scala3-nameof" % "0.0.1" % Provided
 
@@ -139,8 +139,8 @@ lazy val hdsentinelreader = (project in file("HDSentinelReader")).
     name := "HDSentinelReader",
 
     libraryDependencies ++= Seq(
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.21.1",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.21.1",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.2",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.2",
       "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
     ).map(_ withJavadoc() withSources()),
     scalacOptions += "-experimental"

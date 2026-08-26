@@ -2,7 +2,6 @@ package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.InputStreamExtensions.readAllAsString
 import org.itsadigitaltrust.common.Operators.*
-import org.itsadigitaltrust.common.Result
 
 import org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, GitHubIssueReporter, IssueReportStatus, ReportedIssue}

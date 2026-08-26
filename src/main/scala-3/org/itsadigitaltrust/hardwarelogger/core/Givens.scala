@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.core
 
-import org.itsadigitaltrust.common.{PropertyFileReader, Result}
 import org.itsadigitaltrust.common.processes.ProcessConfig
+import org.itsadigitaltrust.common.propertyfile.PropertyFileReader
 import org.itsadigitaltrust.hardwarelogger.issuereporter.IssueReporterProps
 
 object Givens:

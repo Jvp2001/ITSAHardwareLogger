@@ -5,34 +5,41 @@ import javafx.concurrent
 import org.itsadigitaltrust.common.Operators.{??, toOption, |>}
 import org.itsadigitaltrust.common.forkJoin
 import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.common.macros.NameOf
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
+import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, ValidationWarningDialog}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, MediaModel, ProcessorModel}
-import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
+import org.itsadigitaltrust.hardwarelogger.models.{HLModel, HardDriveModel}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{BackendValidationEvent, NotificationCentre, TabPreparationEvent}
+import org.itsadigitaltrust.hardwarelogger.services.validation.{GlobalValidationContext, HLDBValidationError, ValidationIssue}
 import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService, HardwareIDValidationService, IDParser, OshiHardwareGrabberApplicationService}
+import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.tasks.{CommonHardwareLoggerTasksAndWorkers, HardwareLoggerSimpleTask}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{GeneralInfoTableRowViewModel, MediaTableRowViewModel, MemoryTableRowViewModel, ProcessorTableRowViewModel}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, MemoryTabViewModel, TabTableViewModel}
 import org.scalafx.extras
 import org.scalafx.extras.{BusyWorker, ShowMessage, ShowMessageLogger, offFX, offFXAndWait, parentWindow, runTask}
-import ox.EitherMode
+import ox.{EitherMode, Fork}
 import ox.either.{fail, ok}
+import scalafx.application.Platform
 import scalafx.beans.property.*
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.Alert.AlertType.Information
-import scalafx.scene.control.{Alert, ButtonType}
+import scalafx.scene.control.{Alert, ButtonType, Dialog}
 import scalafx.stage.Window
 
+import java.util.concurrent.CountDownLatch
 import scala.concurrent.duration.DurationInt
 import scala.util.boundary
 
 final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGrabberService, hardwareIDValidationService: HardwareIDValidationService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)
   extends RootViewModel, HWLoggerShowMessage:
 
+  lazy val identifier: String = NameOf[HardwareLoggerRootViewModel]
 
+  given sharedData: Option[HardwareLoggerSharedData] = NotificationCentre.getFetchedData
   override protected def messageLogger: Option[ShowMessageLogger] = this.toOption
 
   private val _idStringProperty: StringProperty = StringProperty("")
@@ -64,23 +71,65 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
 
 
-  def continueWithDuplicateDrives(drives: Seq[String]): Unit =
-    val alertContentText =
-      if drives.length == 1 then
-        s"A drive with the serial number '${drives.head} already exists. Do you want to continue?"
-      else
-        s"Drives with the serial numbers '${drives.mkString(", ")} already exist. Do you want to continue?"
-    end alertContentText
+  private def performGlobalSave(): Unit =
+    given context: GlobalValidationContext[HLModel] = GlobalValidationContext()
 
-    if showConfirmation("Serial Number is duplicated", "Continue With Duplicate Drives?", alertContentText) then
-      reload()
+    Thread.startVirtualThread: () =>
+      ox.supervised:
 
-    else
-      ()
+        val backendFork = ox.fork:
+          NotificationCentre.getFetchedData.map: data =>
+            data.info.flatMap(_.headOption).map: info =>
+              databaseService.runValidation(info)
+          val event = BackendValidationEvent()
+          NotificationCentre.sendBackendValidationEvent(event)
+          event.getForks.foreach(_.join())
 
-  end continueWithDuplicateDrives
+        backendFork.join()
+        val event = TabPreparationEvent()
+        NotificationCentre.sendTabPreparationEvent(event)
 
-  
+        event.getForks.foreach(_.join())
+
+        val allIssues = context.getIssues
+        val hardErrors = allIssues.filterNot(_.isSoftWarning)
+        val softWarnings = allIssues.filter(_.isSoftWarning)
+
+        if hardErrors.nonEmpty then
+          Platform.runLater:
+            handleHardValidationIssues(hardErrors)
+        else if softWarnings.nonEmpty then
+          val countDownLatch = new CountDownLatch(1)
+          handleSoftValidationIssues(softWarnings, countDownLatch)
+        else
+          NotificationCentre.saveDB()
+
+  end performGlobalSave
+
+  private def handleHardValidationIssues(issues: List[HLDBValidationError]): Unit = ()
+
+  private def createSoftIssueConfirmationAlert(issue: ValidationIssue): Alert =
+    val alert = new Alert(AlertType.Confirmation)
+    alert.setTitle(issue.source)
+    alert.setContentText(issue.message)
+    alert
+
+  private def handleSoftValidationIssues(issues: List[ValidationIssue], latch: CountDownLatch): Boolean =
+    var userConfirmed = false
+    Platform.runLater:
+      val alert = new ValidationWarningDialog(issues)
+      val result = alert.showAndWait()
+
+      userConfirmed = result.isDefined && result.get == ButtonType.OK
+      latch.countDown()
+
+    latch.await()
+    userConfirmed
+  end handleSoftValidationIssues
+
+
+
+
   def setup(): Unit =
     reload()
     setIDToMatchValueInDB()
@@ -95,52 +144,29 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
   
   def reconnect(): Unit =
     CommonHardwareLoggerTasksAndWorkers.performReconnectWorker()
-
-
   end reconnect
 
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
     isInNormalMode.value = mode == "Normal"
 
+
+
+
+
+
   def save(): Unit =
     ox.either:
       import scala.languageFeature.implicitConversions
       //    given context: BusyWorkerContext.Prompt = BusyWorkerContext.Prompt(s"${idStringProperty.value} is already in use.", "Do you want to save the data?")
-
-
-      databaseService.itsaID = idStringProperty.value
-
-
+      NotificationCentre.sendItsaIDChangedNotification(itsaID)
       showConfirmationYesNoCancel("Save?", s"{{${idStringProperty.value}}} is already in use.", "Do you want to save the data?") match
         case Some(true) =>
           validateID(true)
           if !validIDProperty.value then
             idFieldFocusProperty.value = true
+        case _ => false
 
-          if ProgramMode.isInNormalMode then
-            val notWipedDrives = findNonWipedDrives().ok()
-            if notWipedDrives.nonEmpty then
-              showDrivesNotWipedAlert(notWipedDrives)
-  def dbSuccess(): Unit = ()
-//    NotificationCentre.on
-//
-//    val task = new RootViewModelBatchedTask(5000.milliseconds, list)
-//    val result = new RootViewModelBusyWorker("Saving to Database", disabledNodes = disabledNodes.toSeq)
-//      .doTask(task)
-//
-//    reload()
-//    extras.onFX:
-//      showInformation("Database Connection Successful", "Successfully connected to the database.", "")
-//pedDrives)
-//
-//          reload()
-//        case _ => ()
-//
-//    .showIfFailed()
-//
-//
-//  end save
 
 
   lazy val idValidatorSchedule = new javafx.concurrent.ScheduledService[Unit]:
@@ -159,12 +185,12 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
     _idStringProperty.value = itsaID
   end duplicateIDWasFound
 
-  private def validateID(showAlert: Boolean = false): Unit =
+  private def validateID(showAlert: Boolean = false): Boolean =
     ox.either:
       val currentID: String = Option(idStringProperty.get()).getOrElse("")
       if currentID == "" then
         idErrorStringProperty.set("ID cannot be empty!")
-        return
+        return false
       val result = hardwareIDValidationService.validate(currentID.strip())
       result match
         case Left(value) =>
@@ -182,9 +208,11 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
             else
               idErrorStringProperty.value = ""
               _idStringProperty.value = value.toString
+
+    validIDProperty.value
   end validateID
 
-  def onProgramModeChanged(mode: ProgramMode): Unit =
+  def onProgramModeChanged(mode: ProgramMode)(using ox.Ox): Unit =
     NotificationCentre.programModeChanged(mode)
 
   def reload(): Unit =
@@ -203,43 +231,14 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
       shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
     .showIfFailed()
 
-  def programModeChanged(mode: ProgramMode): Unit =
+  def programModeChanged(mode: ProgramMode)(using ox.Ox): Unit =
     onProgramModeChanged(mode)
 
 
 
-  private def findNonWipedDrives() =
-    ox.either:
-      applicationState.hardDrives.ok()
-        .filterNot: hardDrive =>
-          databaseService.findWipingRecord(hardDrive.serial).isLeft
 
 
-  private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =
-    boundary:
 
-      var serials =
-        if ProgramMode.isInNormalMode then
-          notWipedDrives.map(_.serial).mkString(", ")
-        else
-          notWipedDrives.map(_.itsaID).mkString(", ")
-      end serials
-      serials = serials.patch(serials.lastIndexOf(", "), " & ", 0)
-      serials = if serials.split(", ").length == 2 then serials.replaceFirst(", ", "") else serials
-      serials = if serials.trim.startsWith("& ") then serials.replaceFirst("& ", "") else serials
-
-      val word = serials.length match
-        case 0 => boundary.break()
-        case 1 => "drive"
-        case _ => "drives"
-
-
-      new Alert(Information, s"The $word '$serials' have not been logged. Do you want to log them now?", ButtonType.Yes, ButtonType.No):
-        headerText = "No Wiping Records Found"
-        showAndWait() match
-          case Some(ButtonType.Yes) => databaseService.addWipingRecords(itsaID, applicationState.hardDrives ?? Seq.empty[HardDriveModel] *)
-          case _ => ()
-  end showDrivesNotWipedAlert
 
 end HardwareLoggerRootViewModel
 

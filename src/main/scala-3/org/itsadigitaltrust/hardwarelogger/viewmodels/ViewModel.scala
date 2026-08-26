@@ -8,6 +8,7 @@ import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.GeneralInfoModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{ConnectedSuccessfullyAndReloadListener, ListenerExecutionConditionContext, NotificationCentre, NotificationName, ProgramModeChangeNotificationListener, SaveNotificationListener}
+import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.scalafx.extras.{BusyWorker, ShowMessage, onFX, showException}
 import org.scalafx.extras.BusyWorker.SimpleTask
@@ -57,13 +58,11 @@ trait ViewModel(using applicationState: HardwareLoggerApplicationState) extends 
   override lazy val identifier: String = nameof.NameOf.nameOfType[this.type]
 
     
-  def reload(shouldClearData: Boolean = true)(using HardwareLoggerApplicationState): Either[Error, Unit] = ()
+  protected override def reload()(using HardwareLoggerSharedData): Either[Error, Unit] = ()
 
-  protected override final def reload()(using HardwareLoggerApplicationState): Either[Error, Unit] = reload(true)
-
-  override protected def onConnectedToDBSuccessfully(): Either[Error, Unit] = 
+  override protected def onConnectedToDBSuccessfully(): Either[Error, Unit] =
     super.onConnectedToDBSuccessfully()
-    reload()
+    
 
   final override protected def programModeChanged(mode: ProgramMode): Either[Error, Unit] =
     onProgramModeChanged(mode)

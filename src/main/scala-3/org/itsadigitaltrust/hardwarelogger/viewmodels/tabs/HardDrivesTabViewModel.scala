@@ -1,17 +1,17 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
 import javafx.scene.control as jfxsc
-import javafx.scene.control.{ButtonType, TableSelectionModel}
+import javafx.scene.control.TableSelectionModel
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import scalafx.beans.property.{BooleanProperty, ObjectProperty}
-import scalafx.scene.control.{TableRow, TableView, TextInputDialog}
+import scalafx.scene.control.{Alert, ButtonType, TableRow, TableView, TextInputDialog}
 import scalafx.scene.input.{KeyCode, MouseButton}
 import scalafx.Includes.*
 import scalafx.scene.input.MouseButton.Primary
-import ox.{either, pipe}
+import ox.{Fork, Ox, either, pipe}
 import either.ok
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
@@ -21,8 +21,14 @@ import scala.util.boundary
 import scala.util.boundary.break
 import javafx.scene.input as jfxsi
 import javafx.scene.input.KeyEvent
-import org.itsadigitaltrust.common.Operators.|>
+import org.itsadigitaltrust.common.Operators.{??, |>}
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.HardDriveModel
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.PerformBackendValidationListener
+import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
+import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import scalafx.application.Platform
+import scalafx.scene.control.Alert.AlertType.Information
 
 import scala.reflect.Selectable.reflectiveSelectable
 
@@ -30,10 +36,12 @@ import scala.reflect.Selectable.reflectiveSelectable
 
 
 
-final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.hardDrives) with TableRowDelegate[HardDriveTableRowViewModel]:
+final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService, HardwareLoggerApplicationState)
+  extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.drives) with TableRowDelegate[HardDriveTableRowViewModel] with PerformBackendValidationListener:
   private final val unhealthyDriveClass = "unhealthy-drive"
 
-  val editIDColumn = BooleanProperty(false)
+
+   val editIDColumn = BooleanProperty(false)
 
   var moreInfoDisabledProperty: BooleanProperty = BooleanProperty(false)
 
@@ -45,7 +53,13 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
   val editingCellProperty: ObjectProperty[Option[(row: Int, column: Int)]] = ObjectProperty(None)
 
   val editableProperty: BooleanProperty = BooleanProperty(false)
-  editableProperty <== ProgramMode.isHardDriveMode
+  editableProperty <== ProgramMode.modeProperty.isEqualTo("HardDrive")
+
+
+  override protected def onBackendValidationFork(): Unit =
+    ox.supervised:
+      data.map(_.model).toSeq |> databaseService.runValidation
+      
 
   override def onUpdateItem(row: Option[HardDriveTableRowViewModel], tableRow: TableRow[HardDriveTableRowViewModel]): Unit =
     moreInfoDisabledProperty.value = row.isEmpty
@@ -109,15 +123,6 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
       editIDColumn() = ProgramMode.isInHardDriveMode
       Right(())
 
-  override def save(): Either[Error, Unit] =
-    ox.either:
-
-      if models.isEmpty then
-        logger.info("No models to save.")
-        ()
-      else
-        models.map(databaseService.insertOrUpdateModel)
-  end save
 
   def isCellEditable(row: HardDriveTableRowViewModel | Null): Boolean =
     row != null && editableProperty()
@@ -134,6 +139,37 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
         case _ => scala.compiletime.error("`.ok()` can only be used within an `either` call.\nIs it present?")
       
   end extension
+
+
+
+  private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =
+    boundary:
+
+      var serials =
+        if ProgramMode.isInNormalMode then
+          notWipedDrives.map(_.serial).mkString(", ")
+        else
+          notWipedDrives.map(_.itsaID).mkString(", ")
+      end serials
+      serials = serials.patch(serials.lastIndexOf(", "), " & ", 0)
+      serials = if serials.split(", ").length == 2 then serials.replaceFirst(", ", "") else serials
+      serials = if serials.trim.startsWith("& ") then serials.replaceFirst("& ", "") else serials
+
+      val word = serials.length match
+        case 0 => boundary.break()
+        case 1 => "drive"
+        case _ => "drives"
+
+
+      new Alert(Information, s"The $word '$serials' have not been logged. Do you want to log them now?", ButtonType.Yes, ButtonType.No):
+        headerText = "No Wiping Records Found"
+        showAndWait() match
+          case Some(ButtonType.Yes) => shouldAddWipingRecords = true
+          case _ => ()
+  end showDrivesNotWipedAlert
+
+  private var shouldAddWipingRecords = false
+
 
 end HardDrivesTabViewModel
 

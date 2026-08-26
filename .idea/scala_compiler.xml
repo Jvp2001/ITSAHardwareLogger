@@ -7,6 +7,82 @@
     <option name="incrementalityType" value="IDEA" />
     <option name="separateProdTestSources" value="true" />
     <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.IssueReporter,ITSAHardwareLogger.itsaLogger,ITSAHardwareLogger.itsaLoggerFX,ITSAHardwareLogger.itsaLoggerFX~1,ITSAHardwareLogger.itsaLogger~1,itsahardwarelogger_7881,itsahardwarelogger_7881.main,itsahardwarelogger_7881.test" />
+    <profile name="sbt 10" modules="ITSAHardwareLogger.Backend.main">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/Backend/target/scala-3.8.2/meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 11" modules="ITSAHardwareLogger.Common.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/Common/target/scala-3.8.2/test-meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 12" modules="ITSAHardwareLogger.Common.main">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/Common/target/scala-3.8.2/meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 13" modules="ITSAHardwareLogger.HDSentinelReader.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-experimental" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/HDSentinelReader/target/scala-3.8.2/test-meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 14" modules="ITSAHardwareLogger.IssueReporter.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.8.2/test-meta" />
+      </parameters>
+    </profile>
     <profile name="sbt 2" modules="ITSAHardwareLogger.HDSentinelReader.main~1,ITSAHardwareLogger.HDSentinelReader.test~1,ITSAHardwareLogger.main~1,ITSAHardwareLogger.test~1">
       <parameters>
         <parameter value="-java-output-version" />
@@ -30,7 +106,7 @@
         <parameter value="-preview" />
       </parameters>
     </profile>
-    <profile name="sbt 4" modules="ITSAHardwareLogger.HDSentinelReader.main,ITSAHardwareLogger.HDSentinelReader.test,ITSAHardwareLogger.main,ITSAHardwareLogger.test">
+    <profile name="sbt 4" modules="ITSAHardwareLogger.HDSentinelReader.main">
       <parameters>
         <parameter value="-java-output-version" />
         <parameter value="24" />
@@ -41,9 +117,12 @@
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
         <parameter value="-experimental" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/HDSentinelReader/target/scala-3.8.2/meta" />
       </parameters>
     </profile>
-    <profile name="sbt 5" modules="ITSAHardwareLogger.Backend.main,ITSAHardwareLogger.Backend.test,ITSAHardwareLogger.Common.main,ITSAHardwareLogger.Common.test,ITSAHardwareLogger.IssueReporter.main,ITSAHardwareLogger.IssueReporter.test">
+    <profile name="sbt 5" modules="ITSAHardwareLogger.IssueReporter.main">
       <parameters>
         <parameter value="-java-output-version" />
         <parameter value="24" />
@@ -53,6 +132,25 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.8.2/meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 6" modules="ITSAHardwareLogger.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-experimental" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.2/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 7" modules="ITSAHardwareLogger.itsaLogger.main,ITSAHardwareLogger.itsaLogger.test,ITSAHardwareLogger.itsaLoggerFX.main,ITSAHardwareLogger.itsaLoggerFX.test,ITSAHardwareLogger.itsaLoggerFX~1.main,ITSAHardwareLogger.itsaLoggerFX~1.test,ITSAHardwareLogger.itsaLogger~1.main,ITSAHardwareLogger.itsaLogger~1.test">
@@ -62,6 +160,37 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
+      </parameters>
+    </profile>
+    <profile name="sbt 8" modules="ITSAHardwareLogger.main">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-experimental" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.8.2/meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 9" modules="ITSAHardwareLogger.Backend.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="24" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/Backend/target/scala-3.8.2/test-meta" />
       </parameters>
     </profile>
   </component>

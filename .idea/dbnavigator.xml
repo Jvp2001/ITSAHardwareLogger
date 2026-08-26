@@ -4,9 +4,18 @@
     <mappings />
     <preferences />
   </component>
+  <component name="DBNavigator.Project.DataEditorManager">
+    <record-view-column-sorting-type value="BY_INDEX" />
+    <value-preview-text-wrapping value="false" />
+    <value-preview-pinned value="false" />
+  </component>
   <component name="DBNavigator.Project.DatabaseAssistantManager">
     <assistants>
       <assistant-state connection-id="4e7469e4-0d88-4c1a-8e60-27d167f632ee" assistant-type="SELECT_AI" default-profile-name="" selected-chat-id="" availability="UNAVAILABLE" acknowledgement="NONE">
+        <tools />
+        <mcp-servers />
+      </assistant-state>
+      <assistant-state connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" assistant-type="PUBLIC" default-profile-name="" selected-chat-id="" availability="AVAILABLE" acknowledgement="NONE" selected="true">
         <tools />
         <mcp-servers />
       </assistant-state>
@@ -14,7 +23,19 @@
         <tools />
         <mcp-servers />
       </assistant-state>
-      <assistant-state connection-id="2656857d-47b4-48c9-a693-a7924d67bddc" assistant-type="PUBLIC" default-profile-name="" selected-chat-id="" availability="AVAILABLE" acknowledgement="NONE" selected="true">
+      <assistant-state connection-id="55272623-0e19-46a0-a92d-92538341a05e" assistant-type="PUBLIC" default-profile-name="" selected-chat-id="" availability="AVAILABLE" acknowledgement="NONE" selected="true">
+        <tools />
+        <mcp-servers />
+      </assistant-state>
+      <assistant-state connection-id="55272623-0e19-46a0-a92d-92538341a05e" assistant-type="SELECT_AI" default-profile-name="" selected-chat-id="" availability="UNAVAILABLE" acknowledgement="NONE">
+        <tools />
+        <mcp-servers />
+      </assistant-state>
+      <assistant-state connection-id="f016a528-cc22-4496-b6dd-51d487f1ff9a" assistant-type="PUBLIC" default-profile-name="" selected-chat-id="" availability="AVAILABLE" acknowledgement="NONE" selected="true">
+        <tools />
+        <mcp-servers />
+      </assistant-state>
+      <assistant-state connection-id="f016a528-cc22-4496-b6dd-51d487f1ff9a" assistant-type="SELECT_AI" default-profile-name="" selected-chat-id="" availability="UNAVAILABLE" acknowledgement="NONE">
         <tools />
         <mcp-servers />
       </assistant-state>
@@ -38,62 +59,38 @@
     <loaded-nodes />
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
-    <connection id="2656857d-47b4-48c9-a693-a7924d67bddc">
-      <console name="hwlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from info where genserial = 'System Serial Number';
-select genserial from info where genserial = 'System Serial Number';
+    <connection id="f016a528-cc22-4496-b6dd-51d487f1ff9a">
+      <console name="hwlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from disks where itsaid = '61792.5';
 
-
-
-
-delete from info where genserial = 'System Serial Number';]]></console>
-      <console name="hwlogger" type="STANDARD" schema="itsahw" session="Main"><![CDATA[# create a fake insert query for the info table 
- INSERT INTO hwlogger.info (
-  genId,
-  itsaID,
-  cpuVendor,
-  cpuSerial,
-  totalMemory,
-  cpuSpeed,
-  cpuDescription,
-  cpuProduct,
-  genDesc,
-  genProduct,
-  genserial,
-  genVendor,
-  cpuWidth,
-  os,
-  cpuCores,
-  insertionDate,
-  lastUpdated
-) VALUES (
-  'itsa-hwlogger 1.0.0',
-  'ITSA-12345',
-  'Intel',
-  'CPU-ABC-999',
-  '32 GB',
-  '3.60 GHz',
-  '8-core desktop processor',
-  'Core i7',
-  '',
-  'CPU',
-  'SYS-0001',
-  'Intel Corporation',
-  '64',
-  'Windows 11',
-  '8',
-  current_timestamp(), 
-  current_timestamp() 
-);]]></console>
+select * from info where cpuproduct LIKE 'AuthenticAMD';]]></console>
     </connection>
-    <connection id="bade82eb-dafc-4f24-ab5a-e3ce5903970e">
-      <console name="Connection" type="STANDARD" schema="mysql" session="Main" />
+    <connection id="55272623-0e19-46a0-a92d-92538341a05e">
+      <console name="hwloggertesting" type="STANDARD" schema="hwloggertests" session="Main"><![CDATA[select * from info;]]></console>
     </connection>
+  </component>
+  <component name="DBNavigator.Project.DatabaseEditorStateManager">
+    <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
     <open-files />
   </component>
+  <component name="DBNavigator.Project.DatabasePrerequisiteManager">
+    <prerequisites />
+  </component>
+  <component name="DBNavigator.Project.DatabaseSessionManager">
+    <connection id="f016a528-cc22-4496-b6dd-51d487f1ff9a" />
+    <connection id="55272623-0e19-46a0-a92d-92538341a05e" />
+  </component>
   <component name="DBNavigator.Project.ExecutionManager">
     <retain-sticky-names value="false" />
+  </component>
+  <component name="DBNavigator.Project.MethodExecutionManager">
+    <method-browser />
+    <execution-history>
+      <group-entries value="true" />
+      <execution-inputs />
+    </execution-history>
+    <execution-variables-cache />
   </component>
   <component name="DBNavigator.Project.ObjectQuickFilterManager">
     <last-used-operator value="EQUAL" />
@@ -109,7 +106,7 @@ delete from info where genserial = 'System Serial Number';]]></console>
       </state>
     </states>
     <connections>
-      <connection source-id="" id="2656857d-47b4-48c9-a693-a7924d67bddc" active="true" signed="true">
+      <connection source-id="" id="f016a528-cc22-4496-b6dd-51d487f1ff9a" active="true" signed="true">
         <database>
           <name value="hwlogger" />
           <description value="" />
@@ -142,7 +139,7 @@ delete from info where genserial = 'System Serial Number';]]></console>
           <session-user value="itsa@localhost" />
         </database>
         <properties>
-          <auto-commit value="true" />
+          <auto-commit value="false" />
         </properties>
         <ssh-settings>
           <active value="false" />
@@ -191,7 +188,7 @@ delete from info where genserial = 'System Serial Number';]]></console>
             <key-file value="" />
           </reverse-ssh-tunnel>
         </debugger>
-        <object-filters hide-empty-schemas="true" hide-pseudo-columns="false" hide-audit-columns="false">
+        <object-filters hide-empty-schemas="false" hide-pseudo-columns="false" hide-audit-columns="false">
           <object-filters />
           <object-type-filter use-master-settings="true">
             <object-type name="ROLE" enabled="true" />
@@ -228,27 +225,27 @@ delete from info where genserial = 'System Serial Number';]]></console>
           </object-type-filter>
         </object-filters>
       </connection>
-      <connection source-id="" id="bade82eb-dafc-4f24-ab5a-e3ce5903970e" active="true" signed="true">
+      <connection source-id="" id="55272623-0e19-46a0-a92d-92538341a05e" active="true" signed="true">
         <database>
-          <name value="Connection" />
+          <name value="hwloggertesting" />
           <description value="" />
           <database-type value="MYSQL" />
           <config-type value="BASIC" />
-          <database-version value="9999.0" />
+          <database-version value="12.3" />
           <driver-source value="BUNDLED" />
           <driver-library value="" />
           <driver value="" />
           <url-type value="DATABASE" />
           <host value="localhost" />
           <port value="3306" />
-          <database value="mysql" />
+          <database value="hwloggertesting" />
           <tns-folder value="" />
           <tns-profile value="" />
           <server-type value="" />
           <protocol value="" />
           <url-parameters />
           <type value="USER_PASSWORD" />
-          <user value="" />
+          <user value="itsa" />
           <token-type value="" />
           <token-config-file value="" />
           <token-profile value="" />
@@ -258,7 +255,7 @@ delete from info where genserial = 'System Serial Number';]]></console>
           <azure-token-tenant-id value="" />
           <azure-token-client-id value="" />
           <azure-token-client-certificate-file value="" />
-          <session-user value="" />
+          <session-user value="itsa@localhost" />
         </database>
         <properties>
           <auto-commit value="false" />
@@ -801,5 +798,9 @@ delete from info where genserial = 'System Serial Number';]]></console>
         </visibility-settings>
       </environment>
     </general-settings>
+  </component>
+  <component name="DBNavigator.Project.StatementExecutionManager">
+    <execution-variables />
+    <execution-variable-types />
   </component>
 </project>

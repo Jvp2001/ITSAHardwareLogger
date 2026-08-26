@@ -8,7 +8,7 @@ final case class Memory(
                          @Id id: Long,
                          size: String,
                          @SqlName("itsaid") itsaID: String,
-                         @SqlName("description") description: Option[String]
+                         @SqlName("descr") descr: Option[String]
                        ) extends HLEntityWithItsaID derives DbCodec
 
 object Memory:
@@ -18,5 +18,5 @@ object Memory:
 final case class MemoryCreator(
                                 size: String,
                                 @SqlName("itsaid") itsaID: String,
-                                @SqlName("description") description: Option[String] = None
+                                @SqlName("descr") descr: Option[String] = None
                               ) extends HLEntityCreatorWithItsaID derives DbCodec

@@ -19,20 +19,20 @@ trait HardwareGrabberService extends FrontendService:
 
   final class HardwareGrabberException(message: String) extends HLFrontendException(message)
 
-  final def generalInfo: Result[GeneralInfoModel] = loadGeneralInfo()
-  final def hardDrives: Result[HardDriveModel] = loadHardDrives()
-  final def memory: Result[MemoryModel] = loadMemory()
-  final def processors: Result[ProcessorModel] = loadProcessors()
-  final def media: Result[MediaModel] = loadMedia()
+  final def generalInfo(using ox.Ox): Result[GeneralInfoModel] = loadGeneralInfo()
+  final def hardDrives(using ox.Ox): Result[HardDriveModel] = loadHardDrives()
+  final def memory(using ox.Ox): Result[MemoryModel] = loadMemory()
+  final def processors(using ox.Ox): Result[ProcessorModel] = loadProcessors()
+  final def media(using ox.Ox): Result[MediaModel] = loadMedia()
   
-  def loadGeneralInfo(): Result[GeneralInfoModel]
+  def loadGeneralInfo()(using ox.Ox): Result[GeneralInfoModel]
 
-  def loadHardDrives(): Result[HardDriveModel]
+  def loadHardDrives()(using ox.Ox): Result[HardDriveModel]
 
-  def loadMemory(): Result[MemoryModel]
+  def loadMemory()(using ox.Ox): Result[MemoryModel]
 
-  def loadProcessors(): Result[ProcessorModel]
+  def loadProcessors()(using ox.Ox): Result[ProcessorModel]
 
-  def loadMedia(): Result[MediaModel]
+  def loadMedia()(using ox.Ox): Result[MediaModel]
 
 end HardwareGrabberService

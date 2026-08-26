@@ -1,3 +1,0 @@
-package org.itsadigitaltrust.hardwarelogger.backend
-
-class BackendTestServices

@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Operators.*
-import org.itsadigitaltrust.common.Result
 
 import org.itsadigitaltrust.hardwarelogger.services.IDParser.ParserError.ScannerError
 import org.itsadigitaltrust.hardwarelogger.services.IDScanner.Token
@@ -189,7 +188,6 @@ final class IDParser:
             handleTokens(tokens, index + 1, result.copy(checkDigit = Some(value)))
 
         case Token.DecimalPoint =>
-          print("found decimal point")
           if index < 2 && result.number.isEmpty then
             ParserError.MissingNumber.fail()
           else if result.decimal.isDefined then

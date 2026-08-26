@@ -64,7 +64,7 @@ object IPAddressFinder:
     .toSeq.sortBy(_._2).lastOption.match
       case Some(value) => value._1._1
       case _ => null
-    |> Option[String]
+   |> Option[String]
 
 end IPAddressFinder
 

@@ -6,8 +6,6 @@ import com.augustnagro.magnum.Id
  transparent trait ItsaIDOfSomeKind:
   def getItsaID: String
 
-
-
 private[backend] transparent sealed trait HddID extends ItsaIDOfSomeKind:
   val hddID: String
 
@@ -18,15 +16,14 @@ private[backend] transparent sealed trait ItsaID extends ItsaIDOfSomeKind:
 
   override def getItsaID: String = itsaID
   
-
-sealed trait HLEntity:
+  
+into sealed trait HLEntity extends Selectable:
   @Id val id: Long
 trait HLEntityWithItsaID extends HLEntity with ItsaID
 trait HLEntityWithHardDiskID extends HLEntity with HddID
 type HLEntityWithSomeKindOfID = (HLEntityWithItsaID | HLEntityWithHardDiskID) & ItsaIDOfSomeKind
 
-sealed trait HLEntityCreator
-transparent trait HLEntityCreatorWithItsaID extends HLEntityCreator with ItsaID
-transparent trait HLEntityCreatorWithHardDiskID extends HLEntityCreator with HddID
+into sealed trait HLEntityCreator extends Selectable
+into transparent trait HLEntityCreatorWithItsaID extends HLEntityCreator with ItsaID
+into transparent trait HLEntityCreatorWithHardDiskID extends HLEntityCreator with HddID
 type HLEntityCreatorWithSomeKindOfID = (HLEntityCreatorWithItsaID | HLEntityCreatorWithHardDiskID) & ItsaIDOfSomeKind
-

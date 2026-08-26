@@ -1,1 +1,0 @@
-package org.itsadigitaltrust.hardwarelogger.backend

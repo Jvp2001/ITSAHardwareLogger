@@ -18,10 +18,20 @@ object Lshw:
     om
 
 
-  enum LshwError extends Throwable:
+  enum LshwError:
     case NoMediaDrivesFound
     case DeserialisationError
     case UnknownError(e: Throwable)
+
+    override def toString: String = 
+      this match
+        case NoMediaDrivesFound => "No media drives found"
+        case DeserialisationError => "Deserialisation error"
+        case UnknownError(e) => s"Unknown error: ${e.getMessage}"
+        
+  end LshwError
+  
+    
 
   def readDisks(`class`: String = "disk")(using ProcessConfig)(using logger: HWLLoggable)(using testing: Boolean = false): Either[SudoError | LshwError, Seq[CdRom]] =
     try
@@ -62,11 +72,3 @@ object Lshw:
   end readDisks
 
 end Lshw
-
-
-
-
-
-
-
-

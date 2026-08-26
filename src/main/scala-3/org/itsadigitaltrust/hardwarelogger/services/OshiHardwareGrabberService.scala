@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 import org.itsadigitaltrust.common.Maths.*
 import org.itsadigitaltrust.common.Operators.{??, *}
 import org.itsadigitaltrust.common.processes.lshw.types.CdRom
-import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk}
+import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk, SudoError}
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.common.types.FrequencyUnit
@@ -13,6 +13,7 @@ import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, Har
 import org.itsadigitaltrust.hdsentinelreader.HDSentinalReader
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import org.itsadigitaltrust.common.asPercentage
+import org.itsadigitaltrust.common.processes.lshw.Lshw.LshwError
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.databaseService
 import org.itsadigitaltrust.hardwarelogger.core.Givens.HLProcessConfig
 import oshi.SystemInfo
@@ -107,7 +108,7 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
 
 
 
-  override def loadGeneralInfo(): Result[GeneralInfoModel] =
+  override def loadGeneralInfo()(using ox.Ox): Result[GeneralInfoModel] =
     import org.itsadigitaltrust.hardwarelogger.core.Givens.given
     ox.either:
       try
@@ -115,7 +116,9 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
         val model = hal.getComputerSystem.getModel
         val vendor = hal.getComputerSystem.getManufacturer
         val os = System.getProperty("os.name")
-        val id = databaseService.findItsaIdBySerialNumber(serialNumber).toOption
+        // Without the explicit type argument `M` is minimised to `Nothing`, no mapper can be
+        // summoned and the lookup can never succeed.
+        val id = databaseService.findBySerialNumber[GeneralInfoModel](serialNumber).toOption.flatMap(_.itsaID)
         val description = Dmidecode("chassis-type").orThrow ?? "Unknown"
         val info = GeneralInfoModel("itsa-hwlogger", description = description,
           model = model,
@@ -131,7 +134,7 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   end loadGeneralInfo
 
 
-  override def loadHardDrives(): Result[HardDriveModel] =
+  override def loadHardDrives()(using ox.Ox): Result[HardDriveModel] =
     import org.itsadigitaltrust.hardwarelogger.core.Givens.given
     ox.either:
       try
@@ -148,15 +151,14 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
 
 
         hardDiskSummaries.map: hardDiskSummary =>
-
-          val generalInfo = loadGeneralInfo().ok()
+          
           val driveId: String =
-            val drive = databaseService.findDriveBySerialNumber(hardDiskSummary.hardDiskSerialNumber)
+            val drive = databaseService.findBySerialNumber[HardDriveModel](hardDiskSummary.hardDiskSerialNumber)
             drive.map(_.itsaID) ?? ""
 
-          val pcItsaId =
-            val id = databaseService.findItsaIdBySerialNumber(hal.getComputerSystem.getSerialNumber)
-            id ?? ""
+          val pcItsaId: String =
+            databaseService.findBySerialNumber[GeneralInfoModel](hal.getComputerSystem.getSerialNumber)
+              .toOption.flatMap(_.itsaID) ?? ""
 
 
           val id: String =
@@ -221,7 +223,7 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
 
 
 
-  override def loadMemory(): Result[MemoryModel] =
+  override def loadMemory()(using ox.Ox): Result[MemoryModel] =
     ox.either:
       hal.getMemory.getPhysicalMemory.asScala.map: memory =>
         val size = memory.getCapacity.GiB
@@ -231,7 +233,7 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   end loadMemory
 
 
-  override def loadProcessors(): Result[ProcessorModel] =
+  override def loadProcessors()(using ox.Ox): Result[ProcessorModel] =
     ox.either:
       try
         val proc = hal.getProcessor
@@ -255,24 +257,33 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   end loadProcessors
 
 
+  // ... existing code ...
 
-  override def loadMedia(): Result[MediaModel] =
+  override def loadMedia()(using ox.Ox): Result[MediaModel] =
     ox.either:
       try
-        val cds: Seq[CdRom] = org.itsadigitaltrust.common.processes.Lshw.readDisks().orThrow
+        org.itsadigitaltrust.common.processes.Lshw.readDisks() match
+          case Right(cds) =>
+            def toModel(cd: CdRom): MediaModel = MediaModel(cd.description, cd.handle)
 
-        def toModel(cd: CdRom): MediaModel = MediaModel(cd.description, cd.handle)
-        val result = cds.map(_ |> toModel)
-        result
+            cds.map(_ |> toModel)
+
+          case Left(error) =>
+            LoadError(error.toString).fail()
       catch
         case e: Exception =>
-          logger.trace("Error while loading hard drive info", e)
+          logger.trace("Error while loading media info", e)
           LoadError(e).fail()
+  
+
+  // ... existing code ...
   
 
 end OshiHardwareGrabberService
 
-object OshiHardwareGrabberApplicationService extends ApplicationServicesRegistry, OshiHardwareGrabberService
+object OshiHardwareGrabberApplicationService extends  OshiHardwareGrabberService:
+  private[services] lazy val instance = new OshiHardwareGrabberService() {}
+  
   
 
 

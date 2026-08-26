@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.issuereporter
 
 import org.itsadigitaltrust.common.Operators.*
-import org.itsadigitaltrust.common.{PropertyFileReader, Result}
+import org.itsadigitaltrust.common.propertyfile.PropertyFileReader
 
 import org.kohsuke.github.GitHubBuilder
 

@@ -41,6 +41,8 @@ object Operators:
     def ??(default: => T): T =
       option.getOrElse(default)
 
+    def ???(other: => T): Option[T] =
+      option.orElse(other.?)
   
   extension[T](option: Option[T] | T | Try[T] | Try[Option[T]])
 
