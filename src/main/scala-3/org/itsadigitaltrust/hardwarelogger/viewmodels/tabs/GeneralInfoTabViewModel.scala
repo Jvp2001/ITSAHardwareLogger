@@ -1,0 +1,9 @@
+package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
+
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.GeneralInfoModel
+import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
+import org.itsadigitaltrust.hardwarelogger.services.database.HLDatabaseService
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{ListenerExecutionConditionContext, PerformBackendValidationListener}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.GeneralInfoTableRowViewModel
+
+class GeneralInfoTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService) extends TabTableViewModel[GeneralInfoModel, GeneralInfoTableRowViewModel](GeneralInfoTableRowViewModel.apply, _.info)
