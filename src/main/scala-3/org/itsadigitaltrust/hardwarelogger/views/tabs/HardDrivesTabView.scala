@@ -36,13 +36,13 @@ class ItsaIDConverter(model: HardDriveTableRowViewModel) extends StringConverter
     t
 
 
-class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using applicationState: HardwareLoggerApplicationState)(using HardwareGrabberService) extends TabTableView[HardDriveModel, HardDriveTableRowViewModel]:
+class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel)(using HardwareGrabberService) extends TabTableView[HardDrivesTabViewModel]:
 
 
   requestFocus()
 
-  HardDriveTableRowViewModel.apply ||> applicationState.hardDrives ?? Seq.empty |> asJavaCollection |> items.value.setAll
-  //  items.value.setAll(applicationState.hardDrives.map(_.map(HardDriveTableRowViewModel.apply)) ?? Seq() *)
+  HardDriveTableRowViewModel.apply ||> sharedApplicationData.drives ?? Seq.empty |> asJavaCollection |> items.value.setAll
+  //  items.value.setAll(sharedApplicationData.hardDrives.map(_.map(HardDriveTableRowViewModel.apply)) ?? Seq() *)
 
   private given rowDelegate: Option[TableRowDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel)
   //  override val rowDelegate: WeakReference[TableRowDelegate[HardDriveTableRowViewModel]] = tabViewModel.rowDelegate
@@ -103,8 +103,8 @@ class HardDriveTableView(tabViewModel: HardDrivesTabViewModel)(using application
 end HardDriveTableView
 
 
-class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends BorderPane with TabDelegate with View[HardDrivesTabViewModel]:
-  private val tableView = new HardDriveTableView(viewModel)
+class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService) extends BorderPane with TabDelegate with View[HardDrivesTabViewModel]:
+  private val tableView = new HardDriveTableView
 
   override given viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel
 

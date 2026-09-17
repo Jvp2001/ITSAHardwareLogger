@@ -8,8 +8,14 @@ trait HardwareGrabberModule:
   given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberApplicationService.instance
 
 trait DatabaseModule(using localhost: Boolean = false) extends HardwareGrabberModule:
-  private given dataSourceLoader: DataSourceLoader = new DataSourceLoader
+  private given dbProps: DBProperties = DBProperties.default.copy(
+//    name = "hwlogger",
+    //fallbackAddress = "192.168.1.155",
 
+  )
+  private given dataSourceLoader: DataSourceLoader = new DataSourceLoader(Option(dbProps))
+
+  
   private given backend: HLDatabase = new MySQLHLDatabase
   given databaseService: HLDatabaseService = MySQLHardwareLoggerDatabaseService()
 

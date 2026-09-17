@@ -8,5 +8,5 @@ object Conversions:
     case _ => true
     
   given[A]: Conversion[A, Option[A]] = _.toOption
-    
+  
 export Conversions.*

@@ -9,7 +9,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.ViewModel
 
 import scala.reflect.ClassTag
 
-trait TableRowViewModel[M <: HLModel : ClassTag](_model: M)(using applicationState: HardwareLoggerApplicationState) extends ViewModel:
+trait TableRowViewModel[M <: HLModel : ClassTag](_model: M) extends ViewModel:
   protected val wrapper: ModelWrapper[M] = ModelWrapper(_model)
   final val model: M = _model
 

@@ -30,6 +30,9 @@ object Operators:
       either.getOrElse(default)
     def ??[E2](func: E => E2) : Either[E2, T] =
       either.left.map(func)
+      
+    def ? :Option[T] =
+      either.toOption
     
     
 
@@ -41,8 +44,10 @@ object Operators:
     def ??(default: => T): T =
       option.getOrElse(default)
 
-    def ???(other: => T): Option[T] =
-      option.orElse(other.?)
+  extension[T](t: T)
+    def :??(option: Option[T]): T =
+      option.getOrElse(t)
+
   
   extension[T](option: Option[T] | T | Try[T] | Try[Option[T]])
 

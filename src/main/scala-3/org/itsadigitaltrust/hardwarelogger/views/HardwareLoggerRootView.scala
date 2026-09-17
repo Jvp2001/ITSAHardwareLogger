@@ -1,7 +1,5 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
-
-import org.itsadigitaltrust.TupleUtils
 import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -11,6 +9,7 @@ import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IssueReporterService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
+import org.itsadigitaltrust.hardwarelogger.ui.ThemeSelectionMenu
 import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{MemoryTableRowViewModel, TableRowViewModel}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
@@ -20,6 +19,7 @@ import scalafx.application.Platform
 import scalafx.beans.value.ObservableValue
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar}
+import scalafx.scene.input.{KeyCodeCombination, KeyCombination}
 
 import scala.collection.mutable
 import scala.util.Try
@@ -27,15 +27,10 @@ import scala.util.Try
 class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationState)(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)(using HardwareIDValidationService, IssueReporterService) extends BorderPane with View[HardwareLoggerRootViewModel] with HWLoggerShowMessage:
   override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
 
-
-  Try(getClass.getClassLoader.getResource("org/itsadigitaltrust/hardwarelogger/views/stylesheets/common.css").toString) match
-    case scala.util.Success(value) => stylesheets += value
-    case scala.util.Failure(e) => showException("Stylesheet Loading Error", "Failed to load the common stylesheet!", e)
-
-
+  //stylesheets += stylesheet"common.css"
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
   
-  private type TabsMapKey = "General" | "Memory" | "Processor" | "HDD" | "Media" | "Debug"
+  private type TabsMapKey = "General" | "Memory" | "Processor" | "HDD" | "Media" | "Debug" | "Battery"
 
     private val generalTab = createTab("General", new GeneralInfoTabView)
     private val memoryTab = createTab("Memory", new MemoryTabView)
@@ -48,24 +43,34 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
   private final val viewMenu = new Menu("_View"):
     private final val modeMenu = new Menu("_Mode"):
       items ++= Seq(
-        new CheckMenuItem("Normal"):
-          onAction = _ =>
+      new CheckMenuItem("Normal"):
+        accelerator = new KeyCodeCombination(KeyCode.N, KeyCombination.ShortcutDown, KeyCombination.AltDown)
+        onAction = _ =>
             switchMode("Normal")
-          selected <==> ProgramMode.isModeNormal
+        selected <==> ProgramMode.isModeNormal
         ,
         new CheckMenuItem("HardDrive"):
+          accelerator = new KeyCodeCombination(KeyCode.H, KeyCombination.ShortcutDown, KeyCombination.AltDown)
           onAction = _ =>
             switchMode("HardDrive")
           selected <==> ProgramMode.isHardDriveMode
         ,
       )
     end modeMenu
-    items += modeMenu
+    private val themeMenu = new ThemeSelectionMenu()
+    
+    items ++= Seq(modeMenu, themeMenu)
 
   end viewMenu
   private final val menuBar = new MenuBar:
     useSystemMenuBar = true
     disable <== viewModel.disableNodeWhileTaskRunningProperty
+    private final val fileMenu = new Menu("File"):
+      items ++= Seq(
+        new MenuItem("Quit"):
+          accelerator = new KeyCodeCombination(KeyCode.Q, KeyCombination.ShortcutDown)
+          onAction = _ => Platform.exit()
+      )
     private final val helpMenu = new Menu("_Help"):
       items ++= Seq(
         new MenuItem("Report"):
@@ -73,9 +78,11 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
         //          onAction = _ => ItsaDebugView.report(viewModel.issueReporterService.report)
         ,
         new MenuItem("About"):
+
           onAction = _ => Dialogs.showAboutDialog()
       )
     menus ++= Seq(
+      fileMenu,
       viewMenu,
       helpMenu
     )
@@ -186,6 +193,7 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
 
 
   private final val contentBorderPane = new BorderPane():
+    styleClass += "page"
     alignmentInParent = Center
     top = topContainer
     disable <== viewModel.disableNodeWhileTaskRunningProperty
@@ -204,10 +212,8 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
 
   bottom = new HBox(20):
     private final val statusLabel = new Label:
-      text <== viewModel.taskMessageProperty
-      text.onChange: (_, oldValue, newValue) =>
-        ()
-      visible <== viewModel.disableNodeWhileTaskRunningProperty
+      this.text <== viewModel.taskMessageProperty
+      visible <== viewModel.disableNodeWhileTaskRunningProperty || viewModel.taskMessageProperty.isNotEmpty
       styleClass += "status-label"
       maxWidth = Double.PositiveInfinity
       minWidth = 200.0
@@ -223,12 +229,13 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
       alignment = CenterRight
       padding = Insets(0, 10.0, 0, 0)
     end progressBar
-    visible <== viewModel.disableNodeWhileTaskRunningProperty
-    managed <== viewModel.disableNodeWhileTaskRunningProperty
+    visible <== viewModel.disableNodeWhileTaskRunningProperty || viewModel.taskMessageProperty.isNotEmpty
+    managed <== this.visible
     children ++= Seq(statusLabel, region, progressBar)
 
 
-  private def createTab(title: TabsMapKey)(rootContent: => Node): Tab =
+  private def createTab(title: TabsMapKey)(
+    rootContent: => Node): Tab =
     createTab(title, rootContent)
 
   private def createTab(title: TabsMapKey, rootContent: Node): Tab =
@@ -246,6 +253,13 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
 
     tab
   end createTab
+
+
+  onKeyPressed = event =>
+    val code = event.code
+    if code == KeyCode.F5 then
+      viewModel.reload()
+    end if
 
   viewModel.idFieldFocusProperty.onChange: (_, oldValue, newValue) =>
     if newValue then
@@ -274,6 +288,9 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
             mediaTab,
             debugTab
           )
+          logger.warn(s"Has a battery: ${viewModel.hasABattery}.")
+          if (sharedApplicationData.battery ?? Seq()).nonEmpty then
+            tabPane.tabs.add(createTab("Battery", new BatteryStatusTabView))
         case "Both" => ()
       end match
 
@@ -281,7 +298,6 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
   //  end onProgramModeChanged
 
 
-  this.viewModel.disabledNodes += this
   viewModel.shouldCaretBeAtEnd.onChange: (op, oldValue, newValue) =>
     if newValue then
       idTextField.end()

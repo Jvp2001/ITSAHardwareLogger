@@ -10,7 +10,8 @@ import scala.util.NotGiven
 trait HardwareGrabberService extends FrontendService:
   sealed trait Error extends Throwable
   final case class LoadError(message: String, cause: Throwable) extends Error
-
+  final case class InvalidPermissionsError() extends Error
+  
   object LoadError:
     def apply(message: String): LoadError = new LoadError(message, null)
     def apply(cause: Throwable): LoadError = new LoadError(cause.getMessage, cause)
@@ -18,12 +19,7 @@ trait HardwareGrabberService extends FrontendService:
   final type Result[T] = Either[Error, Seq[T]]
 
   final class HardwareGrabberException(message: String) extends HLFrontendException(message)
-
-  final def generalInfo(using ox.Ox): Result[GeneralInfoModel] = loadGeneralInfo()
-  final def hardDrives(using ox.Ox): Result[HardDriveModel] = loadHardDrives()
-  final def memory(using ox.Ox): Result[MemoryModel] = loadMemory()
-  final def processors(using ox.Ox): Result[ProcessorModel] = loadProcessors()
-  final def media(using ox.Ox): Result[MediaModel] = loadMedia()
+  
   
   def loadGeneralInfo()(using ox.Ox): Result[GeneralInfoModel]
 
@@ -35,4 +31,10 @@ trait HardwareGrabberService extends FrontendService:
 
   def loadMedia()(using ox.Ox): Result[MediaModel]
 
+  
+  
+  /**
+   This is only an option because it may not be present on all systems
+   */
+  def loadBatteryStatus()(using ox.Ox): Option[BatteryStatusModel]
 end HardwareGrabberService

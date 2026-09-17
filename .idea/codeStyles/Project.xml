@@ -1,5 +1,6 @@
 <component name="ProjectCodeStyleConfiguration">
   <code_scheme name="Project" version="173">
+    <option name="AUTODETECT_INDENTS" value="false" />
     <DBN-PSQL>
       <case-options enabled="true">
         <option name="KEYWORD_CASE" value="lower" />
@@ -24,5 +25,9 @@
         <option name="ITERATION_ELEMENTS_WRAPPING" value="chop_down_if_not_single" />
       </formatting-settings>
     </DBN-SQL>
+    <ScalaCodeStyleSettings>
+      <option name="USE_SCALA3_INDENTATION_BASED_SYNTAX" value="true" />
+      <option name="REPLACE_FOR_GENERATOR_ARROW_WITH_UNICODE_CHAR" value="true" />
+    </ScalaCodeStyleSettings>
   </code_scheme>
 </component>

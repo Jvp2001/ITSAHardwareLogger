@@ -45,7 +45,7 @@ private[database] trait DBOperationLifecycle[M <: HLModel]:
       // 1. Audit the initial state before committing mutations
       queryTableState(models, "BEFORE_SAVE")
   
-      // 2. Perform table synchronization transformations (Creates / Deletes)
+      // 2. Perform table synchronisation transformations (Creates / Deletes)
       val synchronisedModels = executeSyncRules(models*).ok()
   
       // 3. Re-verify table rows match expected results following mutation completion

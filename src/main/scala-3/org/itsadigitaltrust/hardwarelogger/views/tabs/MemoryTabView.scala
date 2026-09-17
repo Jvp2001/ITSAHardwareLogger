@@ -32,11 +32,11 @@ final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService, 
     styleClass += "total-memory-container"
   
   children += totalMemoryContainer
-  children += new TableView[MemoryTableRowViewModel]:
+  children += new TabTableView[MemoryTabViewModel]:
     vgrow = Always
-//    items.value.setAll(applicationState.memory.map(_.map(MemoryTableRowViewModel.apply)) ?? Seq() *)
+//    items.value.setAll(sharedApplicationData.memory.map(_.map(MemoryTableRowViewModel.apply)) ?? Seq() *)
     MemoryTableRowViewModel.apply
-      ||> applicationState.memory ?? Seq.empty
+      ||> sharedApplicationData.memory ?? Seq.empty
       |> CollectionConverters.asJavaCollection
       |> items.value.setAll
     columns ++= Seq(

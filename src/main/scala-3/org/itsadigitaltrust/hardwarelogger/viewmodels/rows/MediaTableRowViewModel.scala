@@ -35,7 +35,7 @@ import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
 
-final class MediaTableRowViewModel(model: MediaModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[MediaModel](model):
+final class MediaTableRowViewModel(model: MediaModel)(using HardwareGrabberService) extends TableRowViewModel[MediaModel](model):
   def descriptionProperty: StringProperty =
     wrapper.field("description", _.description, "")(StringProperty.apply)
 

@@ -5,7 +5,7 @@ import scalafx.beans.property.*
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, given}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
-final class ProcessorTableRowViewModel(model: ProcessorModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[ProcessorModel](model):
+final class ProcessorTableRowViewModel(model: ProcessorModel)(using HardwareGrabberService) extends TableRowViewModel[ProcessorModel](model):
   def nameProperty: StringProperty =
     wrapper.field("name", _.name, "")(StringProperty.apply)
 

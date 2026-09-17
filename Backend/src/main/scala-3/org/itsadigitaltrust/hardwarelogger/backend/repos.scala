@@ -9,7 +9,6 @@ import org.itsadigitaltrust.hardwarelogger.backend.database.RepoInstancesContain
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.repos.HLRepoWithID
 import ox.either.{fail, ok}
-import sun.jvm.hotspot.runtime.PerfMemory.end
 
 import java.sql.Timestamp
 import java.time.OffsetDateTime
@@ -29,7 +28,6 @@ type ECTableInfo[EC <: HLEntityWithSomeKindOfID] = TableInfo[EC, ? <: HLEntityWi
 
 object repos extends RepoInstancesContainer:
 
-
   given diskRepo: DiskRepo = new DiskRepo()
 
   given wipingRepo: WipingRepo = WipingRepo()
@@ -40,11 +38,14 @@ object repos extends RepoInstancesContainer:
 
   given memoryRepo: MemoryRepo = MemoryRepo()
 
-  trait HLRepo[EC <: HLEntityCreator : ClassTag, E <: HLEntity] extends Repo[EC, E, Long]:
+  trait HLRepo[EC <: HLEntityCreator : ClassTag, E <: HLEntity] extends Repo[EC, E, Long], HWLLoggable:
     given table: TableInfo[EC, E, Long] = deferred
 
   trait HLRepoWithID[EC <: HLEntityCreatorWithSomeKindOfID : {ClassTag, DbCodec}, E <: HLEntityWithSomeKindOfID : DbCodec] extends HLRepo[EC, E]:
 
+
+    protected final val itsaIDErrorSuffixPattern: Regex = ".*-E[0-9]+$".r
+    
 
 
     def findAllByIDSuffixedWith(creator: EC, suffix: String)(using DbCon): Vector[Option[E]] =
@@ -53,16 +54,20 @@ object repos extends RepoInstancesContainer:
 
     def findAllByIDStartingWith(id: String)(using DbCon): Vector[Option[E]] =
 
-      var tableName = classTag[EC].runtimeClass.getSimpleName.replace("Creator", "").toLowerCase
       // Either itsaid or hdd_id
       val idColName = getItsaIDFieldName
 
-      tableName = if tableName == "disk" then "disks" else tableName
 
-      val frag = sql"select * from $table whe re ${table.selectDynamic(getItsaIDFieldName)} like '$id%'"
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$id%'"
+      print(frag)
       frag.query[E].run().toVectorOfOptions
     end findAllByIDStartingWith
 
+    def findAllByIDEndingWith(id: String)(using DbCon): Vector[Option[E]] =
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '%$id'"
+      frag.query[E].run().toVectorOfOptions
+    end findAllByIDEndingWith
+    
     def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
       val scalaName = (idScalaName, old)
       val frag =
@@ -94,37 +99,39 @@ object repos extends RepoInstancesContainer:
         "id"
     end getPrimaryKeyColumnName
 
-
-    def updateItsaID(currentItsaID: String, entity: E)(using DbCon): Unit =
-      val frag = sql"update $table set ${table.selectDynamic(getItsaIDFieldName)} = ${entity.getItsaID} where ${table.selectDynamic(getItsaIDFieldName)} = $currentItsaID"
+    def updateItsaIDFromCreator(oldItsaID: String, newItsaID: String)(using DbCon): Unit =
+      val frag = sql"update $table set ${table.selectDynamic(getItsaIDFieldName)} = ${newItsaID} where ${table.selectDynamic(getItsaIDFieldName)} = $oldItsaID"
       frag.update.run()
 
-    def findFirstByItsaID(itsaID: String)(using DbCon): Option[E] =
-      val result = findAllByItsaID(itsaID).headOption
-      result
 
-    //    def myInsert(creator: EC)(using con: DbCon, table: HLTableInfo[EC, E]): HLDBTransactionResult[EC, E, Unit] =
-    //
-    //      Using(con.connection.prepareStatement(sql"insert into $table values $creator".sqlString)): ps =>
-    //        dbCodec.writeSingle(creator, ps)
-    //        timed(ps.executeUpdate())
-    //      match
-    //        case Failure(exception) => Left(HLDBErrorException(exception.getMessage, EntryAlreadyExists(""), table, exception.getCause))
-    //        case Success(value) => Right(value)
-    //    end myInsert
+    def updateItsaID(oldItsaID: String, entity: E)(using DbCon): Unit =
+      val frag = sql"update $table set ${table.selectDynamic(getItsaIDFieldName)} = ${entity.getItsaID} where ${table.selectDynamic(getItsaIDFieldName)} = $oldItsaID"
+      frag.update.run()
 
-    def findAllByItsaID(id: String)(using DbCon): Vector[E] =
-      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} = $id"
-      val result = frag.query[E].run()
-      result
-    end findAllByItsaID
 
-    private def getItsaIDFieldName: String =
+
+
+    
+    def findByItsaID(itsaID: String)(using DbCon): Option[E] =
+      findAllByItsaID(itsaID).headOption.flatten
+
+
+    /**
+     * Some tables allow multiple rows with the same ITSA ID (for example, the memory table).
+      * @param itsaID the ITSA ID to find 
+     * @param x$2 the database connection
+     * @return All the rows matching the [[itsaID]] exactly.
+     */  
+    def findAllByItsaID(itsaID: String)(using DbCon): Vector[Option[E]] =
+//      sql"""select * from $table where ${table.selectDynamic(getItsaIDFieldName)} regexp  ${s"^$itsaID[A-Z]?$"}""".query[E].run().headOption
+      sql"""select * from $table where ${table.selectDynamic(getItsaIDFieldName)} = $itsaID""".query[E].run().toVectorOfOptions
+      
+    protected def getItsaIDFieldName: String =
       if summon[ClassTag[EC]] == classTag[WipingCreator] then
-        HWLLoggable.default().info("ItsaID Field name: hddID")
+        logger.info("ItsaID Field name: hddID")
         "hddID"
       else
-        HWLLoggable.default().info("ItsaID Field name: itsaID")
+        logger.info("ItsaID Field name: itsaID")
         "itsaID"
 
     def findFirstByField(fieldName: String)(using DbCon): Option[E] =
@@ -143,7 +150,7 @@ object repos extends RepoInstancesContainer:
 
     def markRowAsError(itsaID: String)(using DbCon): HLDBTransactionResult[Unit] =
       ox.either:
-        val entity = findFirstByItsaID(itsaID) ?? HLDBErrorCode.NoEntriesFound.fail()
+        val entity = findByItsaID(itsaID) ?? HLDBErrorCode.NoEntriesFound.fail()
         val totalErrorCount = getAllWithErrorSuffix(itsaID)
         
         this.updateItsaID(s"$itsaID-E$totalErrorCount", entity)
@@ -154,24 +161,27 @@ object repos extends RepoInstancesContainer:
       frag.update.run()
     end deleteByItsaID
     
-    
-    def replaceItsaID(oldItsaID: String, newItsaID: String)(using DbCon): Unit =
-      val frag = sql"update $table set ${table.selectDynamic(getItsaIDFieldName)} = $newItsaID where ${table.selectDynamic(getItsaIDFieldName)} = $oldItsaID"
-      frag.update.run()
 
   end HLRepoWithID
 
   trait HLRepoWithSerial[EC <: HLEntityCreatorWithSomeKindOfID : DbCodec, E <: HLEntityWithSomeKindOfID] extends HLRepoWithID[EC, E]:
 
     lazy val serialColumnScalaName: String = "genSerial"
+
+    def findItsaIDBySerialNumber(serial: String)(using DbCon, DbCodec[E]): Option[String] =
+      findBySerialNumber(serial).map(_.getItsaID)
+
     
-    def findItsaIDBySerialNumber(serial: String)(using DbCon): Option[String] =
-      val frag = sql"select itsaid from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial"
-      frag.query[String].run().lastOption
-    
-    def findFirstBySerial(serial: String)(using DbCon, DbCodec[E]): Option[E] =
-      val frag = sql"select * from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial"
-      frag.query[E].run().headOption
+    def findBySerialNumber(serial: String)(using DbCon, DbCodec[E]): Option[E] =
+      // Prefer entries whose itsaID does NOT end with an error suffix like -E<number>
+      val nonErrorPattern = itsaIDErrorSuffixPattern
+      val nonErrorFrag = sql"select * from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial and ${table.selectDynamic(getItsaIDFieldName)} not regexp ${nonErrorPattern.toString}"
+      val nonErrorResult = nonErrorFrag.query[E].run().headOption
+      if nonErrorResult.nonEmpty then nonErrorResult
+      else
+        val frag = sql"select * from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial"
+        frag.query[E].run().headOption
+    end findBySerialNumber
     
     def updateItsaIDBySerial(entityCreator: EC)(using DbCon): Unit =
       val frag = sql"update $table set itsaid = ${table.selectDynamic("itsaID")} where ${table.selectDynamic(serialColumnScalaName)} = ${table.selectDynamic(serialColumnScalaName)}"
@@ -193,7 +203,7 @@ object repos extends RepoInstancesContainer:
 
 
     def updateItsaID(entityCreator: InfoCreator, newItsaID: String)(using DbCon): Unit =
-      findFirstByItsaID(entityCreator.itsaID).foreach: entity =>
+      findByItsaID(entityCreator.itsaID).foreach: entity =>
         entity.copy(itsaID = newItsaID) |> this.update
 
 
@@ -215,8 +225,15 @@ object repos extends RepoInstancesContainer:
       frag.query[Disk].run()
 
     def findDiskRecord(serial: String)(using DbCon)(using table: HLTableInfo[DiskCreator, Disk]): Option[Disk] =
-      val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
-      frag.query[Disk].run().headOption
+      // Prefer non-error itsaID entries first
+      val nonErrorPattern = ".*-E[0-9]+$"
+      val nonErrorFrag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial and ${table.selectDynamic(getItsaIDFieldName)} not regexp $nonErrorPattern"
+      val nonError = nonErrorFrag.query[Disk].run().headOption
+      if nonError.nonEmpty then nonError
+      else
+        val frag = sql"select * from $table where ${table.selectDynamic("serial")} = $serial"
+        frag.query[Disk].run().headOption
+    end findDiskRecord
   
   end DiskRepo
   

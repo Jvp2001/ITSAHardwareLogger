@@ -1,62 +1,70 @@
-    package org.itsadigitaltrust.hardwarelogger.viewmodels
+package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
 import javafx.concurrent
-import org.itsadigitaltrust.common.Operators.{??, toOption, |>}
+import org.itsadigitaltrust.common.Operators.{??, toOption}
 import org.itsadigitaltrust.common.forkJoin
-import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.common.macros.NameOf
+import org.itsadigitaltrust.common.processes.tlp.TlpStat
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, ValidationWarningDialog}
-import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, MediaModel, ProcessorModel}
-import org.itsadigitaltrust.hardwarelogger.models.{HLModel, HardDriveModel}
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{BackendValidationEvent, NotificationCentre, TabPreparationEvent}
+import org.itsadigitaltrust.hardwarelogger.dialogs.DetailedValidationAlert
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.GeneralInfoModel
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{BackendValidationEvent, NotificationCentre, SaveToDBEvent}
 import org.itsadigitaltrust.hardwarelogger.services.validation.{GlobalValidationContext, HLDBValidationError, ValidationIssue}
-import org.itsadigitaltrust.hardwarelogger.services.{ApplicationServicesRegistry, HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService, HardwareIDValidationService, IDParser, OshiHardwareGrabberApplicationService}
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IDParser}
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
-import org.itsadigitaltrust.hardwarelogger.tasks.{CommonHardwareLoggerTasksAndWorkers, HardwareLoggerSimpleTask}
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{GeneralInfoTableRowViewModel, MediaTableRowViewModel, MemoryTableRowViewModel, ProcessorTableRowViewModel}
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesTabViewModel, MemoryTabViewModel, TabTableViewModel}
+import org.itsadigitaltrust.hardwarelogger.tasks.{HardwareLoggerBusyWorker, HardwareLoggerSimpleTask}
 import org.scalafx.extras
-import org.scalafx.extras.{BusyWorker, ShowMessage, ShowMessageLogger, offFX, offFXAndWait, parentWindow, runTask}
-import ox.{EitherMode, Fork}
-import ox.either.{fail, ok}
+import org.scalafx.extras.ShowMessageLogger
+import ox.OxError
+import ox.either.ok
 import scalafx.application.Platform
 import scalafx.beans.property.*
+import scalafx.event.ActionEvent
 import scalafx.scene.control.Alert.AlertType
-import scalafx.scene.control.Alert.AlertType.Information
-import scalafx.scene.control.{Alert, ButtonType, Dialog}
+import scalafx.scene.control.{Alert, ButtonType}
+import scalafx.scene.input.MouseEvent
 import scalafx.stage.Window
 
-import java.util.concurrent.CountDownLatch
 import scala.concurrent.duration.DurationInt
-import scala.util.boundary
 
 final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGrabberService, hardwareIDValidationService: HardwareIDValidationService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)
   extends RootViewModel, HWLoggerShowMessage:
 
   lazy val identifier: String = NameOf[HardwareLoggerRootViewModel]
+  lazy val idValidatorSchedule = new javafx.concurrent.ScheduledService[Unit]:
+    override def createTask(): concurrent.Task[Unit] = () =>
 
-  given sharedData: Option[HardwareLoggerSharedData] = NotificationCentre.getFetchedData
-  override protected def messageLogger: Option[ShowMessageLogger] = this.toOption
+      hardwareIDValidationService.validate(idStringProperty.get()) match
+        case Left(error) => idErrorStringProperty.value = error.toString
+        case Right(value) => idErrorStringProperty.value = ""
+      ()
+  end idValidatorSchedule
 
-  private val _idStringProperty: StringProperty = StringProperty("")
-  val idStringProperty: StringProperty = _idStringProperty
-  idStringProperty() = applicationState.itsaID ?? ""
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
   val idErrorStringProperty: StringProperty = StringProperty("")
   val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
   val shouldCaretBeAtEnd: BooleanProperty = BooleanProperty(false)
-  private var wasDuplicateIDWarningAlreadyShown = false
-  private lazy val idErrorAlert = new Alert(AlertType.Error, "", ButtonType.OK):
-    contentText <== idErrorStringProperty
+  val idStringProperty: StringProperty = StringProperty("")
 
-//
+  
+  val hasABattery = TlpStat.hasBattery
+  private var wasDuplicateIDWarningAlreadyShown = false
+  private var isSaving = false
+
+  idStringProperty() = applicationState.itsaID ?? ""
+
+  given sharedData: Option[HardwareLoggerSharedData] = NotificationCentre.getFetchedData
+
+  //
   given optionTaskMessageProperty: Option[StringProperty] = Option(taskMessageProperty)
+
   given optionTaskProgressProperty: Option[DoubleProperty] = Option(taskProgressProperty)
+
   given optionDisabledNodesWhileTaskIsRunning: Option[BooleanProperty] = Option(disableNodeWhileTaskRunningProperty)
 
   given itsaID: String = idStringProperty.value
@@ -68,122 +76,167 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
     else
       validateID()
 
+  def reload(): Unit =
+    performReload()
+  end reload
+
+  private val reloadTask = new HardwareLoggerSimpleTask[Throwable, Unit](1)(using this):
+    override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
+      this.message() = "Reloading data..."
+      NotificationCentre.reload().forkJoin()
+      this.incrementProgress()
+      Right(())
+
+    override def onFinished(either: Either[Throwable, Unit]): Unit =
+      if isSaving && either.isRight then
+        isSaving = false
+        Platform.runLater:
+          new Alert(AlertType.Information):
+            title = "Save Successful"
+            headerText = "Data saved successfully!"
+            contentText = "The data has been saved to the database successfully."
+            showAndWait()
+
+    override protected def parentWindow: Option[Window] = ???
+
+  end reloadTask
 
 
 
-  private def performGlobalSave(): Unit =
-    given context: GlobalValidationContext[HLModel] = GlobalValidationContext()
+  Platform.Preferences
 
-    Thread.startVirtualThread: () =>
-      ox.supervised:
+  private def performReload(): Unit =
+    new HardwareLoggerBusyWorker("Reload", None)
+    .doTask[Either[Throwable, Unit]]("Reloading data..."):
+      reloadTask
 
-        val backendFork = ox.fork:
-          NotificationCentre.getFetchedData.map: data =>
-            data.info.flatMap(_.headOption).map: info =>
-              databaseService.runValidation(info)
-          val event = BackendValidationEvent()
-          NotificationCentre.sendBackendValidationEvent(event)
-          event.getForks.foreach(_.join())
-
-        backendFork.join()
-        val event = TabPreparationEvent()
-        NotificationCentre.sendTabPreparationEvent(event)
-
-        event.getForks.foreach(_.join())
-
-        val allIssues = context.getIssues
-        val hardErrors = allIssues.filterNot(_.isSoftWarning)
-        val softWarnings = allIssues.filter(_.isSoftWarning)
-
-        if hardErrors.nonEmpty then
-          Platform.runLater:
-            handleHardValidationIssues(hardErrors)
-        else if softWarnings.nonEmpty then
-          val countDownLatch = new CountDownLatch(1)
-          handleSoftValidationIssues(softWarnings, countDownLatch)
-        else
-          NotificationCentre.saveDB()
-
-  end performGlobalSave
-
-  private def handleHardValidationIssues(issues: List[HLDBValidationError]): Unit = ()
-
-  private def createSoftIssueConfirmationAlert(issue: ValidationIssue): Alert =
-    val alert = new Alert(AlertType.Confirmation)
-    alert.setTitle(issue.source)
-    alert.setContentText(issue.message)
-    alert
-
-  private def handleSoftValidationIssues(issues: List[ValidationIssue], latch: CountDownLatch): Boolean =
-    var userConfirmed = false
-    Platform.runLater:
-      val alert = new ValidationWarningDialog(issues)
-      val result = alert.showAndWait()
-
-      userConfirmed = result.isDefined && result.get == ButtonType.OK
-      latch.countDown()
-
-    latch.await()
-    userConfirmed
-  end handleSoftValidationIssues
+    taskMessageProperty.unbind()
+    taskMessageProperty.value = "Reload successful!"
 
 
+  end performReload
 
-
-  def setup(): Unit =
-    reload()
-    setIDToMatchValueInDB()
-
-
-  given Conversion[() => Unit, Runnable] with
-    override def apply(x: () => Unit): Runnable = x
-
+  def setIDToMatchValueInDB(): Unit =
+    ox.either:
+      if isInNormalMode.value then
+        idStringProperty.value = applicationState.generalInfo.map(_.head).ok().itsaID ?? ""
+      else
+        idStringProperty.value = applicationState.hardDrives.ok().headOption.ok().itsaID ?? ""
+      shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
+    .showIfFailed()
 
   given toOptionConv[T]: Conversion[T, Option[T]] = Option.apply
-  
-  
+
   def reconnect(): Unit =
-    CommonHardwareLoggerTasksAndWorkers.performReconnectWorker()
+    performReconnect()
   end reconnect
+
+  private def performReconnect(): Unit =
+    new HardwareLoggerBusyWorker("Reload", None)
+      .doTask[Either[Throwable, Unit]]("Reloading data..."):
+        new HardwareLoggerSimpleTask[Throwable, Unit](1)(using this):
+          override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
+              ox.either:
+                this.message() = "Reconnecting..."
+                databaseService.connect().forkJoin().ok()
+                this.message() = "Reloading data..."
+                NotificationCentre.reload().forkJoin()
+                this.incrementProgress()
+
+          override def onFinished(either: Either[Throwable, Unit]): Unit =
+            taskMessageProperty.unbind()
+            taskMessageProperty() = "Successfully reconnected to database!"
+
+
+  end performReconnect
+
+  private inline def tempDisableNodes[R](body: => R): R =
+    disableNodeWhileTaskRunningProperty() = true
+    val result = body
+    disableNodeWhileTaskRunningProperty() = false
+    result
 
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
     isInNormalMode.value = mode == "Normal"
 
-
-
-
-
-
   def save(): Unit =
-    ox.either:
-      import scala.languageFeature.implicitConversions
-      //    given context: BusyWorkerContext.Prompt = BusyWorkerContext.Prompt(s"${idStringProperty.value} is already in use.", "Do you want to save the data?")
-      NotificationCentre.sendItsaIDChangedNotification(itsaID)
-      showConfirmationYesNoCancel("Save?", s"{{${idStringProperty.value}}} is already in use.", "Do you want to save the data?") match
-        case Some(true) =>
-          validateID(true)
-          if !validIDProperty.value then
-            idFieldFocusProperty.value = true
-        case _ => false
+    given context: GlobalValidationContext[? <: HLModel] = GlobalValidationContext.globalValidationContext
+
+    NotificationCentre.sendItsaIDChangedNotification(idStringProperty.get())
+    // run the save task and wait for result so it actually executes
+    new HardwareLoggerBusyWorker("Saving", None)
+      .doTask[Either[Throwable, Unit]]("Saving data..."):
+        new HardwareLoggerSimpleTask[Throwable, Unit](2)(using this):
+          override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
+            given task: HardwareLoggerSimpleTask[Throwable, Unit] = this
+            Right(performGlobalSave())
+
+          override def onFinished(either: Either[Throwable, Unit]): Unit =
+            taskMessageProperty.unbind()
+            taskMessageProperty() = "Save and reloaded data successfully!"
 
 
 
-  lazy val idValidatorSchedule = new javafx.concurrent.ScheduledService[Unit]:
-    override def createTask(): concurrent.Task[Unit] = () =>
+  end save
 
-      hardwareIDValidationService.validate(idStringProperty.get()) match
-        case Left(error) => idErrorStringProperty.value = error.toString
-        case Right(value) => idErrorStringProperty.value = ""
-      ()
-  end idValidatorSchedule
-  
-  
+  private def performGlobalSave()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]])(using task: HardwareLoggerSimpleTask[Throwable, Unit]): Unit =
+    NotificationCentre.getGlobalValidationContext.clear()
+    isSaving = true
+    given context: GlobalValidationContext[? <: HLModel] = NotificationCentre.getGlobalValidationContext
+
+    def performSave(): Unit =
+      task.message() = "Saving data to database..."
+      ox.forkUserError:
+        ox.either.catchAll:
+          NotificationCentre.executeSaveToDBEvent()
+      .join()
+      task.incrementProgress()
+    end performSave
+
+    NotificationCentre.getFetchedData.foreach: data =>
+      ox.fork:
+        task.message() = "Executing backend validation..."
+        logger.info(s"Executing backend validation...")
+        NotificationCentre.executeBackendValidation()
+      .join()
+      task.incrementProgress()
+    val allIssues = context.getIssues
+    val hardErrors = allIssues.filterNot(_.isSoftWarning)
+    val softWarnings = allIssues.filter(_.isSoftWarning)
+
+    logger.info(s"Validation issues: ${allIssues.size} hard: ${hardErrors.size} soft: ${softWarnings.size}")
+    var continueToSave = true
+    if hardErrors.nonEmpty then
+      // show hard validation issues on the FX thread and do NOT proceed with saving
+      extras.onFX:
+        handleHardValidationIssues(hardErrors)
+    else if softWarnings.nonEmpty then
+      val shouldSave = extras.onFXAndWait:
+        handleSoftValidationIssues(softWarnings)
+      if shouldSave then
+        performSave().forkJoin()
+    else
+      performSave().forkJoin()
+
+    reloadTask.call().forkJoin()
+
+  end performGlobalSave
+
+  private def handleHardValidationIssues(issues: List[ValidationIssue]): Unit =
+    DetailedValidationAlert.showAsError(issues)
+
+
+  private def handleSoftValidationIssues(issues: List[ValidationIssue]): Boolean =
+    DetailedValidationAlert.showAsWarning(issues)
+  end handleSoftValidationIssues
 
   def duplicateIDWasFound(itsaID: String): Unit =
 
-    _idStringProperty.value = itsaID
+    idStringProperty.value = itsaID
   end duplicateIDWasFound
+
+  override protected def messageLogger: Option[ShowMessageLogger] = this.toOption
 
   private def validateID(showAlert: Boolean = false): Boolean =
     ox.either:
@@ -201,43 +254,16 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
         case Right(value) =>
           validIDProperty.value = true
-          //TODO: Check if you want to wipe the ID after saving.
-          applicationState.generalInfo.map(_.head).map: info =>
-            if databaseService.doesPCRecordExist(info) then
-              idErrorStringProperty.value = s"The database contains a PC with the same serial number '${info.serial}!"
-            else
-              idErrorStringProperty.value = ""
-              _idStringProperty.value = value.toString
+          idErrorStringProperty.value = ""
+    //          appf databaseService.doesPCRecordExist(info) then
+    //    //             licationState.generalInfo.map(_.head).map: info =>
+    //            i idErrorStringProperty.value = s"The database contains a PC with the same serial number '${info.serial}!"
+    //            else
+    //              idErrorStringProperty.value = ""
+    //              _idStringProperty.value = value.toString
 
     validIDProperty.value
   end validateID
-
-  def onProgramModeChanged(mode: ProgramMode)(using ox.Ox): Unit =
-    NotificationCentre.programModeChanged(mode)
-
-  def reload(): Unit =
-    disableNodeWhileTaskRunningProperty() = true
-    extras.offFX:
-      CommonHardwareLoggerTasksAndWorkers.performReloadWorker()
-  end reload
-
-
-  def setIDToMatchValueInDB(): Unit =
-    ox.either:
-      if isInNormalMode.value then
-        _idStringProperty.value = applicationState.generalInfo.map(_.head).ok().itsaID ?? ""
-      else
-        _idStringProperty.value = applicationState.hardDrives.ok().headOption.ok().itsaID ?? ""
-      shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
-    .showIfFailed()
-
-  def programModeChanged(mode: ProgramMode)(using ox.Ox): Unit =
-    onProgramModeChanged(mode)
-
-
-
-
-
 
 
 end HardwareLoggerRootViewModel

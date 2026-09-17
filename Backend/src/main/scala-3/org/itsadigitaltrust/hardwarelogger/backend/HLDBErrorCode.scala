@@ -1,6 +1,5 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
-import org.itsadigitaltrust.common.propertyfile.PropertyFileReaderErrorCode
 
 type ConnectionErrorType = "Username" | "Password" | "Address" | "Unknown"
 

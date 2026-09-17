@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.core
 
 
 object ui:
+  
   export scalafx.Includes.*
   export scalafx.stage.Window
   export scalafx.scene.{Node, Group}
@@ -24,5 +25,6 @@ object ui:
 
   export org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 
+  export org.itsadigitaltrust.hardwarelogger.core.UIAssetLoader.{image, stylesheet, asset}
 end ui
 

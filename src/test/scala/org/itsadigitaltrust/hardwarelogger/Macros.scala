@@ -1,6 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger
 
-import sun.jvm.hotspot.runtime.PerfMemory.end
+
 
 object Macros:
   import quoted.*

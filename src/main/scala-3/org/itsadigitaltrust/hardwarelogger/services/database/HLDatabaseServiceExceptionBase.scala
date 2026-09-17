@@ -24,8 +24,11 @@ object HLDatabaseServiceException:
     case HLDBErrorCode.EntryNotFound => recordNotFound(args(0), args(1))
     case HLDBErrorCode.NoEntriesFound => noEntriesFound(args(0))
     case HLDBErrorCode.PCSerialNumberAlreadyExists => duplicateEntry(args(0), args(1))
-    case HLDBErrorCode.ConnectionError => connectionError((args(0) ?? "Unknown").asInstanceOf[ConnectionErrorType], args(1))
     case HLDBErrorCode.NoEntriesRemoved => noEntriesRemoved()
+    case HLDBErrorCode.EntriesAlreadyExists => duplicateEntriesFound(args(0))
+    case HLDBErrorCode.UnknownError(_) => unknownError()
+    case HLDBErrorCode.ConnectionError(_) => connectionError()
+    case HLDBErrorCode.PropertiesError => propertiesFileError()
 
   def noEntriesRemoved() = new HLDatabaseServiceException(HLDBErrorCode.NoEntriesRemoved, "No entries removed!")
   def noEntriesFound(id: String) = new HLDatabaseServiceException(HLDBErrorCode.NoEntriesFound, s"No entries found for id: $id")

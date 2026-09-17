@@ -60,12 +60,11 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="f016a528-cc22-4496-b6dd-51d487f1ff9a">
-      <console name="hwlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from disks where itsaid = '61792.5';
-
-select * from info where cpuproduct LIKE 'AuthenticAMD';]]></console>
+      <console name="hwlogger" type="STANDARD" schema="hwlogger" session="Main"><![CDATA[select * from hwlogger.info
+ limit 10;]]></console>
     </connection>
     <connection id="55272623-0e19-46a0-a92d-92538341a05e">
-      <console name="hwloggertesting" type="STANDARD" schema="hwloggertests" session="Main"><![CDATA[select * from info;]]></console>
+      <console name="hwloggertesting" type="STANDARD" schema="hwloggertests" session="Main"><![CDATA[select * from hwloggertesting.info;tr]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
@@ -236,7 +235,7 @@ select * from info where cpuproduct LIKE 'AuthenticAMD';]]></console>
           <driver-library value="" />
           <driver value="" />
           <url-type value="DATABASE" />
-          <host value="localhost" />
+          <host value="192.168.1.152" />
           <port value="3306" />
           <database value="hwloggertesting" />
           <tns-folder value="" />
@@ -255,7 +254,7 @@ select * from info where cpuproduct LIKE 'AuthenticAMD';]]></console>
           <azure-token-tenant-id value="" />
           <azure-token-client-id value="" />
           <azure-token-client-certificate-file value="" />
-          <session-user value="itsa@localhost" />
+          <session-user value="itsa@itsa-2397.local" />
         </database>
         <properties>
           <auto-commit value="false" />
@@ -486,12 +485,17 @@ select * from info where cpuproduct LIKE 'AuthenticAMD';]]></console>
           <content-type name="DTD" enabled="true" />
           <content-type name="HTML" enabled="true" />
           <content-type name="XHTML" enabled="true" />
+          <content-type name="CSS" enabled="true" />
           <content-type name="Java" enabled="true" />
           <content-type name="SQL" enabled="true" />
           <content-type name="PL/SQL" enabled="true" />
+          <content-type name="JPA QL" enabled="true" />
+          <content-type name="JavaScript" enabled="true" />
           <content-type name="JSON" enabled="true" />
           <content-type name="JSON5" enabled="true" />
           <content-type name="Groovy" enabled="true" />
+          <content-type name="FTL" enabled="true" />
+          <content-type name="VTL" enabled="true" />
           <content-type name="YAML" enabled="true" />
           <content-type name="Manifest" enabled="true" />
         </content-types>

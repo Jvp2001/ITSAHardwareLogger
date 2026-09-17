@@ -5,18 +5,17 @@ import com.augustnagro.magnum
 import com.augustnagro.magnum.{DbCodec, DbCon, Repo}
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.common.GenericTypeMapper
-import org.itsadigitaltrust.common.Operators.??
+import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.common.logging.HWLLoggable
-import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase.diskRepoFromEC
+import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.{DataSourceLoader, DataSourceLoaderService, HLDBErrorCode, HLDBTransactionLabel, HLDBTransactionResult, HLSqlDataSource, repos}
-import org.itsadigitaltrust.hardwarelogger.backend.entities.{Disk, DiskCreator, HLEntityCreatorWithSomeKindOfID, HLEntityWithSomeKindOfID, Info, InfoCreator, Media, MediaCreator, Memory, MemoryCreator, Wiping, WipingCreator}
 import org.itsadigitaltrust.hardwarelogger.backend.repos.{HLRepoWithID, HLRepoWithSerial, infoRepo}
 import ox.either.{fail, ok}
-import sun.jvm.hotspot.runtime.PerfMemory.end
 
 import javax.sql.DataSource
 import scala.Conversion.into
 import scala.compiletime.{deferred, erasedValue, summonInline}
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 import scala.util.boundary.Label
 
@@ -27,39 +26,21 @@ private[database] trait RepoFromEntityCreatorGeneric[EC <: HLEntityCreatorWithSo
 type RepoFromEntityCreator[EC <: HLEntityCreatorWithSomeKindOfID, E <: HLEntityWithSomeKindOfID] = RepoFromEntityCreatorGeneric[EC, E, HLRepoWithID]
 
 
-trait UpdateOrInsert[EC <: HLEntityCreatorWithSomeKindOfID]:
-  def updateOrInsert(entityCreator: EC)(using DbCon): HLDBTransactionResult[Unit]
-  def updateOrInsertAll(entityCreators: Seq[EC])(using DbCon): HLDBTransactionResult[Unit] =
-    ox.either:
-      entityCreators.map: entityCreator =>
-        updateOrInsert(entityCreator).ok()
-
-trait EntityCreatorToEntityMapper[EC <: HLEntityCreatorWithSomeKindOfID : DbCodec] extends GenericTypeMapper[EC, HLEntityWithSomeKindOfID]:
-  override type Out <: HLEntityWithSomeKindOfID : DbCodec
+/**
+ * Only works on multiple models at once, as most tables have multiple rows for each PC.
+ * @tparam EC The [[HLEntityCreatorWithSomeKindOfID]] that this instance requires.
+ */
+trait UpdateAndInsert[EC <: HLEntityCreatorWithSomeKindOfID]:
 
 
-private[database] trait TypeClassGivens:
-  self: HLDatabase & HWLLoggable =>
+  def updateAndInsertAll(using oldItsaID: Option[String] = None)(entityCreators: Seq[EC])(using DbCon): HLDBTransactionResult[Unit]
 
 
-  given updateOrInsertInfo: UpdateOrInsert[InfoCreator] with
-    override def updateOrInsert(infoCreator: InfoCreator)(using DbCon): HLDBTransactionResult[Unit] =
-      ox.either:
-        val repo = repos.infoRepo
-        val result = repo.findAllWithErrorNumber(infoCreator.itsaID)
-        val errorCount = repo.getAllWithErrorSuffix(infoCreator.itsaID)
-        val newErrorCountValue = errorCount + 1
-        val findLastValid = repo.findFirstByItsaID(infoCreator.itsaID) ?? HLDBErrorCode.NoEntriesFound.fail()
 
-        repo.update(findLastValid.copy(itsaID = s"${infoCreator.itsaID}-E$newErrorCountValue"))
-        repo.insert(infoCreator)
-        Right(Vector())
-    end updateOrInsert
+trait HLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataSource]) extends HWLLoggable:
 
 
-end TypeClassGivens
-
-trait HLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataSource]) extends TypeClassGivens, HWLLoggable:
+  transparent inline def summonupdateAndInsert[EC <: HLEntityCreatorWithSomeKindOfID : DbCodec]: UpdateAndInsert[EC] = summonInline[UpdateAndInsert[EC]]
 
   def insert[EC <: HLEntityCreatorWithSomeKindOfID](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
 
@@ -76,51 +57,35 @@ trait HLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataSource
 
   def findBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[mapper.Out]
 
-  def updateOrInsert[EC <: HLEntityCreatorWithSomeKindOfID : UpdateOrInsert as handler](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
+  def findAllByItsaIDEndingWith[EC <: HLEntityCreatorWithSomeKindOfID](suffix: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Vector[mapper.Out]]
 
-  def updateOrInsertAll[EC <: HLEntityCreatorWithSomeKindOfID : UpdateOrInsert as handler](entityCreators: Seq[EC])(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
+
+
+  def updateAndInsertAll[EC <: HLEntityCreatorWithSomeKindOfID : UpdateAndInsert as handler](entityCreators: EC*)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
 
   def deleteByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
 
   def deleteByAllSerials[EC <: HLEntityCreatorWithSomeKindOfID](serials: String*)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
 
-  def replaceItsaID[EC <: HLEntityCreatorWithSomeKindOfID](oldItsaID: String, newItsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
+
 
 
 end HLDatabase
 
 object HLDatabase:
 
-  given infoRepoFromEC: RepoFromEntityCreator[InfoCreator, Info] with
-    override given repo: HLRepoWithID[InfoCreator, Info] = repos.infoRepo
 
-  given memoryRepoFromEC: RepoFromEntityCreator[MemoryCreator, Memory] with
-    override given repo: HLRepoWithID[MemoryCreator, Memory] = repos.memoryRepo
+  given updateAndInsertHelpers[EC <: HLEntityCreatorWithSomeKindOfID : ClassTag](using ecMapper: EntityCreatorToEntityMapper[EC], repoWithItsaID: HLRepoWithID[EC, ecMapper.Out]): UpdateAndInsertHelpers[EC] with
+    override def insert(ec: EC)(using oldItsaID: Option[String])(using DbCon): HLDBTransactionResult[Unit] =
+      super.insert(ec)
 
-  given diskRepoFromEC: RepoFromEntityCreator[DiskCreator, Disk] with
-    override given repo: HLRepoWithID[DiskCreator, Disk] = repos.diskRepo
+  given updateAndInsert[EC <: HLEntityCreatorWithSomeKindOfID : {ClassTag}, E <: HLEntityWithSomeKindOfID](using repoWithItsaID: HLRepoWithID[EC, E], helpers: UpdateAndInsertHelpers[EC]): UpdateAndInsert[EC] with
 
+    override def updateAndInsertAll(using oldItsaID: Option[String])(entityCreators: Seq[EC])(using DbCon): HLDBTransactionResult[Unit] =
+      ox.either:
+        helpers.update(entityCreators*).left.map(_.fail())
+        entityCreators.map(helpers.insert).map(_.left.map(_.fail()))
 
-  given mediaRepoFromEC: RepoFromEntityCreator[MediaCreator, Media] with
-    override given repo: HLRepoWithID[MediaCreator, Media] = repos.mediaRepo
-
-  given wipingRepoFromEC: RepoFromEntityCreator[WipingCreator, Wiping] with
-    override given repo: HLRepoWithID[WipingCreator, Wiping] = repos.wipingRepo
-
-  given infoECToInfo: EntityCreatorToEntityMapper[InfoCreator] with
-    override type Out = Info
-
-  given memoryECToMemory: EntityCreatorToEntityMapper[MemoryCreator] with
-    override type Out = Memory
-
-  given diskECToDisk: EntityCreatorToEntityMapper[DiskCreator] with
-    override type Out = Disk
-
-  given mediaECToMedia: EntityCreatorToEntityMapper[MediaCreator] with
-    override type Out = Media
-
-  given wipingECToWiping: EntityCreatorToEntityMapper[WipingCreator] with
-    override type Out = Wiping
 
 end HLDatabase
 
@@ -131,7 +96,7 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
     transact:
       itsaIDRepo match
         case serial: HLRepoWithSerial[EC, mapper.Out] =>
-          val result = serial.findFirstBySerial(serialNumber)
+          val result = serial.findBySerialNumber(serialNumber)
           if result.isDefined then
             Right(result.get)
           else
@@ -139,6 +104,16 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
         case _ => HLDBErrorCode.UnknownError("Must be a serial repo to find by serial number!").fail()
 
   end findBySerialNumber
+
+
+  override def findAllByItsaIDEndingWith[EC <: HLEntityCreatorWithSomeKindOfID](suffix: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Vector[mapper.Out]] =
+    transact:
+      itsaIDRepo.findAllByIDEndingWith(suffix).filter(_.isDefined).map(_.get) match
+        case result if result.isEmpty =>
+          HLDBErrorCode.NoEntriesFound.fail()
+        case result =>
+          Right(result)
+  end findAllByItsaIDEndingWith
 
   override def findAllStartingWithItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Vector[mapper.Out]] =
     transact:
@@ -160,7 +135,7 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
   override def findItsaIDBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[String] =
     transact[String]:
       repo match
-        case serialRepo: HLRepoWithSerial[EC, ?] =>
+        case serialRepo: HLRepoWithSerial[EC, mapper.Out] =>
           val result = serialRepo.findItsaIDBySerialNumber(serialNumber)
           if result.isDefined then
             Right(result.get)
@@ -180,29 +155,23 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
 
   override def findAllByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Vector[mapper.Out]] =
     transact:
-      val result = itsaIDRepo.findAllByItsaID(itsaID)
+      val result = itsaIDRepo.findAllByIDStartingWith(itsaID)
       if result.isEmpty then
         HLDBErrorCode.NoEntriesFound.fail()
-      Right(result)
+      Right(result.filter(_.isDefined).map(_.get))
   end findAllByItsaID
 
   override def findFirstByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[mapper.Out] =
     transact:
-      itsaIDRepo.findFirstByItsaID(itsaID).toRight(HLDBErrorCode.NoEntriesFound)
-
-
-  override def updateOrInsert[EC <: HLEntityCreatorWithSomeKindOfID : UpdateOrInsert as handler](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
-    transact:
-      handler.updateOrInsert(entityCreator)
-
-
-  override def updateOrInsertAll[EC <: HLEntityCreatorWithSomeKindOfID : UpdateOrInsert as handler](entityCreators: Seq[EC])(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
-    transact:
-      Right(entityCreators.foreach(handler.updateOrInsert))
+      itsaIDRepo.findByItsaID(itsaID).toRight(HLDBErrorCode.NoEntriesFound)
   
+  override def updateAndInsertAll[EC <: HLEntityCreatorWithSomeKindOfID : UpdateAndInsert as handler](entityCreators: EC*)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
+    transact:
+      handler.updateAndInsertAll(entityCreators)
+
   private def insertHelper[EC <: HLEntityCreatorWithSomeKindOfID](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out], dbCon: DbCon): HLDBTransactionResult[Unit] =
     ox.either:
-      if itsaIDRepo.findFirstByItsaID(entityCreator.getItsaID).isDefined then
+      if itsaIDRepo.findByItsaID(entityCreator.getItsaID).isDefined then
         itsaIDRepo.markRowAsError(entityCreator.getItsaID)
 
       itsaIDRepo match
@@ -215,9 +184,9 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
 
   override def deleteByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
     transact:
-       itsaIDRepo.deleteByItsaID(itsaID) match
-          case 0 => HLDBErrorCode.NoEntriesFound.fail()
-          case _ => Right(())
+      itsaIDRepo.deleteByItsaID(itsaID) match
+        case 0 => HLDBErrorCode.NoEntriesFound.fail()
+        case _ => Right(())
   end deleteByItsaID
 
   override def deleteByAllSerials[EC <: HLEntityCreatorWithSomeKindOfID](serials: String*)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
@@ -234,11 +203,6 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
   end deleteByAllSerials
 
 
-  override def replaceItsaID[EC <: HLEntityCreatorWithSomeKindOfID](oldItsaID: String, newItsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
-    transact:
-      itsaIDRepo.replaceItsaID(oldItsaID, newItsaID)
-      Right(())
-  
 
 
 

@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
 import com.somainer.nameof.NameOf
-import org.itsadigitaltrust.common.Operators.{??, toOption, |>}
+import org.itsadigitaltrust.common.Operators.{??, toOption, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.databaseService
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
@@ -15,7 +15,7 @@ import scalafx.scene.input.KeyCode
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.models
 import org.itsadigitaltrust.hardwarelogger.services.OshiHardwareGrabberApplicationService.LoadError
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{PerformBackendValidationListener, RequiresGlobalValidationContext, RequiresItsaID}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, PerformBackendValidationListener, RequiresGlobalValidationContext, RequiresItsaID}
 import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
@@ -24,34 +24,33 @@ import ox.{Fork, Ox}
 import ox.either.{fail, ok}
 import scalafx.application.Platform
 
+import scala.jdk.javaapi.CollectionConverters
 import scala.reflect.{ClassTag, classTag}
 
 
 class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]]
-(using hardwareGrabberService: HardwareGrabberService, hardwareLoggerApplicationState: HardwareLoggerApplicationState)
+(using hardwareGrabberService: HardwareGrabberService)
 (rowCtor: M => VM, reloadData: HardwareLoggerSharedData => Option[Seq[M]], saveDataMode: ProgramMode = "Normal")
   extends ViewModel, RequiresItsaID, RequiresGlobalValidationContext, PerformBackendValidationListener:
 
   type RowViewModel = VM
-  val data: ObservableBuffer[VM] = ObservableBuffer()
+  type Model = M
 
 
+  
+  protected def applicationSharedData: HardwareLoggerSharedData = NotificationCentre.getFetchedData.get
 
-  override protected def onBackendValidationFork(): Unit =
-    ox.supervised:
-      databaseService.runValidation(data.map(_.model).toSeq*)
+  protected def models: Seq[M] = reloadData(applicationSharedData) ?? Seq()
 
 
-  protected override def reload()(using HardwareLoggerSharedData): Either[Error, Unit] =
+  protected override def reload(): Either[Error, Unit] =
     import TabTableViewModel.toLoadEitherError
     ox.either:
       logger.info(s"Reloading ${classTag[M].runtimeClass.getSimpleName} data")
-      val result = reloadData(summon[HardwareLoggerSharedData]).toLoadEitherError.ok()
+      val result = reloadData(applicationSharedData).toLoadEitherError.ok()
+      
 
-      data.setAll(result.map(rowCtor) *)
-      logger.info(s"Added ${data.size} item(s).")
-
-
+     
 
   //  data.onChange: (source, change) =>
   //    if change.isEmpty then
@@ -59,12 +58,8 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]]
   //        ox.supervised:
   //          reload()
 
-
-  def add(model: M): this.type =
-    data.add(rowCtor(model))
-    this
-
-  def models: Seq[M] = data.map(_.model).toSeq
+  override protected def onBackendValidationFork()(using Ox): Unit =
+    databaseService.runValidation[M](models*)
 
 
   override def onProgramModeChanged(mode: ProgramMode): Either[Error, Unit] =
@@ -83,10 +78,8 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]]
   //      extras.onFX:
 
 
-  override protected def save(sharedData: HardwareLoggerSharedData)(using Ox): Either[Error, Unit] =
-    ox.fork:
-      databaseService.executeFinalSave(data.map(_.model).toSeq*)
-    .join()
+  override protected def save()(using Ox): Either[Error, Unit] =
+    databaseService.executeFinalSave(models*)
     Right(())
 
 end TabTableViewModel

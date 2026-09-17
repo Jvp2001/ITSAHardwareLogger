@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.models
 
 
 import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
+import org.itsadigitaltrust.common.processes.tlp.TlpBatteryStatus
 import org.itsadigitaltrust.common.types.DataSizeType.DataSize
 import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
@@ -23,6 +24,7 @@ sealed trait HLModelWithSerial extends HLModel:
 
 object HLModel:
   
+  // bat health on general, cycles, age 
   final case class GeneralInfoModel(
                                      computerID: String,
                                      description: String, // The chassis-type
@@ -110,7 +112,26 @@ object HLModel:
                                  ) extends HLModel
   
   
-  type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel
+  
+  final case class BatteryStatusModel(
+                                       health: Double,
+                                       charge: Double,
+                                       status: String,
+                                       // 🌟 Verbose / Device-Specific Parameters (Wrapped in Option)
+                                       cycleCount: Option[Int],
+                                       voltage: Option[Double],
+                                     ) extends HLModel:
+    def getHealthCondition: BatteryStatusModel.BatteryHealthCondition = 
+      if health > 75.0 then BatteryStatusModel.BatteryHealthCondition.Normal
+      else if health > 50.0 then BatteryStatusModel.BatteryHealthCondition.Acceptable
+      else BatteryStatusModel.BatteryHealthCondition.Replace
+  object BatteryStatusModel:
+    enum BatteryHealthCondition:
+      case Normal, Acceptable, Replace 
+    def apply(status: TlpBatteryStatus): BatteryStatusModel =
+      BatteryStatusModel(status.remainingJuice, status.capacity, status.status, status.cycleCount, status.voltage)
+  
+  type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel | BatteryStatusModel
 
   type ItsaIDModel = GeneralInfoModel | HardDriveModel
 end HLModel

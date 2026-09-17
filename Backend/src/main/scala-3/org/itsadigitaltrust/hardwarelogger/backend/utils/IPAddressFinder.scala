@@ -7,7 +7,7 @@ import org.itsadigitaltrust.common.logging.HWLLoggable
 
 import java.net.{Inet4Address, InterfaceAddress, NetworkInterface}
 
-object IPAddressFinder:
+object IPAddressFinder extends HWLLoggable:
 
   import scala.jdk.CollectionConverters.*
 
@@ -45,13 +45,13 @@ object IPAddressFinder:
   //  end findIPv4Addresses
 
   // use ApacheFuzzyMap to find the best matching address
-  def findDatabaseAddress(addresses: String*)(using logger:HWLLoggable): Option[String] =
+  def findDatabaseAddress(addresses: String*): Option[String] =
 
     val fuzzyMap = ApacheFuzzyMap[String]()
     val inetAddresses = networkInterfaces.filter(_.getName.startsWith("en")).filter(_.isUp).flatMap: inet =>
       inet.getInetAddresses.asScala.filter(_.isInstanceOf[Inet4Address]).map: address =>
         val foundAddress = address.toString.stripPrefix("/")
-        logger().info(foundAddress)
+        logger.info(foundAddress)
         foundAddress
 
 

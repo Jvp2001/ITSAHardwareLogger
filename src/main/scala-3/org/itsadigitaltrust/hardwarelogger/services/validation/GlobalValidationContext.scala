@@ -17,7 +17,8 @@ trait CommonGlobalValidationContext[VI <: HLDBValidationError]:
   def hasErrors: Boolean = synchronized:
     issuesBuffer.nonEmpty
     
-  def += (issue: VI): Unit = addIssue(issue)
+  def += (issue: VI): Unit =
+    addIssue(issue)
   
   def clear(): Unit = issuesBuffer.clear()
   
@@ -33,4 +34,5 @@ final case class ValidationIssue(
                                 ) extends HLDBValidationError
 final class GlobalValidationContext[+M <: HLModel] extends CommonGlobalValidationContext[ValidationIssue]
   
-object GlobalValidationContext
+object GlobalValidationContext:
+  given globalValidationContext: GlobalValidationContext[? <: HLModel] = new GlobalValidationContext

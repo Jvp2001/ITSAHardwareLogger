@@ -33,34 +33,25 @@ import scalafx.scene.control.Alert.AlertType.Information
 import scala.reflect.Selectable.reflectiveSelectable
 
 
-
-
-
-final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService, HardwareLoggerApplicationState)
-  extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.drives) with TableRowDelegate[HardDriveTableRowViewModel] with PerformBackendValidationListener:
+final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService)
+  extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.drives) with TableRowDelegate[HardDriveTableRowViewModel]:
   private final val unhealthyDriveClass = "unhealthy-drive"
 
 
-   val editIDColumn = BooleanProperty(false)
-
-  var moreInfoDisabledProperty: BooleanProperty = BooleanProperty(false)
-
-  moreInfoDisabledProperty
-
-
-
+  val editIDColumn = BooleanProperty(false)
   // When its value is changed, it will trigger the table view to edit this cell
   val editingCellProperty: ObjectProperty[Option[(row: Int, column: Int)]] = ObjectProperty(None)
-
+  
   val editableProperty: BooleanProperty = BooleanProperty(false)
+  
+  var moreInfoDisabledProperty: BooleanProperty = BooleanProperty(false)
   editableProperty <== ProgramMode.modeProperty.isEqualTo("HardDrive")
+  
+  private var shouldAddWipingRecords = false
 
 
-  override protected def onBackendValidationFork(): Unit =
-    ox.supervised:
-      data.map(_.model).toSeq |> databaseService.runValidation
-      
-
+  
+  
   override def onUpdateItem(row: Option[HardDriveTableRowViewModel], tableRow: TableRow[HardDriveTableRowViewModel]): Unit =
     moreInfoDisabledProperty.value = row.isEmpty
     tableRow.styleClass += row.map: rowModel =>
@@ -70,7 +61,6 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
         case _ => ""
     .get
   end onUpdateItem
-
 
   override def onRowKeyboardKeyReleased(event: KeyEvent, row: Option[HardDriveTableRowViewModel]): Unit =
     val tableViewOption = Option(event.getSource).collect { case tv: jfxsc.TableView[?] => tv }
@@ -83,7 +73,6 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
         event.consume()
 
 
-
         Platform.runLater:
           tableView.edit(tableView.selectionModel().getSelectedIndex,
             tableView.getColumns.stream().filter(c => c.getText `equals` "ID").findFirst().get)
@@ -91,8 +80,8 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
       end if
   end onRowKeyboardKeyReleased
 
-
-
+  def showExtraInfo(r: HardDriveTableRowViewModel): Unit =
+    Dialogs.showHardDriveExtraInfoDialog(r.model)
 
   override def onRowDoubleClicked(button: MouseButton, row: Option[HardDriveTableRowViewModel]): Unit =
     button match
@@ -107,25 +96,12 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
 
   end onRowDoubleClicked
 
-
-
-
-
-  def showExtraInfo(r: HardDriveTableRowViewModel): Unit =
-      Dialogs.showHardDriveExtraInfoDialog(r.model)
-
-
   override def onSelected(selectedRow: Option[HardDriveTableRowViewModel]): Unit =
     moreInfoDisabledProperty.value = selectedRow.isEmpty
 
-
   override def onProgramModeChanged(mode: ProgramMode): Either[Error, Unit] =
-      editIDColumn() = ProgramMode.isInHardDriveMode
-      Right(())
-
-
-  def isCellEditable(row: HardDriveTableRowViewModel | Null): Boolean =
-    row != null && editableProperty()
+    editIDColumn() = ProgramMode.isInHardDriveMode
+    Right(())
 
   extension (inline t: None.type)
     /** Unwrap the value of the `Option`, short-circuiting the computation to the enclosing [[either]] on guaranteed `None`. */
@@ -137,10 +113,11 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
             "The enclosing `either` call uses a different error type.\nIf it's explicitly typed, is the error type correct?\nNote that for options, the error type must contain a `Unit`."
           )
         case _ => scala.compiletime.error("`.ok()` can only be used within an `either` call.\nIs it present?")
-      
+
   end extension
 
-
+  def isCellEditable(row: HardDriveTableRowViewModel | Null): Boolean =
+    row != null && editableProperty()
 
   private def showDrivesNotWipedAlert(notWipedDrives: Seq[HardDriveModel]) =
     boundary:
@@ -167,8 +144,6 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
           case Some(ButtonType.Yes) => shouldAddWipingRecords = true
           case _ => ()
   end showDrivesNotWipedAlert
-
-  private var shouldAddWipingRecords = false
 
 
 end HardDrivesTabViewModel

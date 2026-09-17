@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
+    <option name="deprecationWarnings" value="true" />
     <option name="featureWarnings" value="true" />
     <option name="continuations" value="true" />
     <option name="debuggingInfoLevel" value="Notailcalls" />
@@ -17,9 +18,12 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/Backend/target/scala-3.8.2/meta" />
+        <parameter value="$PROJECT_DIR$/Backend/target/scala-3.9.0/meta" />
       </parameters>
     </profile>
     <profile name="sbt 11" modules="ITSAHardwareLogger.Common.test">
@@ -32,9 +36,12 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/Common/target/scala-3.8.2/test-meta" />
+        <parameter value="$PROJECT_DIR$/Common/target/scala-3.9.0/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 12" modules="ITSAHardwareLogger.Common.main">
@@ -47,9 +54,12 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/Common/target/scala-3.8.2/meta" />
+        <parameter value="$PROJECT_DIR$/Common/target/scala-3.9.0/meta" />
       </parameters>
     </profile>
     <profile name="sbt 13" modules="ITSAHardwareLogger.HDSentinelReader.test">
@@ -62,10 +72,13 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-experimental" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/HDSentinelReader/target/scala-3.8.2/test-meta" />
+        <parameter value="$PROJECT_DIR$/HDSentinelReader/target/scala-3.9.0/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 14" modules="ITSAHardwareLogger.IssueReporter.test">
@@ -78,9 +91,12 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.8.2/test-meta" />
+        <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.9.0/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 2" modules="ITSAHardwareLogger.HDSentinelReader.main~1,ITSAHardwareLogger.HDSentinelReader.test~1,ITSAHardwareLogger.main~1,ITSAHardwareLogger.test~1">
@@ -116,10 +132,13 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-experimental" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/HDSentinelReader/target/scala-3.8.2/meta" />
+        <parameter value="$PROJECT_DIR$/HDSentinelReader/target/scala-3.9.0/meta" />
       </parameters>
     </profile>
     <profile name="sbt 5" modules="ITSAHardwareLogger.IssueReporter.main">
@@ -132,9 +151,12 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.8.2/meta" />
+        <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.9.0/meta" />
       </parameters>
     </profile>
     <profile name="sbt 6" modules="ITSAHardwareLogger.test">
@@ -147,10 +169,13 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-experimental" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.8.2/test-meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.9.0/test-meta" />
       </parameters>
     </profile>
     <profile name="sbt 7" modules="ITSAHardwareLogger.itsaLogger.main,ITSAHardwareLogger.itsaLogger.test,ITSAHardwareLogger.itsaLoggerFX.main,ITSAHardwareLogger.itsaLoggerFX.test,ITSAHardwareLogger.itsaLoggerFX~1.main,ITSAHardwareLogger.itsaLoggerFX~1.test,ITSAHardwareLogger.itsaLogger~1.main,ITSAHardwareLogger.itsaLogger~1.test">
@@ -172,10 +197,13 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-experimental" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/target/scala-3.8.2/meta" />
+        <parameter value="$PROJECT_DIR$/target/scala-3.9.0/meta" />
       </parameters>
     </profile>
     <profile name="sbt 9" modules="ITSAHardwareLogger.Backend.test">
@@ -188,9 +216,12 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
         <parameter value="-Xsemanticdb" />
         <parameter value="-semanticdb-target" />
-        <parameter value="$PROJECT_DIR$/Backend/target/scala-3.8.2/test-meta" />
+        <parameter value="$PROJECT_DIR$/Backend/target/scala-3.9.0/test-meta" />
       </parameters>
     </profile>
   </component>

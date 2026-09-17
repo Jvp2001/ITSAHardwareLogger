@@ -6,7 +6,9 @@ import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService, HardwareIDValidationService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
-import org.itsadigitaltrust.hardwarelogger.tasks.DelegatedSimpleTask
+import org.itsadigitaltrust.hardwarelogger.tasks.OxErrorModeSimpleTask
+import org.itsadigitaltrust.hardwarelogger.viewmodels.ViewModel
+import org.itsadigitaltrust.hardwarelogger.views.View
 import org.scalafx.extras
 import org.scalafx.extras.BusyWorker.SimpleTask
 import org.scalafx.extras.{BusyWorker, ShowMessage}
@@ -21,7 +23,7 @@ import java.util.concurrent.Future
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.boundary
 
-trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, ox.OxErrorModeSimpleTask[E, R]:
+trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, OxErrorModeSimpleTask[E, R], ViewModel:
 
   override val exitIfFailed: Boolean = true
 
@@ -58,7 +60,7 @@ trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, ox.O
 end SplashScreenViewModel
 
 
-final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(using val databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, hardwareLoggerIDValidationService: HardwareIDValidationService, showMessage: HWLoggerShowMessage, applicationState: HardwareLoggerApplicationState)(@FunctionalInterface onDataLoaded: HardwareLoggerApplicationState => Unit) extends SplashScreenViewModel[Throwable, Unit]:
+final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(using val databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, hardwareLoggerIDValidationService: HardwareIDValidationService, applicationState: HardwareLoggerApplicationState)(@FunctionalInterface onDataLoaded: HardwareLoggerApplicationState => Unit) extends SplashScreenViewModel[Throwable, Unit]:
   override protected given totalNumberOfItems: Int = 8
 
 
@@ -95,6 +97,7 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
   end onCall
 
   override def onLoad(): Unit =
+    logger.info("Splash: onLoad called, notifying application to show main window")
     onDataLoaded(applicationState)
 
 
@@ -103,10 +106,12 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
 end HardwareLoggerSplashScreenViewModel
 
 
-class HardwareLoggerSplashScreen[E <: Throwable, R, VM <: SplashScreenViewModel[E, R]](splashWidth: Double, splashHeight: Double, viewModel: VM)(onDataLoaded: () => Unit)(using applicationState: HardwareLoggerApplicationState) extends VBox:
+class HardwareLoggerSplashScreen[E <: Throwable, R, VM <: SplashScreenViewModel[E, R]](splashWidth: Double, splashHeight: Double)(using vm: VM)(onDataLoaded: () => Unit)(using applicationState: HardwareLoggerApplicationState) extends VBox with View[VM]:
+  override given viewModel: VM = vm
+  
   maxWidth() = splashWidth
   maxHeight() = splashHeight
-  private val splashImage = new ImageView(getClass.getResource("assets/images/ITSA_Logo.png").toString):
+  private val splashImage = new ImageView("/assets/images/ITSA_Logo.png"):
     fitWidth = splashWidth
     fitHeight = splashHeight * 0.70
 
@@ -133,7 +138,7 @@ class HardwareLoggerSplashScreen[E <: Throwable, R, VM <: SplashScreenViewModel[
 
   styleClass += "splash-screen"
   children += rootLayout
-  stylesheets += "org/itsadigitaltrust/hardwarelogger/views/stylesheets/splashscreen.css"
+  stylesheets += stylesheet"splashscreen.css"
 
 
   final def load(): Unit =

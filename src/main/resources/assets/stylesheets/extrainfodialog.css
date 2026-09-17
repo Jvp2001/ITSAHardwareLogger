@@ -1,0 +1,18 @@
+
+.hdsentinel-background
+{
+    -fx-background-color: #befdbe;
+}
+
+.label
+{
+    -fx-font-size: 16px;
+}
+
+.value-label
+{
+    -fx-font-weight: bold;
+
+
+}
+

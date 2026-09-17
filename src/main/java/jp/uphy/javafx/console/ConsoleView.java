@@ -12,7 +12,6 @@
  */
 package jp.uphy.javafx.console;
 
-import com.sun.javafx.PlatformUtil;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Cursor;
@@ -22,7 +21,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
-import javafx.stage.FileChooser;
+
 
 
 import java.io.*;

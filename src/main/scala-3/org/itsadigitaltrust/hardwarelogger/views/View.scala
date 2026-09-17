@@ -1,19 +1,15 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
+import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
+import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.viewmodels.{BaseViewModel, ViewModel}
 import scalafx.scene.Node
 
-trait Reloadable:
-  def reload(shouldClearData: Boolean): Unit
-trait View[VM <: BaseViewModel]:
+trait View[VM <: BaseViewModel] extends HWLLoggable:
   this: Node => /** This means only subclasses of [[scalafx.scene.Node]] can implement this trait. */
   given viewModel: VM = scala.compiletime.deferred
-
-
-
-//  Platform.runLater:
-//    offFX:
-//      viewModel.setup()
-
+  
+  def sharedApplicationData: HardwareLoggerSharedData = NotificationCentre.getFetchedData.get
 
 end View

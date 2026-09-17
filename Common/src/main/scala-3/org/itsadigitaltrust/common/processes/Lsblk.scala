@@ -45,10 +45,11 @@ class Lsblk private:
       loop(output.split("\n").drop(1))
   end parse
   
-  def apply()(using ProcessConfig, HWLLoggable): Either[SudoError, FuzzyMap[DiskInfo]] =
+  def apply(): Either[SudoError, FuzzyMap[DiskInfo]] =
+    import sys.process.*
     ox.either:
       if OSUtils.onLinux then
-        val result = sudo"lsblk -d -o name,rota".ok()
+        val result = "sudo lsblk -d -o name,rota".!!
       
         info = parse(result)
         info
@@ -62,7 +63,7 @@ end Lsblk
 
 
 object Lsblk:
-  def apply()(using ProcessConfig, HWLLoggable): Lsblk =
+  def apply(): Lsblk =
     val lsblk = new Lsblk
     lsblk()
     lsblk

@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.services
 
 import org.itsadigitaltrust.common.Maths.*
-import org.itsadigitaltrust.common.Operators.{??, *}
+import org.itsadigitaltrust.common.Operators.*
 import org.itsadigitaltrust.common.processes.lshw.types.CdRom
 import org.itsadigitaltrust.common.processes.{Dmidecode, Lsblk, SudoError}
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
@@ -9,26 +9,24 @@ import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.common.types.FrequencyUnit
 import org.itsadigitaltrust.common.{NetworkUtils, OSUtils}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, HardDriveConnectionType, HardDriveModel, HardDriveType, MediaModel, MemoryModel, ProcessorModel}
-import org.itsadigitaltrust.hdsentinelreader.HDSentinalReader
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.{BatteryStatusModel, GeneralInfoModel, HardDriveConnectionType, HardDriveModel, HardDriveType, MediaModel, MemoryModel, ProcessorModel}
+import org.itsadigitaltrust.hdsentinelreader.HDSentinelReader
 import org.itsadigitaltrust.hdsentinelreader.data.HardDiskSummary
 import org.itsadigitaltrust.common.asPercentage
+import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.common.processes.lshw.Lshw.LshwError
+import org.itsadigitaltrust.common.processes.tlp.{TlpBatteryStatus, TlpStat}
 import org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.databaseService
-import org.itsadigitaltrust.hardwarelogger.core.Givens.HLProcessConfig
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.RequiresItsaID
 import oshi.SystemInfo
-import ox.EitherMode
+import ox.{EitherMode, Ox}
 import ox.either.{fail, ok, orThrow}
 
 import scala.jdk.CollectionConverters.*
 import scala.util.NotGiven
 
-extension (either: Either[HLDatabaseServiceException, String])
-  def toOption: Option[String] =
-    either match
-      case Right(s) => Option(s)
-      case _        => None
-trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) extends HardwareGrabberService:
+trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) extends HardwareGrabberService, RequiresItsaID, HWLLoggable:
 
   private val systemInfo = new SystemInfo
   private val hal = systemInfo.getHardware
@@ -47,64 +45,6 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   end given
 
 
-  // serial number was this: S1CTNSAG440003, then this: S13TJ1CQ404992
-  private val xml =
-    <Hard_Disk_Sentinal>
-      <Physical_Disk_Information_Disk_0>
-        <Hard_Disk_Summary>
-          <Hard_Disk_Number>0</Hard_Disk_Number>
-          <Interface>S-ATA Gen3, 6 Gbps</Interface>
-          <Disk_Controller>����������� ���������� Disk controller</Disk_Controller>
-          <Disk_Location>Channel 1, Target 0, Lun 0, Device: 0</Disk_Location>
-          <Hard_Disk_Model_ID>SSD Model</Hard_Disk_Model_ID>
-          <Firmware_Revision>1234567890</Firmware_Revision>
-          <Hard_Disk_Serial_Number>Z6EQKBN7</Hard_Disk_Serial_Number>
-          <SSD_Controller>SSD Controller</SSD_Controller>
-          <Total_Size>12345 MB</Total_Size>
-          <Power_State>Active</Power_State>
-          <Logical_Drive_s>C: [VOLUME1] D: [VOLUME2]</Logical_Drive_s>
-          <Current_Temperature>38 �C</Current_Temperature>
-          <Maximum_Temperature_ever_measured>49 �C, 17.07.1970 22:28:37</Maximum_Temperature_ever_measured>
-          <Minimum_Temperature_ever_measured>16 �C, 17.11.1970 14:42:12</Minimum_Temperature_ever_measured>
-          <Daily_Average>38.80 �C</Daily_Average>
-          <Daily_Maximum>40 �C</Daily_Maximum>
-          <Power_on_time>1593 days, 6 hours</Power_on_time>
-          <Estimated_remaining_lifetime>200 days</Estimated_remaining_lifetime>
-          <Health>49%</Health>
-          <Performance>100 %</Performance>
-          <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found. The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s): #177 Wear Leveling Count</Description>
-          <Tip>No actions needed.</Tip>
-        </Hard_Disk_Summary>
-      </Physical_Disk_Information_Disk_0>
-      <Physical_Disk_Information_Disk_1>
-        <Hard_Disk_Summary>
-          <Hard_Disk_Number>0</Hard_Disk_Number>
-          <Interface>S-ATA Gen3, 6 Gbps</Interface>
-          <Disk_Controller>����������� ���������� Disk controller</Disk_Controller>
-          <Disk_Location>Channel 1, Target 0, Lun 0, Device: 0</Disk_Location>
-          <Hard_Disk_Model_ID>SSD Model</Hard_Disk_Model_ID>
-          <Firmware_Revision>1234567890</Firmware_Revision>
-          <Hard_Disk_Serial_Number>S13TJ1CQ404993</Hard_Disk_Serial_Number>
-          <SSD_Controller>SSD Controller</SSD_Controller>
-          <Total_Size>12345 MB</Total_Size>
-          <Power_State>Active</Power_State>
-          <Logical_Drive_s>C: [VOLUME1] D: [VOLUME2]</Logical_Drive_s>
-          <Current_Temperature>38 °C</Current_Temperature>
-          <Maximum_Temperature_ever_measured>49 �C, 17.07.1970 22:28:37</Maximum_Temperature_ever_measured>
-          <Minimum_Temperature_ever_measured>16 �C, 17.11.1970 14:42:12</Minimum_Temperature_ever_measured>
-          <Daily_Average>38.80 °C</Daily_Average>
-          <Daily_Maximum>40 °C</Daily_Maximum>
-          <Power_on_time>1593 days, 6 hours</Power_on_time>
-          <Estimated_remaining_lifetime>200 days</Estimated_remaining_lifetime>
-          <Health>93 %</Health>
-          <Performance>100 %</Performance>
-          <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found. The TRIM feature of the SSD is supported and enabled for optimal performance. The health is determined by SSD specific S.M.A.R.T. attribute(s): #177 Wear Leveling Count</Description>
-          <Tip>No actions needed.</Tip>
-        </Hard_Disk_Summary>
-      </Physical_Disk_Information_Disk_1>
-    </Hard_Disk_Sentinal>
-
-
 
 
 
@@ -118,18 +58,16 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
         val os = System.getProperty("os.name")
         // Without the explicit type argument `M` is minimised to `Nothing`, no mapper can be
         // summoned and the lookup can never succeed.
-        val id = databaseService.findBySerialNumber[GeneralInfoModel](serialNumber).toOption.flatMap(_.itsaID)
         val description = Dmidecode("chassis-type").orThrow ?? "Unknown"
         val info = GeneralInfoModel("itsa-hwlogger", description = description,
           model = model,
           vendor = vendor,
           serial = serialNumber,
           os = os,
-          itsaID = id)
+        )
         Seq(info)
       catch
         case e: Exception =>
-          logger.trace("Error while loading hardware info", e)
           LoadError(e).fail()
   end loadGeneralInfo
 
@@ -139,10 +77,7 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
     ox.either:
       try
         val hdSentinelReader =
-          if OSUtils.onLinux then
-            HDSentinalReader[HardDiskSummary]().left.map(LoadError.apply).ok()
-          else
-            HDSentinalReader[HardDiskSummary](xml)
+          HDSentinelReader[HardDiskSummary]().left.map(LoadError.apply).ok()
         end hdSentinelReader
 
         val hardDiskSummaries: Seq[HardDiskSummary] =
@@ -151,18 +86,8 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
 
 
         hardDiskSummaries.map: hardDiskSummary =>
-          
-          val driveId: String =
-            val drive = databaseService.findBySerialNumber[HardDriveModel](hardDiskSummary.hardDiskSerialNumber)
-            drive.map(_.itsaID) ?? ""
 
-          val pcItsaId: String =
-            databaseService.findBySerialNumber[GeneralInfoModel](hal.getComputerSystem.getSerialNumber)
-              .toOption.flatMap(_.itsaID) ?? ""
-
-
-          val id: String =
-            driveId ?? pcItsaId ?? ""
+          val id: String = itsaID
 
 
           val hdType: HardDriveType =
@@ -262,6 +187,7 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   override def loadMedia()(using ox.Ox): Result[MediaModel] =
     ox.either:
       try
+
         org.itsadigitaltrust.common.processes.Lshw.readDisks() match
           case Right(cds) =>
             def toModel(cd: CdRom): MediaModel = MediaModel(cd.description, cd.handle)
@@ -275,9 +201,11 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
           logger.trace("Error while loading media info", e)
           LoadError(e).fail()
   
+  end loadMedia
 
-  // ... existing code ...
-  
+  override def loadBatteryStatus()(using Ox): Option[BatteryStatusModel] =
+    TlpStat.getBatteryStatus.map: status =>
+      BatteryStatusModel(status.capacity, status.remainingJuice, status.status, status.cycleCount, status.voltage)
 
 end OshiHardwareGrabberService
 

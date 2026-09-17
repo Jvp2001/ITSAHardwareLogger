@@ -6,7 +6,7 @@ import ox.either.ok
 
 import scala.Conversion.into
 
-object Dmidecode:
+object Dmidecode extends HWLLoggable:
   type Keyword =
     "bios-vendor" |
       "bios-version" |
@@ -38,10 +38,11 @@ object Dmidecode:
   given Conversion[Keyword, String] with
     def apply(keyword: Keyword): String = keyword
 
-  def apply(keyword: Keyword)(using ProcessConfig, HWLLoggable): Either[SudoError, String] = 
+  def apply(keyword: Keyword): Either[SudoError, String] =
+    import sys.process.*
     ox.either:
       if OSUtils.onLinux then
-        sudo"dmidecode -s $keyword".ok()
+       "sudo dmidecode -s chassis-type".!!
       else
         ""
 

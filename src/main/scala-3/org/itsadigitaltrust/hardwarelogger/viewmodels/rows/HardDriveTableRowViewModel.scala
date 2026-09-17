@@ -12,7 +12,7 @@ import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import java.lang
 
 
-final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[HardDriveModel](_model):
+final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using HardwareGrabberService) extends TableRowViewModel[HardDriveModel](_model):
 
 
   def healthProperty: StringProperty =

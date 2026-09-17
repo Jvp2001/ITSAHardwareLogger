@@ -1,12 +1,11 @@
 package org.itsadigitaltrust.hardwarelogger.services.database.mappers
 
-import org.itsadigitaltrust.common.Operators.{?, ??, ???, |>}
+import org.itsadigitaltrust.common.Operators.{?, ??, |>}
 import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
 import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.common.types.PercentageType.Percentage
-import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
-import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
+import org.itsadigitaltrust.hardwarelogger.core.{BuildInfo, total}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, HardDriveConnectionType, HardDriveModel, MediaModel, MemoryModel, ProcessorModel}
 import org.itsadigitaltrust.hardwarelogger.services.database.{HLDatabaseServiceException, HLDatabaseServiceExceptionBase}
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, RequiresReadingItsaID}
@@ -37,7 +36,7 @@ private[database] object EntityCreatorModelConversions:
         val processor = data.processors.map(_.head) ?? HLDatabaseServiceException.unknownError("No processors found").fail()
 
 
-        val totalMemory = NotificationCentre.getFetchedData.map(_.memory.map(_.size.toDouble))
+        val totalMemory = NotificationCentre.getFetchedData.map(_.memory.total)
           ?? HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching the total memory").fail()
 
         InfoCreator(cpuVendor = infoModel.vendor.?,
@@ -103,7 +102,7 @@ private[database] object EntityCreatorModelConversions:
         val processor = data.processors.map(_.head) ?? HLDatabaseServiceException.unknownError("No processors found").fail()
 
 
-        val totalMemory = NotificationCentre.getFetchedData.map(_.memory.map(_.size.toDouble))
+        val totalMemory = NotificationCentre.getFetchedData.map(_.memory.total)
           ?? HLDatabaseServiceException.unknownError("Unknown error has occurred when fetching the total memory").fail()
 
         InfoCreator(cpuVendor = infoModel.vendor.?,
@@ -175,7 +174,7 @@ private[database] object EntityCreatorModelConversions:
         capacity = model.size.dbString |> Option[String],
         `type` = model.`type`.?,
         description = model.description.?,
-        health = model.health.toString.toByte,
+        health = model.health.toByte,
         toUpdate = true,
         isSsd = true,
         formFactor = "".?
