@@ -15,8 +15,7 @@ import scalafx.scene.control.TableCell
 import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.{ClassTag, classTag}
 
-private[views] final class ProcessorTabView(using HardwareGrabberService)(using vm: ProcessorTabViewModel = new ProcessorTabViewModel) extends TabTableView[ProcessorTabViewModel]:
-  ProcessorTableRowViewModel.apply ||> sharedApplicationData.processors ?? Seq() |> asJavaCollection |> items.value.setAll
+private[views] final class ProcessorTabView(using HardwareGrabberService)(using vm: ProcessorTabViewModel = new ProcessorTabViewModel) extends TabTableView:
 
   private val nameColumn = createAndAddColumn("Chip Type", minimumWidth = ColumnSize.massive): cellValue =>
     cellValue.nameProperty

@@ -7,13 +7,13 @@ import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.MemoryTabViewModel
+import org.itsadigitaltrust.hardwarelogger.views.View
 
 import scala.jdk.javaapi.CollectionConverters
 
 
-final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService, applicationState: HardwareLoggerApplicationState)(using viewModel: MemoryTabViewModel = new MemoryTabViewModel) extends VBox:
-  
-  
+final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService)(using viewModel: MemoryTabViewModel = new MemoryTabViewModel) extends VBox, View[MemoryTabViewModel](using viewModel):
+
   private val totalMemLabel = new Label:
     text = "Total Memory"
     margin = Insets(0.0, 10.0, 0.0, 10.0)
@@ -32,13 +32,13 @@ final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService, 
     styleClass += "total-memory-container"
   
   children += totalMemoryContainer
-  children += new TabTableView[MemoryTabViewModel]:
+  children += new TabTableView[MemoryTabViewModel#Model, MemoryTabViewModel#RowViewModel, MemoryTabViewModel]:
     vgrow = Always
 //    items.value.setAll(sharedApplicationData.memory.map(_.map(MemoryTableRowViewModel.apply)) ?? Seq() *)
-    MemoryTableRowViewModel.apply
-      ||> sharedApplicationData.memory ?? Seq.empty
-      |> CollectionConverters.asJavaCollection
-      |> items.value.setAll
+//    MemoryTableRowViewModel.apply
+//      ||> sharedApplicationData.memory ?? Seq.empty
+//      |> CollectionConverters.asJavaCollection
+//      |> items.value.setAll
     columns ++= Seq(
       new TableColumn[MemoryTableRowViewModel, String]:
         text = "Size"

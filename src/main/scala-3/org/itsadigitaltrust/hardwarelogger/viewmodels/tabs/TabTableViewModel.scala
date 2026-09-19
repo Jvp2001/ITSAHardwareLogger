@@ -40,24 +40,17 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]]
   
   protected def applicationSharedData: HardwareLoggerSharedData = NotificationCentre.getFetchedData.get
 
-  protected def models: Seq[M] = reloadData(applicationSharedData) ?? Seq()
-
+  val rows: ObservableBuffer[RowViewModel] = ObservableBuffer(rowModels*)
+  def models: Seq[M] = reloadData(applicationSharedData) ?? Seq()
+  def rowModels: Seq[RowViewModel] = rowCtor ||> models
 
   protected override def reload(): Either[Error, Unit] =
     import TabTableViewModel.toLoadEitherError
-    ox.either:
-      logger.info(s"Reloading ${classTag[M].runtimeClass.getSimpleName} data")
-      val result = reloadData(applicationSharedData).toLoadEitherError.ok()
-      
+    rows.clear()
+    rows.addAll(models.map(rowCtor))
+    Right(())
 
-     
-
-  //  data.onChange: (source, change) =>
-  //    if change.isEmpty then
-  //      extras.offFX:
-  //        ox.supervised:
-  //          reload()
-
+  
   override protected def onBackendValidationFork()(using Ox): Unit =
     databaseService.runValidation[M](models*)
 

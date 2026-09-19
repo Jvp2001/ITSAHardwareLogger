@@ -81,7 +81,7 @@ private[tlp] object TlpParser:
   batteryDecoder.decode(mockSystemProperties) match
     case Some(battery) =>
       println("  ✅ Success! Macro successfully decoded mock properties:")
-      println(s"    - Custom Property (remainingJuice) : ${battery.remainingJuice} %")
+      println(s"    - Custom Property (remainingJuice) : ${battery.charge} %")
       println(s"    - Standard Property (capacity)      : ${battery.capacity} %")
       println(s"    - Status String                     : ${battery.status}")
       println(s"    - Option[Int] (cycleCount)          : ${battery.cycleCount}")
@@ -106,7 +106,7 @@ private[tlp] object TlpParser:
   batteryDecoder.decode(minimalMockProperties) match
     case Some(battery) =>
       println("  ✅ Success! Required properties parsed, and missing fields naturally set to None:")
-      println(s"    - charge       : ${battery.remainingJuice}")
+      println(s"    - charge       : ${battery.charge}")
       println(s"    - cycleCount   : ${battery.cycleCount}") // Will output None
       println(s"    - deviceModel  : ${battery.deviceModel}") // Will output None
     case None =>
@@ -120,7 +120,7 @@ private[tlp] object TlpParser:
   TlpParser.fetch[TlpBatteryStatus]("battery") match
     case Some(liveBat) =>
       println("  🎉 Live Scan Success!")
-      println(s"    - Current Battery Charge Level: ${liveBat.remainingJuice}%")
+      println(s"    - Current Battery Charge Level: ${liveBat.charge}%")
       println(s"    - Physical Hardware Condition: ${liveBat.capacity}% Health")
       println(s"    - System Power Source Mode   : ${liveBat.status}")
     case None =>

@@ -24,8 +24,8 @@ import scalafx.scene.input.{KeyCodeCombination, KeyCombination}
 import scala.collection.mutable
 import scala.util.Try
 
-class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationState)(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)(using HardwareIDValidationService, IssueReporterService) extends BorderPane with View[HardwareLoggerRootViewModel] with HWLoggerShowMessage:
-  override given viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel
+
+class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)(using HardwareIDValidationService, IssueReporterService)(using viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel) extends BorderPane with View(using viewModel) with HWLoggerShowMessage:
 
   //stylesheets += stylesheet"common.css"
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
@@ -38,6 +38,7 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
     private val hardDrivesTab = createTab("HDD", new HardDrivesTabView)
     private val mediaTab = createTab("Media", new MediaTabView)
     private val debugTab = createTab("Debug", new ItsaDebugView)
+    private val batteryTab = createTab("Battery", new BatteryStatusTabView)
 
 
   private final val viewMenu = new Menu("_View"):
@@ -73,10 +74,10 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
       )
     private final val helpMenu = new Menu("_Help"):
       items ++= Seq(
-        new MenuItem("Report"):
-          ()
-        //          onAction = _ => ItsaDebugView.report(viewModel.issueReporterService.report)
-        ,
+//        new MenuItem("Report"):
+//          ()
+//        //          onAction = _ => ItsaDebugView.report(viewModel.issueReporterService.report)
+//        ,
         new MenuItem("About"):
 
           onAction = _ => Dialogs.showAboutDialog()
@@ -269,30 +270,7 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
 
 
   private given itsaID: String = viewModel.idStringProperty.get
-
-
-    def onProgramModeChanged(mode: ProgramMode): Unit =
-
-      mode match
-        case "HardDrive" =>
-          tabPane.tabs.clear()
-          tabPane.tabs.addAll(hardDrivesTab, debugTab)
-
-        case "Normal" =>
-          tabPane.tabs.clear()
-          tabPane.tabs.addAll(
-            generalTab,
-            memoryTab,
-            processorTab,
-            hardDrivesTab,
-            mediaTab,
-            debugTab
-          )
-          logger.warn(s"Has a battery: ${viewModel.hasABattery}.")
-          if (sharedApplicationData.battery ?? Seq()).nonEmpty then
-            tabPane.tabs.add(createTab("Battery", new BatteryStatusTabView))
-        case "Both" => ()
-      end match
+  
 
 
   //  end onProgramModeChanged
@@ -319,12 +297,16 @@ class HardwareLoggerRootView(using applicationState: HardwareLoggerApplicationSt
           processorTab,
           hardDrivesTab,
           mediaTab,
-          debugTab
+          debugTab,
         )
+        
+        if viewModel.hasABattery then
+          tabPane.tabs.add(batteryTab)
+      end if
   //    end if
   end refreshTabs
 
-
+  switchMode(ProgramMode.mode)
   override protected def parentWindow: Option[Window] = None
 end HardwareLoggerRootView
 

@@ -18,7 +18,6 @@ import scalafx.stage.{Stage, StageStyle}
 import scala.compiletime.uninitialized
 
 
-given useLocalhost: Boolean = true
 object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, HWLoggerShowMessage:
 
   Thread.setDefaultUncaughtExceptionHandler(HardwareLoggerDefaultUncaughtExceptionHandler())

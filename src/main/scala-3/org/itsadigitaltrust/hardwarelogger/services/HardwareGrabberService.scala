@@ -36,5 +36,5 @@ trait HardwareGrabberService extends FrontendService:
   /**
    This is only an option because it may not be present on all systems
    */
-  def loadBatteryStatus()(using ox.Ox): Option[BatteryStatusModel]
+  def loadBatteryStatus()(using ox.Ox): Result[BatteryStatusModel]
 end HardwareGrabberService

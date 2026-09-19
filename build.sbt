@@ -3,7 +3,7 @@ ThisBuild / packageOptions += Package.ManifestAttributes(
   "Build-Time" -> java.time.Instant.now.toString
 )
 ThisBuild / normalizedName := "ITSA Hardware Logger"
-ThisBuild / version := "0.2.0-SNAPSHOT"
+ThisBuild / version := "0.2.5-SNAPSHOT"
 ThisBuild / organization := "org.itsadigitaltrust"
 ThisBuild / scalaVersion := "3.9.0"
 ThisBuild / organizationName := "ITSA Digital Trust"

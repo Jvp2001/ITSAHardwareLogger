@@ -129,7 +129,7 @@ object HLModel:
     enum BatteryHealthCondition:
       case Normal, Acceptable, Replace 
     def apply(status: TlpBatteryStatus): BatteryStatusModel =
-      BatteryStatusModel(status.remainingJuice, status.capacity, status.status, status.cycleCount, status.voltage)
+      BatteryStatusModel(status.charge, status.capacity, status.status, status.cycleCount, status.voltage)
   
   type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel | BatteryStatusModel
 

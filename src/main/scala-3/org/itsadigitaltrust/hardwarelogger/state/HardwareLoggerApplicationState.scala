@@ -2,11 +2,13 @@ package org.itsadigitaltrust.hardwarelogger.state
 
 import org.itsadigitaltrust.common.Operators.{?, ??, toOption, |>}
 import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.common.processes.tlp.TlpStat
 import org.itsadigitaltrust.common.{forkJoin, forkUserJoin, orThrowOption}
 import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.*
+import org.itsadigitaltrust.hardwarelogger.services.OshiHardwareGrabberApplicationService.HardwareGrabberException
 import org.itsadigitaltrust.hardwarelogger.services.database.mappers.HLModelToBackendMappers
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, PerformBackendValidationListener, RequiresGlobalValidationContext}
 import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
@@ -48,6 +50,8 @@ case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDat
   def itsaID: Option[String] = data.itsaID
   
   def oldItsaID: Option[String] = data.oldItsaID
+
+  def battery: Option[Seq[BatteryStatusModel]] = data.battery
 
 
 
@@ -129,11 +133,17 @@ case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDat
         data = data.copy(processors = processors.ok().toOption)
         processors
 //
-//      performAsTask("Loading media..."):
-////        val media = hardwareGrabberService.loadMedia()
-//        data = data.copy(media = media.ok().toOption)
-//        media
+      performAsTask("Loading media..."):
+        val media = hardwareGrabberService.loadMedia()
+        data = data.copy(media = media.ok().toOption)
+        media
 
+
+      performAsTask("Loading battery..."):
+        val battery = hardwareGrabberService.loadBatteryStatus()
+        logger.warn(s"Battery: $battery")
+        data = data.copy(battery = battery.?)
+        Right(())
 
       Right(index)
   end reload

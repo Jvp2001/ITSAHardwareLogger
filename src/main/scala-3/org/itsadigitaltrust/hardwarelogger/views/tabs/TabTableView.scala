@@ -6,7 +6,6 @@ import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import javafx.beans.value
 import javafx.beans.value.ChangeListener
 import javafx.event.EventHandler
@@ -18,6 +17,7 @@ import javafx.scene.input as jfxsi
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.BaseViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.views.View
 import scalafx.event.EventType
 import scalafx.event.subscriptions.Subscription
@@ -79,26 +79,20 @@ private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using
 
 end TableTabRow
 
-/**
- * Helper type to extract the Model and the RowViewModel from a TabTableViewModel.
- * @tparam T The TabTableViewModel to be used to extract its corresponding Model and RowViewModel.
- */
-type ExtractType[T] = T match
-  case TabTableViewModel[model, rowVM] => (model, rowVM)
 
-abstract class TabTableView[VM  <: BaseViewModel /*<: TabTableViewModel[? <: HLModel, ? <: TableRowViewModel[? <: HLModel]]*/](using vm: VM)(using hardwareGrabberService: HardwareGrabberService) extends TableView[Tuple.Elem[ExtractType[VM], 1]] with View[VM]:
 
-  override given viewModel: VM = vm
+abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[Model], VM  <: TabTableViewModel[Model, RowViewModel]](using hardwareGrabberService: HardwareGrabberService)(using viewModel: VM) extends TableView[RowViewModel] with View[VM]:
+
   import TabTableView.*
 
-  type Model = Tuple.Elem[ExtractType[VM], 0]
-  type RowViewModel = Tuple.Elem[ExtractType[VM], 1]
   given reorderableColumns: Boolean = false
 
   protected class TabTableColumn[P] extends TableColumn[RowViewModel, P]
   protected class TabTableCell[P] extends jfxsc.TableCell[RowViewModel, P]
   vgrow = Always
 
+
+  items() = viewModel.rows
   protected def createAndAddColumn[P](name: String, minimumWidth: Double = 50D )(f: RowViewModel => ObservableValue[P, P]): TableColumn[RowViewModel, P] =
     val column = new TableColumn[RowViewModel, P]():
       text = name

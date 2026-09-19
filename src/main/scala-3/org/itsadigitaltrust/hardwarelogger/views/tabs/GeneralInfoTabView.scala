@@ -13,8 +13,7 @@ import scalafx.beans.property.StringProperty
 import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.classTag
 import scala.language.experimental.modularity
-private[views] final class GeneralInfoTabView(using HardwareGrabberService, HLDatabaseService)(using viewModel: GeneralInfoTabViewModel = new GeneralInfoTabViewModel) extends TabTableView[GeneralInfoTabViewModel]:
-   GeneralInfoTableRowViewModel.apply ||> sharedApplicationData.info ?? Seq() |> asJavaCollection |> items.value.setAll
+private[views] final class GeneralInfoTabView(using HardwareGrabberService, HLDatabaseService)(using viewModel: GeneralInfoTabViewModel = new GeneralInfoTabViewModel) extends TabTableView[GeneralInfoTabViewModel#Model, GeneralInfoTabViewModel#RowViewModel, GeneralInfoTabViewModel]:
 
   
     private val computerIDColumn = createAndAddColumn("Version ID", minimumWidth = ColumnSize.big): cellValue =>

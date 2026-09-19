@@ -2,7 +2,7 @@ package org.itsadigitaltrust.common.processes.tlp
 
 
 case class TlpBatteryStatus(
-                             @TlpProperty("charge") remainingJuice: Double,
+                             @TlpProperty("charge") charge: Double,
                              capacity: Double,
                              status: String,
                              cycleCount: Option[Int],

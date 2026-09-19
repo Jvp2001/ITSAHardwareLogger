@@ -106,12 +106,11 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
 end HardwareLoggerSplashScreenViewModel
 
 
-class HardwareLoggerSplashScreen[E <: Throwable, R, VM <: SplashScreenViewModel[E, R]](splashWidth: Double, splashHeight: Double)(using vm: VM)(onDataLoaded: () => Unit)(using applicationState: HardwareLoggerApplicationState) extends VBox with View[VM]:
-  override given viewModel: VM = vm
-  
+class HardwareLoggerSplashScreen[E <: Throwable, R, VM <: SplashScreenViewModel[E, R]](splashWidth: Double, splashHeight: Double)(using viewModel: VM)(onDataLoaded: () => Unit)(using applicationState: HardwareLoggerApplicationState) extends VBox with View:
+
   maxWidth() = splashWidth
   maxHeight() = splashHeight
-  private val splashImage = new ImageView("/assets/images/ITSA_Logo.png"):
+  private val splashImage = new ImageView(image"ITSA_Logo.png"):
     fitWidth = splashWidth
     fitHeight = splashHeight * 0.70
 

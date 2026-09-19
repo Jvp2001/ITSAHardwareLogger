@@ -203,10 +203,11 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   
   end loadMedia
 
-  override def loadBatteryStatus()(using Ox): Option[BatteryStatusModel] =
-    TlpStat.getBatteryStatus.map: status =>
-      BatteryStatusModel(status.capacity, status.remainingJuice, status.status, status.cycleCount, status.voltage)
-
+  override def loadBatteryStatus()(using Ox): Result[BatteryStatusModel] =
+    ox.either:
+      TlpStat.getBatteryStatus.map: status =>
+        Seq(BatteryStatusModel(status.capacity, status.charge, status.status, status.cycleCount, status.voltage))
+      ?? LoadError("Failed to get battery status!").fail()
 end OshiHardwareGrabberService
 
 object OshiHardwareGrabberApplicationService extends  OshiHardwareGrabberService:
