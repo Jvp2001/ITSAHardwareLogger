@@ -27,7 +27,6 @@ import scala.util.Try
 
 class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)(using HardwareIDValidationService, IssueReporterService)(using viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel) extends BorderPane with View(using viewModel) with HWLoggerShowMessage:
 
-  //stylesheets += stylesheet"common.css"
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
   
   private type TabsMapKey = "General" | "Memory" | "Processor" | "HDD" | "Media" | "Debug" | "Battery"
@@ -44,13 +43,13 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
   private final val viewMenu = new Menu("_View"):
     private final val modeMenu = new Menu("_Mode"):
       items ++= Seq(
-      new CheckMenuItem("Normal"):
+      new CheckMenuItem("_Normal"):
         accelerator = new KeyCodeCombination(KeyCode.N, KeyCombination.ShortcutDown, KeyCombination.AltDown)
         onAction = _ =>
             switchMode("Normal")
         selected <==> ProgramMode.isModeNormal
         ,
-        new CheckMenuItem("HardDrive"):
+        new CheckMenuItem("_HardDrive"):
           accelerator = new KeyCodeCombination(KeyCode.H, KeyCombination.ShortcutDown, KeyCombination.AltDown)
           onAction = _ =>
             switchMode("HardDrive")
@@ -108,6 +107,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
 
   private final val idErrorLabel = new Label:
     styleClass += "error"
+    style() += "-fx-text-fill: red;"
     padding = Insets(0, 0, 0, 35.0)
     margin = Insets(0, 0, 5.0, 0)
     text <==> viewModel.idErrorStringProperty

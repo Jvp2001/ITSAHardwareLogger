@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger
 
 
+import atlantafx.base.theme.{CupertinoDark, CupertinoLight, Theme}
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.processes.RootChecker
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -11,14 +12,16 @@ import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView
 import org.scalafx.extras.ShowMessage
 import scalafx.Includes.*
+import scalafx.application.Platform.{Preferences, preferences}
 import scalafx.application.{JFXApp3, Platform}
 import scalafx.scene.Scene
 import scalafx.stage.{Stage, StageStyle}
+import scalafx.util.Duration
 
 import scala.compiletime.uninitialized
 
 
-object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, HWLoggerShowMessage:
+object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, HWLoggerShowMessage, WithThemeSwitching:
 
   Thread.setDefaultUncaughtExceptionHandler(HardwareLoggerDefaultUncaughtExceptionHandler())
 
@@ -28,7 +31,8 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
 
   private var applicationStage: Stage | Null = uninitialized
 
-
+  override protected lazy val darkAtlantaTheme = new CupertinoDark()
+  override protected lazy val lightAtlantaTheme = new CupertinoLight()
   Platform.implicitExit = false
 
   // The splash stage is shown explicitly in `start()`, so don't let the launcher
@@ -56,7 +60,9 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   )
 
   override def start(): Unit =
+    println(preferences.colorScheme)
     setProgramMode()
+    setupThemeManager()
 
     // Must happen before any view is built: the hardware grabber returns nothing without
     // root, and reporting that from inside a view constructor deadlocks the FX thread.
@@ -69,6 +75,8 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
 //      Platform.exit()
 //    else
 
+
+
       ThemeManager.parseArgs(parameters)
       val splashScreen = new HardwareLoggerSplashScreen(480, 360)(showApplication)
       val splashStage =  new JFXApp3.PrimaryStage:
@@ -78,6 +86,7 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
         maxHeight = splashScreen.maxHeight()
 //      initStyle(StageStyle.Undecorated)
         scene = new HardwareLoggerScene(splashScreen)
+        registerScene(scene())
 
       stage = splashStage
       stage.onShown = _ =>
@@ -99,7 +108,7 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
       resizable = false
       
       scene = new HardwareLoggerScene(new HardwareLoggerRootView, applicationSize._1, applicationSize._2)
-
+      registerScene(scene())
 //
       onCloseRequest = event =>
         Platform.exit()
@@ -113,33 +122,33 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   end createApplicationStage
 
   private def showApplication()(using applicationState: HardwareLoggerApplicationState): Unit =
-     logger.info("showApplication: creating application stage")
-      applicationStage = createApplicationStage()
-      logger.info("showApplication: showing application stage")
+
+    applicationStage = createApplicationStage()
+
+    // 5. Define the Splash Fade-Out Animation
+    val fadeOutSplash = new javafx.animation.FadeTransition()
+    fadeOutSplash.setDuration(Duration(700))
+    fadeOutSplash.setNode(stage.scene().getRoot)
+    fadeOutSplash.setFromValue(1.0)
+    fadeOutSplash.setToValue(0.0)
+
+
+    // 6. Define the Main Application Fade-In Animation
+    val fadeInMain = new javafx.animation.FadeTransition()
+    fadeInMain.setDuration(Duration(700))
+    fadeInMain.setNode(applicationStage.scene().getRoot)
+    fadeInMain.setFromValue(0.0)
+    fadeInMain.setToValue(1.0)
+
+
+    fadeOutSplash.play()
+    fadeOutSplash.onFinished = event =>
+      // Make the application window visible FIRST, but completely invisible
+      applicationStage.scene().getRoot.setOpacity(0.0)
       applicationStage.show()
       logger.info("showApplication: hiding splash stage")
       stage.hide()
-//
-//    val applicationTransition = new FadeTransition(Duration(1500), applicationStage.getScene.getRoot):
-//      fromValue = 0D
-//      toValue = 1D
-//      onFinished = () =>
-//        applicationStage.show()
-//
-//    val splashScreenTransition = new FadeTransition(Duration(1500), stage.getScene.getRoot):
-//      fromValue = 1D
-//      toValue = 0D
-//      delay = Duration(500)
-//      onFinished = () =>
-//        stage.hide()
-//        applicationTransition.play()
-//    end splashScreenTransition
-//
-//    splashScreenTransition.play()
-
-
-      stage.hide()
-      applicationStage.show()
+      fadeInMain.play()
 
 
   end showApplication
