@@ -48,20 +48,13 @@ trait BaseViewModel(using HardwareGrabberService) extends HWLLoggable:
 end BaseViewModel
 
 trait RootViewModel extends BaseViewModel:
-
-  class RootViewModelBusyWorker(name: String, disabledNodes: Seq[Node]) extends BusyWorker(title = name, disabledNodes = disabledNodes.map(sfxNode2jfx)):
-    taskMessageProperty <== progressMessage
-    taskProgressProperty <== progressValue
-
-
+  
   given taskMessageProperty: StringProperty = StringProperty("")
   given taskProgressProperty: DoubleProperty = DoubleProperty(0)
   given disableNodeWhileTaskRunningProperty: BooleanProperty = BooleanProperty(false)
-  var parentWindow: Option[Window] = None
 
-
-  def doWork[E <: Throwable, R](numberOfOperations: Int = 1, timeout: FiniteDuration = 3.seconds, name: String = "")(using HWLoggerShowMessage)(body: HardwareLoggerSimpleTask[E, R] ?=> OxError[E, [X] =>> Either[E, X]] ?=> Either[E, R]) : Either[E, R] =
-    new HardwareLoggerBusyWorker(name, window = parentWindow)(using statusMessageProp = Option(taskMessageProperty), progressProp = Option(taskProgressProperty), busyProp = Option(disableNodeWhileTaskRunningProperty))
+  def doWork[E <: Throwable, R](numberOfOperations: Int = 1, timeout: FiniteDuration = 3.seconds, name: String = "")(using showMessage:HWLoggerShowMessage)(body: HardwareLoggerSimpleTask[E, R] ?=> OxError[E, [X] =>> Either[E, X]] ?=> Either[E, R]) : Either[E, R] =
+    new HardwareLoggerBusyWorker(name, window = None)(using statusMessageProp = Option(taskMessageProperty), progressProp = Option(taskProgressProperty), busyProp = Option(disableNodeWhileTaskRunningProperty))
     .doTask(name):
       new HardwareLoggerSimpleTask[E, R](numberOfOperations, timeout):
         override def onCall()(using context: OxError[E, [X] =>> Either[E, X]]): Either[E, R] =

@@ -7,9 +7,7 @@ import org.scalafx.extras.generic_pane.GenericDialogFX
 import scalafx.scene.control.Label
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 
-
-
-private[dialogs] class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDialogFX(s"${model.serial}'s Information"):
+class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDialogFX(s"${model.serial}'s Information"):
   private var gridPane: Option[GridPane] = None
   private val descriptionContainer =  new StackPane:
     private val container = new VBox(20):
@@ -65,9 +63,5 @@ private[dialogs] class HardDriveExtraInformationDialog(model: HardDriveModel) ex
 
 end HardDriveExtraInformationDialog
 
-extension(sd: ShowDialogs)
-  def showHardDriveExtraInfoDialog(model: HardDriveModel): Unit =
-    val dialog = new HardDriveExtraInformationDialog(model)
-    sd.showGenericDialog[HardDriveExtraInformationDialog, Unit](dialog)(_ => None)
-
-
+inline def showHardDriveExtraInfoDialog(model: HardDriveModel): Unit =
+  new HardDriveExtraInformationDialog(model).showDialog()

@@ -3,7 +3,7 @@ ThisBuild / packageOptions += Package.ManifestAttributes(
   "Build-Time" -> java.time.Instant.now.toString
 )
 ThisBuild / normalizedName := "ITSA Hardware Logger"
-ThisBuild / version := "0.2.5-SNAPSHOT"
+ThisBuild / version := "0.2.6-SNAPSHOT"
 ThisBuild / organization := "org.itsadigitaltrust"
 ThisBuild / scalaVersion := "3.9.0"
 ThisBuild / organizationName := "ITSA Digital Trust"
@@ -35,6 +35,20 @@ ThisBuild / scalacOptions ++= Seq(
   "-Xno-enrich-error-messages"
 )
 
+
+Global / onLoad := {
+  val previousOnLoad = (Global / onLoad).value
+  previousOnLoad.andThen { state =>
+    // Inject your command or task sequence here
+    "buildInfo" :: state
+  }
+}
+
+// Forces buildInfo to execute whenever the compile task is triggered
+(Compile / compile) := ((Compile / compile) dependsOn (Compile / buildInfo)).value
+
+// Forces compile to execute whenever the assembly task is triggered
+assembly := (assembly dependsOn (Compile / compile)).value
 
 fork := true
 
@@ -75,9 +89,13 @@ ThisBuild / assemblyMergeStrategy := {
 }
 
 
+// for the log viewer based dependencies
+resolvers += "SciJava Public" at "https://maven.scijava.org/content/repositories/public/"
+
+
 val javafxVersion = "25.0.3"
 val platforms = Seq("linux")
-val modules = Seq("base", "controls", "graphics", "web")
+val modules = Seq("base", "controls", "web")
 
 lazy val javaFXDeps = platforms
   .flatMap(platform =>
@@ -93,8 +111,14 @@ lazy val scalaFXDeps = Seq(
 lazy val atlantaFX = Seq(
   "io.github.mkpaz" % "atlantafx-base" % "2.1.0"
 )
+lazy val logViewer = Seq(
+  // Source: https://mvnrepository.com/artifact/io.github.qupath/logviewer-ui-main
+  "io.github.qupath" % "logviewer-ui-main" % "0.3.0",
+  "io.github.qupath" % "logviewer-logging-logback" % "0.2.0",
+)
 
-lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ atlantaFX )
+
+lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ atlantaFX ++ logViewer)
   .map(_ withJavadoc() withSources())
 
 lazy val root = (project in file("."))
@@ -112,7 +136,7 @@ lazy val root = (project in file("."))
 
     libraryDependencies ++= uiDependencies,
     libraryDependencies += "com.github.oshi" % "oshi-core" % "7.6.1",
-    libraryDependencies ++= commonDependencies,
+    //    libraryDependencies ++= commonDependencies,
 
     // addForegroundTask scalatest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
@@ -163,7 +187,6 @@ lazy val backend = (project in file("Backend"))
     libraryDependencies ++= commonDependencies,
     Test / unmanagedSourceDirectories += file("tests"),
   ).dependsOn(common)
-
 
 
 lazy val issueReporter = (project in file("IssueReporter"))

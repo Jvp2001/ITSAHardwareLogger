@@ -4,18 +4,17 @@ import javafx.scene.control.TextFormatter
 import javafx.util.converter.DefaultStringConverter
 import jp.uphy.javafx.console.ConsoleView
 import org.itsadigitaltrust.common.Operators.{??, or, |>}
-
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-
 import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, IssueCustomisationDialog}
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, ReportedIssue}
 import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, ReportedIssue}
-
 import ch.qos.logback.classic.LoggerContext
+import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.scalafx.extras.auto_dialog.AutoDialog
 import org.slf4j.LoggerFactory
+import qupath.ui.logviewer.ui.main.LogViewer
 import scalafx.scene.control.Alert.AlertType.{Confirmation, Information}
 import scalafx.scene.control.{CheckMenuItem, ContextMenu, Dialog, MenuItem, SeparatorMenuItem, TextArea}
 import scalafx.scene.input.{Clipboard, ClipboardContent}
@@ -23,24 +22,13 @@ import scalafx.util.StringConverter
 
 import java.nio.charset.Charset
 
-class ItsaDebugView(using issueReporterService: IssueReporterService) extends ConsoleView:
-  System.setOut(getOut)
-  System.setErr(getOut)
-
-  createAndAddItem("Report", _ => ItsaDebugView.report(issueReporterService.report)(using this))
-  createAndAddItem:
-    new CheckMenuItem("Log Exceptions"):
-      onAction = _ =>
-        val loggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-        loggerContext.getLoggerList.forEach: logger =>
-          logger.setLevel(
-            if selected.value then
-              ch.qos.logback.classic.Level.DEBUG
-            else
-              ch.qos.logback.classic.Level.INFO
-          )
-
-
+class ItsaDebugView(using issueReporterService: IssueReporterService) extends VBox
+//  children += new LogViewer:
+//    vgrow = Always
+//    minWidth = Double.MaxValue
+//    minHeight = Double.MaxValue
+//    prefWidth = Double.MaxValue
+//    prefHeight = Double.MaxValue
 
 object ItsaDebugView:
 
@@ -48,11 +36,11 @@ object ItsaDebugView:
   import org.itsadigitaltrust.hardwarelogger.core.given
 
 
-  def report(reporter: Issue => Option[String])(using debugView: ItsaDebugView): Unit =
+  def report(reporter: Issue => Option[String])(using debugView: ItsaDebugView, showMessage: HWLoggerShowMessage): Unit =
     def sendReport(issue: Issue = Issue()) =
       reporter(makeReport(issue)) match
-        case Some(value) => Dialogs.showErrorAlert("Issue Submission failed", value)
-        case None => Dialogs.showInfoAlert("Issue Reported!", "")
+        case Some(value) => showMessage.showError("Issue Submission failed", value)
+        case None => showMessage.showInformation("Issue Reported!")
 
 
     def makeReport(issue: Issue = Issue()): Issue =
@@ -62,18 +50,17 @@ object ItsaDebugView:
            |
            |Output
            |==========================================
-           |${debugView.getOutput}
+           |TODO
            |""".stripMargin
       Issue(title, Description(description))
     end makeReport
 
 
 
-
-    Dialogs.createConfirmationAlert("Report Issue", "Do you want to report an Issue").showAndWait().match
+    showMessage.showConfirmation("Report Issue", "Do you want to report an Issue").match
       case Some(ButtonType.No) => ()
       case Some(ButtonType.Yes | ButtonType.OK) =>
-        Dialogs.createConfirmationAlert("Customise Issue", "Do you want to customise the issue?").showAndWait().match
+        showMessage.showConfirmation("Customise Issue", "Do you want to customise the issue?").match
           case Some(ButtonType.No) =>  sendReport()
           case Some(ButtonType.Yes | ButtonType.OK) =>
             val dialog = new IssueCustomisationDialog()

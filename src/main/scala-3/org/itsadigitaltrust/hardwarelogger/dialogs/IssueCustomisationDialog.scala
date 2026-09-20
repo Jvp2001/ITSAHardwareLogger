@@ -27,9 +27,6 @@ class IssueCustomisationDialog extends GenericDialogFX("Customise ReportedIssue"
 end IssueCustomisationDialog
 
 
-extension (sd: ShowDialogs)
-  def showIssueCustomisationDialog()(handler: IssueCustomisationDialog => Option[ReportedIssue]): Option[ReportedIssue] =
-    val dialog = new IssueCustomisationDialog()
-    sd.showGenericDialog(dialog)(handler)
-
+inline def showIssueCustomisationDialog(): Unit =
+  new IssueCustomisationDialog().showDialog()
 

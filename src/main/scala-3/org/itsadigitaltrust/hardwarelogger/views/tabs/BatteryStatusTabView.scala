@@ -9,18 +9,21 @@ import scalafx.scene.control.TableCell
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 
 import scala.jdk.javaapi.CollectionConverters
-class BatteryStatusTabView(using HardwareGrabberService)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView:
+class BatteryStatusTabView(using HardwareGrabberService)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
 
 //  BatteryStatusTableRowViewModel.apply ||>
 //    sharedApplicationData.battery ?? Seq() |>
 //    CollectionConverters.asJavaCollection |>
 //    items.value.setAll
 
-  val chargeColumn = createAndAddColumn("Charge")(_.chargeProperty)
+  val chargeColumn = createAndAddColumn("Charge"): cellValue => 
+    cellValue.chargeProperty
 
   val statusColumn = createAndAddColumn("Status")(_.statusProperty)
 
   val healthColumn = createAndAddColumn("Health")(_.healthProperty)
+
+  
 
 //  healthColumn.cellFactory = (cell, value) =>
 //    val health = value.dropWhile(_ == "%").mkString.toDouble

@@ -60,11 +60,11 @@ class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel)(using Hardw
   private val healthColumn = createAndAddColumn("Health"): cellValue =>
     StringProperty(cellValue.healthProperty.get)
 
-  private val performanceColumn = createAndAddColumn[String]("Performance"): cellValue =>
+  private val performanceColumn = createAndAddColumn("Performance"): cellValue =>
     StringProperty(cellValue.performanceProperty.get)
 
 
-  private val sizeColumn = createAndAddColumn[String]("Size"): cellValue =>
+  private val sizeColumn = createAndAddColumn("Size"): cellValue =>
     cellValue.sizeProperty
 
 
@@ -91,7 +91,7 @@ class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel)(using Hardw
 
   )
 
-  private val isSSDColumn = createAndAddColumn[String]("Is SSD"): cellValue =>
+  private val isSSDColumn = createAndAddColumn("Is SSD"): cellValue =>
     cellValue.driveTypeProperty
 
 

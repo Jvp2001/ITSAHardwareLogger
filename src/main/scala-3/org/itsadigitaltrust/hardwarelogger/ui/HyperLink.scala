@@ -1,16 +1,15 @@
 package org.itsadigitaltrust.hardwarelogger.ui
 
 import org.itsadigitaltrust.common.Operators.{in, |>}
+import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import scalafx.Includes.*
 import scalafx.stage.{Stage, Window}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
-
 import scalafx.scene.control.Hyperlink
 
-class ConfirmHyperLink extends Hyperlink:
-
+class ConfirmHyperLink extends Hyperlink, HWLoggerShowMessage:
   protected var skipConfirmation: Boolean = false
   onKeyTyped  = e =>
     if e.isAltDown then
@@ -18,18 +17,12 @@ class ConfirmHyperLink extends Hyperlink:
 
   onKeyReleased = _ =>
     skipConfirmation = false
-
-
-  def showConfirmationAlert(): Option[ButtonType] =
-    Dialogs.showConfirmationAlert("", "")
-
   onAction = _ =>
     if !skipConfirmation then
-      showConfirmationAlert() match
-        case Some(value) => if value in Seq(ButtonType.Yes, ButtonType.OK) then
+      showConfirmation("Confirm?", "Do you want open the link?", "") match
+        case true =>
           dialogDismissed(Some(true)) // User confirmed the action
-        case None => dialogDismissed(Some(false)
-        )
+        case false => dialogDismissed(Some(false))
     else
       skipConfirmation = false
       dialogDismissed(None) // No confirmation, just proceed with the action
@@ -50,8 +43,8 @@ class WebSiteHyperLink(name: String, url: String) extends ConfirmHyperLink:
 
   text = if name == "" || name == null then url else name
 
-  override def showConfirmationAlert(): Option[ButtonType] =
-    Dialogs.showConfirmationAlert("Open Web Site", s"Do you want to open the web site $url?")
+  def showConfirmationAlert()(using showMessage: HWLoggerShowMessage): Boolean =
+    showMessage.showConfirmation("Open Web Site", s"Do you want to open the web site $url?")
 
   override def dialogDismissed(result: Option[Boolean]): Unit =
     result match

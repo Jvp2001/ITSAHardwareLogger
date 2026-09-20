@@ -1,5 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
+import atlantafx.base.theme.Styles
 import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -20,6 +21,7 @@ import scalafx.beans.value.ObservableValue
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
 import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar}
 import scalafx.scene.input.{KeyCodeCombination, KeyCombination}
+import qupath.ui.logviewer.ui.main.LogViewer
 
 import scala.collection.mutable
 import scala.util.Try
@@ -36,7 +38,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     private val processorTab = createTab("Processor", new ProcessorTabView)
     private val hardDrivesTab = createTab("HDD", new HardDrivesTabView)
     private val mediaTab = createTab("Media", new MediaTabView)
-    private val debugTab = createTab("Debug", new ItsaDebugView)
+    private val debugTab = createTab("Debug", new LogViewer)
     private val batteryTab = createTab("Battery", new BatteryStatusTabView)
 
 
@@ -79,6 +81,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
 //        ,
         new MenuItem("About"):
 
+
           onAction = _ => Dialogs.showAboutDialog()
       )
     menus ++= Seq(
@@ -120,20 +123,23 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     children ++= Seq(idLabel, idTextField)
 
   private final val topContainer = new VBox:
+    styleClass += Styles.DENSE
     disable <== viewModel.disableNodeWhileTaskRunningProperty
     private final val region = new Region():
       maxWidth = 10.0
     alignment = CenterLeft
-    prefHeight = 50.0
+    prefHeight = 10.0
     prefWidth = 200.0
-    spacing = 10.0
-    children ++= Seq(region, idContainer, idErrorLabel)
+    spacing = 5.0
+    children ++= Seq(idContainer, idErrorLabel)
   end topContainer
 
   private final val tabPane = new TabPane:
+    styleClass ++= Seq(
+      Styles.FLAT,
+    )
+
     disable <== viewModel.disableNodeWhileTaskRunningProperty
-    prefHeight = prefWidth.get
-    prefWidth = 200.0
     tabClosingPolicy = Unavailable
     alignmentInParent = Pos.Center
     vgrow = Always
@@ -181,15 +187,10 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
 
 
   private final val saveButton: Button = normalSaveButton
-  private final val rightAlignRegion = new Region:
-    prefWidth = 200.0
-    prefHeight = prefWidth.get
-    hgrow = Always
   private final val buttonsContainer = new HBox:
-    alignment = Center
+    alignment = CenterRight
     prefWidth = 200.0
-    minHeight = 50.0
-    children ++= Seq(rightAlignRegion, reconnectButton, reloadButton, saveButton)
+    children ++= Seq(reconnectButton, reloadButton, saveButton)
   end buttonsContainer
 
 
@@ -199,8 +200,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     top = topContainer
     disable <== viewModel.disableNodeWhileTaskRunningProperty
     center = new VBox:
-      prefWidth = 600D
-      prefHeight = 600D
+      styleClass += Styles.DENSE
       BorderPane.setAlignment(this, Center)
 
       refreshTabs()

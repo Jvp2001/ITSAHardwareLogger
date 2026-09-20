@@ -97,8 +97,6 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
             contentText = "The data has been saved to the database successfully."
             showAndWait()
 
-    override protected def parentWindow: Option[Window] = ???
-
   end reloadTask
 
 

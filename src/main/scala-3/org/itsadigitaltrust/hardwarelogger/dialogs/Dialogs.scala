@@ -24,10 +24,12 @@ import scala.jdk.CollectionConverters.*
 
 
 
-object Dialogs extends ShowDialogs:
+object Dialogs:
 
   import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue
   import org.itsadigitaltrust.hardwarelogger.dialogs
   import dialogs.*
+
   export dialogs.{HardDriveExtraInformationDialog, IssueCustomisationDialog, WebViewDialog, showAboutDialog, showIssueCustomisationDialog, showHardDriveExtraInfoDialog}
+
 end Dialogs

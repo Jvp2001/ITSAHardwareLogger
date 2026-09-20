@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.common.Operators.{in, |>}
-import org.itsadigitaltrust.hardwarelogger.core.ui.{eventClosureWrapperWithParam, *}
 import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
@@ -19,13 +18,7 @@ import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.BaseViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.views.View
-import scalafx.event.EventType
-import scalafx.event.subscriptions.Subscription
-import scalafx.scene.Cursor
-import scalafx.scene.input.KeyEvent
-
-import scala.compiletime.deferred
-import scala.ref.WeakReference
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scala.reflect.ClassTag
 
 
@@ -48,6 +41,7 @@ private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using
       setCursor(Cursor.Hand)
     else
       setCursor(Cursor.Default)
+
 
   override def updateItem(item: R, empty: Boolean): Unit =
     super.updateItem(item, empty)
@@ -93,11 +87,38 @@ abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[
 
 
   items() = viewModel.rows
-  protected def createAndAddColumn[P](name: String, minimumWidth: Double = 50D )(f: RowViewModel => ObservableValue[P, P]): TableColumn[RowViewModel, P] =
-    val column = new TableColumn[RowViewModel, P]():
+
+  /**
+   * Generates a TableColumn with proper ScalaFX Observable bounds.
+   *
+   * = Why the explicit `.asInstanceOf` type cast is required here: =
+   *
+   * 1. Java vs. Scala Variance Stance:
+   *    Java relies purely on Use-Site Variance (e.g., `ObservableValue<? extends T>`). 
+   *    Scala prefers Declaration-Site Variance (`[+T]`). Because JavaFX was built on 
+   *    Java's invariant generics foundation, ScalaFX's `cellValueFactory` strictly 
+   *    demands a function signature returning an invariant `ObservableValue[P, P]`.
+   *
+   * 2. The Wildcard/Boxing Impedance Mismatch:
+   *    Our function argument `f` yields `ObservableValue[P, ?]`. The wildcard (`?`) 
+   *    is required because JavaFX primitives are boxed under the hood (e.g., a 
+   *    `DoubleProperty` implements `ObservableValue[Number, Number]`).
+   *
+   * 3. The Scala 3 Compiler Enforcement:
+   *    Because Scala enforces type invariance far more strictly than Java's loose runtime 
+   *    type erasure, the compiler refuses to bind an asymmetric wildcard wrapper `[P, ?]`
+   *    to a symmetric signature expecting `[P, P]`.
+   *
+   * Using `.asInstanceOf` safely downcasts the underlying wildcard parameter right 
+   * at the assignment boundary. This satisfies Scala's compile-time verification 
+   * and safely hands the execution loop over to the underlying JavaFX layout engine.
+   */
+  protected def createAndAddColumn[P](name: String, minimumWidth: Double = 50D )(f: RowViewModel => ObservableValue[P, ?]): TabTableColumn[P] =
+    val column = new TabTableColumn[P]():
       text = name
       minWidth = minimumWidth
-      cellValueFactory = _.value |> f
+      cellValueFactory = cellData =>
+        (cellData.value |> f).asInstanceOf[ObservableValue[P, P]]
       sortable = false
       delegate.setReorderable(reorderableColumns)
     columns += column

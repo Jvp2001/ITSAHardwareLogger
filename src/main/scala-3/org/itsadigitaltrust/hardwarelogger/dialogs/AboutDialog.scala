@@ -9,7 +9,7 @@ import scalafx.Includes.*
 import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
 import org.itsadigitaltrust.common.or
 
-private[dialogs] class AboutDialog(ownerWindow: Option[Window] = None) extends GenericDialogFX(title = "About Hardware Logger",
+class AboutDialog(ownerWindow: Option[Window] = None) extends GenericDialogFX(title = "About Hardware Logger",
   header = "Hardware Logger",
   ownerWindow = ownerWindow) with GenericDialogFXExtras:
 
@@ -31,7 +31,5 @@ private[dialogs] class AboutDialog(ownerWindow: Option[Window] = None) extends G
 
 end AboutDialog
 
-extension (sd: ShowDialogs)
-  def showAboutDialog(ownerWindow: Option[Window] = None): Unit =
-    val dialog = new AboutDialog(ownerWindow)
-    sd.showGenericDialog(dialog)(Option.apply)
+inline def showAboutDialog(ownerWindow: Option[Window] = None): Unit =
+  new AboutDialog(ownerWindow).showDialog()

@@ -11,18 +11,19 @@ import java.util.concurrent.TimeoutException
 import scala.util.control.NonFatal
 
 
-class HardwareLoggerDefaultUncaughtExceptionHandler extends UncaughtExceptionHandler with HWLLoggable:
+class HardwareLoggerDefaultUncaughtExceptionHandler extends UncaughtExceptionHandler with HWLoggerShowMessage:
   override def uncaughtException(t: Thread, e: Throwable): Unit =
     extras.onFX:
       e match
         case _: AssertionError => ()
-        case _:CommunicationsException =>
-          Dialogs.showDBConnectionError()
+        case e:CommunicationsException =>
+          showException("DB Connection Error", "Failed to connect to the database!", e)
+
         case NonFatal(e) =>
-          ShowMessage.exception("Error", "Exception has occurred",  e.asInstanceOf[Throwable])
+          showException("Error", "Exception has occurred", e)
 
         case e: TimeoutException =>
-          ShowMessage.exception("Timeout", "Timeout has occurred", e)
+          showException("Timeout", "Timeout has occurred", e)
         case e: Throwable =>
           logger.error("Uncaught exception", e)
   

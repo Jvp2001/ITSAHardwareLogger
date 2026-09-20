@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
-import org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.*
