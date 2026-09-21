@@ -7,12 +7,13 @@ import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.ConnectionError
 import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
 import ox.either.{fail, ok}
+import pureconfig.{ConfigReader, ConfigSource}
+import pureconfig.generic.derivation.*
 
 import java.sql.SQLException
 import scala.Conversion.into
 import scala.language.postfixOps
 import scala.util.Try
-
 
 final class HLSqlDataSource extends MysqlDataSource
 
@@ -29,16 +30,16 @@ final case class DBProperties(
                                fallbackAddress: String,
                                localhostUsername: String,
                                localhostPassword: String,
-                               timeout: Int,
-                             )
+                               timeout: Int
+                             ) derives ConfigReader
 
 object DBProperties:
   given default: DBProperties = DBProperties(
-     name = "hwlogger",
+    name = "hwlogger",
     maxReconnects = 5,
-   serverTimeZone = "UTC",
-   username = "itsa",
-   password = "itsa123",
+    serverTimeZone = "UTC",
+    username = "itsa",
+    password = "itsa123",
     unit7Address = "10.0.1.230",
     unit9Address = "192.168.100.230",
     fallbackAddress = "localhost",
@@ -46,9 +47,9 @@ object DBProperties:
     localhostPassword = "itsa123",
     timeout = 5,
     port = 3306,
-    autoReconnect = true,
+    autoReconnect = true
   )
-  
+
   given toDataSource(using address: String): Conversion[DBProperties, HLSqlDataSource] with
     override def apply(dbProps: DBProperties): HLSqlDataSource =
       val ds = new HLSqlDataSource()
@@ -61,62 +62,38 @@ object DBProperties:
       ds.setUser(dbProps.username)
       ds.setPassword(dbProps.password)
       ds
-  end toDataSource
-  
-end DBProperties
 
-  
-
-trait DataSourceLoaderService[DS](using localhost: Boolean = false) extends HWLLoggable:
+trait DataSourceLoaderService[DS <: MysqlDataSource](using localhost: Boolean = false) extends HWLLoggable:
   lazy val dataSource: Either[HLDBErrorCode, DS]
 
+final class DataSourceLoader(val dbProps: DBProperties) extends DataSourceLoaderService[HLSqlDataSource], HWLLoggable:
 
-end DataSourceLoaderService
-
-
-final class DataSourceLoader(dbProps: Option[DBProperties] = None) extends DataSourceLoaderService[HLSqlDataSource], HWLLoggable:
-
-
-  /**
-   * Gets the value for a property, if the given [[DataSourceLoader#dbProps]] is none, then it will use [[DBProperties#default]] instead.
-   * @param get a function that takes in a [[DBProperties]] and return the value of a given property of the [[DBProperties]]'s instance.
-   * @tparam R the type of the property that is being return by the get parameter function
-   * @return the type of the property.
-   */
-  private def apply[R](get: DBProperties => R): R =
-    dbProps.map(get) ?? get(DBProperties.default)
-
-  private val unit7Address = this(_.unit7Address)
-  private val unit9Address = this(_.unit9Address)
-  private val fallbackAddress = this(_.fallbackAddress)
   val ip: Either[HLDBErrorCode, String] =
     ox.either:
-      val result =
-        IPAddressFinder.findDatabaseAddress(unit7Address, unit9Address)
-          ?? {
-          logger.warn("Could not match PC's IP to unit7's or unit9's IP address; falling back to the fallback address")
-          fallbackAddress
-        }
-      end result
-      result
-  end ip
-  private def load(props: Option[DBProperties]): Either[HLDBErrorCode, HLSqlDataSource] =
-    ip.map: addr =>
-      given address: String = addr
-      props ?? DBProperties.default
-  end load
-
+      IPAddressFinder.findDatabaseAddress(dbProps.unit7Address, dbProps.unit9Address) ?? {
+        logger.warn("Could not match PC's IP to unit7's or unit9's IP address; falling back to the fallback address")
+        dbProps.fallbackAddress
+      }
 
   override lazy val dataSource: Either[HLDBErrorCode, HLSqlDataSource] =
-    load(dbProps)
-  end dataSource
+    ip.map: addr =>
+      given address: String = addr
+      dbProps: HLSqlDataSource
+object DataSourceLoader extends HWLLoggable:
 
-end DataSourceLoader
+  /**
+   * Factory method to load configuration via PureConfig from a raw String or fall back gracefully.
+   */
+  def load(): Either[HLDBErrorCode, DataSourceLoader] =
+    org.itsadigitaltrust.common.ConfigsManager.readConfig("db.properties")
+      .toEither
+      .left.map(err => HLDBErrorCode.PropertiesError)  // Explicitly widen to the base trait/enum
+      .map: rawPropertiesString =>
+        ConfigSource.string(rawPropertiesString).load[DBProperties] match
+          case Right(props) => new DataSourceLoader(props)
+          case Left(failures) =>
+            logger.warn("Could not load DB properties from the file; falling back to the default.")
+            new DataSourceLoader(DBProperties.default)
 
-
-object DataSourceLoader:
-  def apply(dbName: String)(using localhost:Boolean): DataSourceLoader =
-    new DataSourceLoader(Option(DBProperties.default.copy(name = dbName)))
-
-object DataSourceLoaderService
-  
+  def apply(): Either[HLDBErrorCode, DataSourceLoader] =
+    load()

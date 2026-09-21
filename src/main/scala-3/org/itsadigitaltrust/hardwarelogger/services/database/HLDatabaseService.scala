@@ -1,50 +1,30 @@
 package org.itsadigitaltrust.hardwarelogger.services.database
 
 import com.augustnagro.magnum
-import com.augustnagro.magnum.{DbCodec, DbCon, DbTx}
+import com.augustnagro.magnum.DbTx
 import com.mysql.cj.jdbc.MysqlDataSource
 import com.mysql.cj.jdbc.exceptions.{MySQLQueryInterruptedException, MySQLTimeoutException}
-import com.somainer.nameof.NameOf
-import org.itsadigitaltrust.common.Operators.{?, ??, toOption, |>, ||>}
+import org.itsadigitaltrust.common.Operators.??
 import org.itsadigitaltrust.common.logging.HWLLoggable
-import org.itsadigitaltrust.common.{optional, toVectorOfOptions}
-import org.itsadigitaltrust.common.optional.!
-import org.itsadigitaltrust.common.types.DataSizeType.numericDataSize.mkNumericOps
-import org.itsadigitaltrust.common.types.DataSizeType.{DataSize, DataSizeUnit}
-import org.itsadigitaltrust.common.types.FrequencyType.Frequency
-import org.itsadigitaltrust.common.types.PercentageType.Percentage
-import org.itsadigitaltrust.hardwarelogger.backend.{ConnectionErrorType, DataSourceLoaderService, HLDBErrorCode, HLSqlDataSource, HLTableInfo, repos}
-import org.itsadigitaltrust.hardwarelogger.backend.entities.*
-import org.itsadigitaltrust.hardwarelogger.backend.repos.{DiskRepo, HLRepoWithID, InfoRepo, MediaRepo, MemoryRepo, WipingRepo}
-import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
-import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
+import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase
+import org.itsadigitaltrust.hardwarelogger.backend.{DataSourceLoaderService, HLSqlDataSource}
 import org.itsadigitaltrust.hardwarelogger.delegates.{HardDriveMode, NormalMode, ProgramMode, ProgramOperationMode}
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.services.{HLFrontendException, HardwareGrabberService}
-import org.itsadigitaltrust.hardwarelogger.services.OshiHardwareGrabberApplicationService.HardwareGrabberException
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, RequiresItsaID}
-import org.itsadigitaltrust.hardwarelogger.backend.database.{EntityCreatorToEntityMapper, HLDatabase, RepoFromEntityCreator}
-import org.itsadigitaltrust.hardwarelogger.services.database.mappers.{HLDatabaseMappersAndGivens, HLModelToBackendMapper, HLModelToBackendMappers, OptionalHLModelToEntityMapper}
+import org.itsadigitaltrust.hardwarelogger.services.database.mappers.{HLDatabaseMappersAndGivens, HLModelToBackendMapper, HLModelToBackendMappers}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.RequiresItsaID
 import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
-import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MemoryTableRowViewModel
+import org.itsadigitaltrust.hardwarelogger.services.{HLFrontendException, HardwareGrabberService}
 import ox.Ox
 import ox.either.{fail, ok}
 
-import java.time.OffsetDateTime
-import scala.Conversion.into
-import scala.collection.mutable
-import scala.compiletime.{deferred, summonInline}
 import scala.reflect.{ClassTag, classTag}
-import scala.util.boundary.Label
 import scala.util.NotGiven
+import scala.util.boundary.Label
 
-object HLDatabaseService:
-  import HLDatabaseServiceCoordinator.given
+object HLDatabaseService
 
 trait HLDatabaseService(using localhost: Boolean,  val backend: HLDatabase, dataSourceLoaderService: DataSourceLoaderService[HLSqlDataSource])
   extends RequiresItsaID, HLDatabaseMappersAndGivens:
-  import HLDatabaseService.*
 
   type HLDBTransaction[T] = Either[HLDatabaseServiceExceptionBase, T]
 //
@@ -99,9 +79,6 @@ end HLDatabaseService
 class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, override val backend: HLDatabase, dataSourceLoaderService: DataSourceLoaderService[HLSqlDataSource])
   extends HLDatabaseService with HWLLoggable with HLDatabaseMappersAndGivens:
 
-  import HLDatabase.given
-  import HLModelToBackendMappers.*
-
   override type Error = HLDatabaseServiceExceptionBase
   type HLDBTransaction[T] = Either[Error, T]
   /**
@@ -117,7 +94,6 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
   private final val lettersInTheAlphabet = 26
 
   import MySQLHardwareLoggerDatabaseService.given
-  import backend.given
 
 
 
@@ -300,8 +276,6 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
 
 
 object MySQLHardwareLoggerDatabaseService:
-
-  import HLDatabase.given
 
 
   //from

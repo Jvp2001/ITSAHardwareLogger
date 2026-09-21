@@ -2,7 +2,6 @@ package org.itsadigitaltrust.hardwarelogger.core
 
 // On purpose to mimic extension method
 import org.itsadigitaltrust.common.Operators.??
-import org.itsadigitaltrust.common.optional.??
 import org.itsadigitaltrust.common.orThrowOption
 import org.itsadigitaltrust.hardwarelogger.core.{HWLoggerShowMessage, ShowMessageHWLogger}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel

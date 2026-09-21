@@ -19,4 +19,10 @@ object AssetLoader:
           logger.warn(s"Cannot find asset: '$assetPath'!")
           ""
     end asset
+    
+    inline def service(inline args: Any*)(using inline logger: HWLLogger): String =
+      val fullPath = sc.s(args*)
+      val servicesPath = asset"services/$fullPath"
+      servicesPath
+      
 end AssetLoader

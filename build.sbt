@@ -11,9 +11,9 @@ ThisBuild / scalaBinaryVersion := "3"
 ThisBuild / organizationHomepage := Some(url("https://itsadigitaltrust.org/"))
 ThisBuild / homepage := Some(url("https://github.com/jvp2001/ITSAHardwareLogger"))
 ThisBuild / licenses += "GNUv3" -> url("https://www.gnu.org/licenses/gpl-3.0.en.html#license-text")
-ThisBuild / scalacOptions ++= Seq("-java-output-version", "24")
+ThisBuild / scalacOptions ++= Seq("-java-output-version", "25")
 // Optional: Enforce JDK 24 for Java sources if mixed
-ThisBuild / javacOptions ++= Seq("--release", "24")
+ThisBuild / javacOptions ++= Seq("--release", "25")
 
 ThisBuild / buildInfoPackage := "org.itsadigitaltrust.hardwarelogger.core"
 ThisBuild / buildInfoKeys := Seq(
@@ -157,8 +157,6 @@ lazy val loggingDeps = Seq(
 )
 
 lazy val commonDependencies = Seq(
-  "com.augustnagro" %% "magnum" % "1.3.1",
-  "com.mysql" % "mysql-connector-j" % "26.7.0",
   "org.apache.commons" % "commons-text" % "1.15.0",
   //  "org.checkerframework" % "checker" % "3.54.0",
   "com.softwaremill.ox" %% "core" % "1.0.7",
@@ -166,6 +164,7 @@ lazy val commonDependencies = Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.2",
   "org.scala-lang.modules" %% "scala-xml" % "2.5.0",
   "com.somainer" %% "scala3-nameof" % "0.0.1",
+  "com.github.pureconfig" %% "pureconfig-core" % "0.17.8"
 
 ) ++ loggingDeps.map(_ withJavadoc() withSources())
 
@@ -185,6 +184,10 @@ lazy val backend = (project in file("Backend"))
   .settings(
     name := "Backend",
     libraryDependencies ++= commonDependencies,
+    libraryDependencies ++= Seq(
+      "com.augustnagro" %% "magnum" % "1.3.1",
+      "com.mysql" % "mysql-connector-j" % "26.7.0",
+    ).map(_ withSources() withJavadoc()),
     Test / unmanagedSourceDirectories += file("tests"),
   ).dependsOn(common)
 

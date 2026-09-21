@@ -11,7 +11,7 @@
     <profile name="sbt 10" modules="ITSAHardwareLogger.Backend.main">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -29,7 +29,7 @@
     <profile name="sbt 11" modules="ITSAHardwareLogger.Common.test">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -47,7 +47,7 @@
     <profile name="sbt 12" modules="ITSAHardwareLogger.Common.main">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -65,7 +65,7 @@
     <profile name="sbt 13" modules="ITSAHardwareLogger.HDSentinelReader.test">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -84,7 +84,7 @@
     <profile name="sbt 14" modules="ITSAHardwareLogger.IssueReporter.test">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -125,7 +125,7 @@
     <profile name="sbt 4" modules="ITSAHardwareLogger.HDSentinelReader.main">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -144,7 +144,7 @@
     <profile name="sbt 5" modules="ITSAHardwareLogger.IssueReporter.main">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -162,7 +162,7 @@
     <profile name="sbt 6" modules="ITSAHardwareLogger.test">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -190,7 +190,7 @@
     <profile name="sbt 8" modules="ITSAHardwareLogger.main">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />
@@ -209,7 +209,7 @@
     <profile name="sbt 9" modules="ITSAHardwareLogger.Backend.test">
       <parameters>
         <parameter value="-java-output-version" />
-        <parameter value="24" />
+        <parameter value="25" />
         <parameter value="-groups" />
         <parameter value="-Xwiki-syntax" />
         <parameter value="-experimental" />

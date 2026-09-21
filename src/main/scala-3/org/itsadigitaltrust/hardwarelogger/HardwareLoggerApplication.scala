@@ -2,6 +2,8 @@ package org.itsadigitaltrust.hardwarelogger
 
 
 import atlantafx.base.theme.{CupertinoDark, CupertinoLight, Theme}
+import org.itsadigitaltrust.common.AssetLoader.service
+import org.itsadigitaltrust.common.{ConfigsManager, config}
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.processes.RootChecker
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -59,9 +61,12 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
       showApplication()
   )
 
+
   override def start(): Unit =
     println(preferences.colorScheme)
     setProgramMode()
+    import org.itsadigitaltrust.common.AssetLoader.service
+
     setupThemeManager()
 
     // Must happen before any view is built: the hardware grabber returns nothing without

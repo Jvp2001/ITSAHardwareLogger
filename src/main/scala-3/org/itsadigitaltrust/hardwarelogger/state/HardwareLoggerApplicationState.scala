@@ -29,7 +29,7 @@ import scala.math.Fractional.Implicits.infixFractionalOps
 import scala.math.Integral.Implicits.infixIntegralOps
 
 private[state] type Data = HardwareLoggerSharedData
-case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDatabaseService) extends HWLLoggable, PerformBackendValidationListener, RequiresGlobalValidationContext:
+case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDatabaseService) extends HWLLoggable, RequiresGlobalValidationContext:
   private var data: Data = HardwareLoggerSharedData()
   private val globalValidationContext: GlobalValidationContext[? <: HLModel] = GlobalValidationContext.globalValidationContext
 
@@ -93,6 +93,8 @@ case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDat
         .join()
       end performAsTask
 
+      
+      
 
       performAsTask("Loading info...")(using allowedMode = "Both"):
         val option = hardwareGrabberService.loadGeneralInfo()
@@ -173,15 +175,7 @@ case class HardwareLoggerApplicationState()( using HardwareGrabberService, HLDat
     if newData.itsaID.isDefined then
       data = data.copy(itsaID = newData.itsaID)
 
-  override protected def onBackendValidationFork()(using Ox): Unit =
-    given databaseService: HLDatabaseService = summon[HLDatabaseService]
-
-    data.info.foreach(databaseService.runValidation)
-    data.memory.foreach(databaseService.runValidation)
-    data.processors.foreach(databaseService.runValidation)
-    data.drives.foreach(databaseService.runValidation)
-    data.media.foreach(databaseService.runValidation)
-  end onBackendValidationFork
+  
 
   NotificationCentre.addItsaIDChangedListener: newItsaID =>
     data = data.copy(oldItsaID = data.itsaID, itsaID = newItsaID.?)

@@ -38,7 +38,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     private val processorTab = createTab("Processor", new ProcessorTabView)
     private val hardDrivesTab = createTab("HDD", new HardDrivesTabView)
     private val mediaTab = createTab("Media", new MediaTabView)
-    private val debugTab = createTab("Debug", new LogViewer)
+    private val debugTab = createTab("Debug", new ItsaDebugView)
     private val batteryTab = createTab("Battery", new BatteryStatusTabView)
 
 
@@ -134,7 +134,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     children ++= Seq(idContainer, idErrorLabel)
   end topContainer
 
-  private final val tabPane = new TabPane:
+  private final given tabPane: TabPane = new TabPane:
     styleClass ++= Seq(
       Styles.FLAT,
     )
@@ -241,7 +241,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
 
   private def createTab(title: TabsMapKey, rootContent: Node): Tab =
     val tab: Tab = new Tab:
-
+      VBox.setVgrow(rootContent, Always)
       text = title
       closable = false
       content = rootContent

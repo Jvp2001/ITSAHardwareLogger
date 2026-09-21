@@ -123,14 +123,13 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
       Right(result)
 
   private def transact[R](body: magnum.DbTx ?=> HLDBTransactionLabel[R] ?=> HLDBTransactionResult[R]): HLDBTransactionResult[R] =
-
     ox.either:
       val dataSource = dataSourceLoader.dataSource.ok()
       magnum.transact(dataSource):
-        Try(body) match
+        val executionAttempt = Try(body)
+        executionAttempt match
           case Failure(exception) => HLDBErrorCode.UnknownError(exception.getMessage).fail()
           case Success(value) => value.ok()
-  end transact
 
   override def findItsaIDBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[String] =
     transact[String]:

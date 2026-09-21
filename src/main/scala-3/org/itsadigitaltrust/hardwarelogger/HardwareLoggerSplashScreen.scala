@@ -1,6 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger
 
 import javafx.beans.value.ObservableValue
+import org.itsadigitaltrust.common.AssetLoader.service
+import org.itsadigitaltrust.common.{ConfigsManager, config}
 import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.ConnectionError
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -69,6 +71,12 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
     val task = this
     val result = ox.supervisedError(ox.EitherMode[Throwable]):
       ox.forkUserError:
+        val result = ConfigsManager.copyFromResources("assets/services/db.properties", "db.properties")
+        logger.info("Copied db.properties file")
+        Right(result)
+
+      .join()
+      ox.forkUserError:
         ox.either:
           extras.onFX:
             task.message() = "Connecting to database..."
@@ -84,6 +92,8 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
 
       ox.forkUserError:
         ox.either:
+
+
           index = applicationState.reload(task, index).ok()
           ()
       .join()

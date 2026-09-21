@@ -3,6 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.services
 import com.mysql.cj.jdbc.MysqlDataSource
 import org.itsadigitaltrust.hardwarelogger.backend.database.{HLDatabase, MySQLHLDatabase}
 import org.itsadigitaltrust.hardwarelogger.backend.{DBProperties, DataSourceLoader, DataSourceLoaderService}
+import org.itsadigitaltrust.hardwarelogger.services.database.HLDatabaseServiceExceptionBase
 
 trait HardwareGrabberModule:
   given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberApplicationService.instance
@@ -13,7 +14,8 @@ trait DatabaseModule(using localhost: Boolean = false) extends HardwareGrabberMo
     //fallbackAddress = "192.168.1.155",
 
   )
-  private given dataSourceLoader: DataSourceLoader = new DataSourceLoader(Option(dbProps))
+  import ox.either.orThrow
+  private given dataSourceLoader: DataSourceLoader = DataSourceLoader().left.map(HLDatabaseServiceException(_)).orThrow
 
   
   private given backend: HLDatabase = new MySQLHLDatabase

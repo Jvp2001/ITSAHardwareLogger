@@ -1,8 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
-import javafx.scene.control.TextFormatter
+import javafx.scene.control.{SplitPane, TextFormatter}
 import javafx.util.converter.DefaultStringConverter
-import jp.uphy.javafx.console.ConsoleView
 import org.itsadigitaltrust.common.Operators.{??, or, |>}
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -20,9 +19,48 @@ import scalafx.scene.control.{CheckMenuItem, ContextMenu, Dialog, MenuItem, Sepa
 import scalafx.scene.input.{Clipboard, ClipboardContent}
 import scalafx.util.StringConverter
 
-import java.nio.charset.Charset
+class ItsaDebugView(using tabPane: TabPane, issueReporterService: IssueReporterService) extends VBox:
 
-class ItsaDebugView(using issueReporterService: IssueReporterService) extends VBox
+
+  // 1. Instantiate your overridden log viewer component
+  val logViewerInstance = new LogViewer()
+
+  // 1. Force the custom view to automatically mimic its parent's width and height bounds
+  logViewerInstance.prefWidthProperty().bind(tabPane.widthProperty())
+  logViewerInstance.prefHeightProperty().bind(tabPane.heightProperty())
+
+
+class ExtendedLogViewer(using issueReporterService: IssueReporterService) extends LogViewer:
+
+
+  // 1. Force the overall LogViewer to grow inside your parent Tab/VBox
+  VBox.setVgrow(this, Priority.Always)
+
+  // 2. Find and fix the SplitPane internal layout stretching rules
+  Option(this.getCenter) match
+    case Some(splitPane: SplitPane) =>
+      VBox.setVgrow(splitPane, Priority.Always)
+
+      val items = splitPane.getItems
+      if items.size() >= 2 then
+        val tableContainer = items.get(0)
+        val textContainer = items.get(1)
+
+        // Tell the SplitPane to give all expanding room to the TableView
+        SplitPane.setResizableWithParent(tableContainer, true)
+        SplitPane.setResizableWithParent(textContainer, false)
+
+        // Set the starting divider ratio split (75% Table, 25% Text Area)
+        splitPane.setDividerPositions(0.75)
+
+    case Some(otherContainer) =>
+      VBox.setVgrow(otherContainer, Priority.Always)
+
+    case None =>
+// Handle or ignore empty center configuration gracefully
+
+
+
 //  children += new LogViewer:
 //    vgrow = Always
 //    minWidth = Double.MaxValue
