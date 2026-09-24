@@ -4,12 +4,14 @@ package org.itsadigitaltrust.hardwarelogger.backend.database
 import com.augustnagro.magnum
 import com.augustnagro.magnum.{DbCodec, DbCon, Repo}
 import com.mysql.cj.jdbc.MysqlDataSource
+import com.mysql.cj.jdbc.exceptions.{MySQLQueryInterruptedException, MySQLTimeoutException}
 import org.itsadigitaltrust.common.GenericTypeMapper
 import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.{DataSourceLoader, DataSourceLoaderService, HLDBErrorCode, HLDBTransactionLabel, HLDBTransactionResult, HLSqlDataSource, repos}
 import org.itsadigitaltrust.hardwarelogger.backend.repos.{HLRepoWithID, HLRepoWithSerial, infoRepo}
+import ox.Ox
 import ox.either.{fail, ok}
 
 import javax.sql.DataSource
@@ -40,7 +42,8 @@ trait UpdateAndInsert[EC <: HLEntityCreatorWithSomeKindOfID]:
 trait HLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataSource]) extends HWLLoggable:
 
 
-  transparent inline def summonupdateAndInsert[EC <: HLEntityCreatorWithSomeKindOfID : DbCodec]: UpdateAndInsert[EC] = summonInline[UpdateAndInsert[EC]]
+  def connect()(using ox.Ox): Either[HLDBErrorCode, Unit]
+
 
   def insert[EC <: HLEntityCreatorWithSomeKindOfID](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
 
@@ -90,6 +93,20 @@ object HLDatabase:
 end HLDatabase
 
 class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataSource]) extends HLDatabase(using dataSourceLoader):
+
+  val dataSource: Either[HLDBErrorCode, HLSqlDataSource] = dataSourceLoader.dataSource
+  override def connect()(using Ox): Either[HLDBErrorCode, Unit] =
+    ox.either:
+      try
+        val ds: MysqlDataSource = dataSource.ok()
+        magnum.connect(ds):
+          ()
+      catch
+        case e: MySQLTimeoutException =>
+          HLDBErrorCode.ConnectionError("Unknown", e.getMessage).fail()
+        case e: MySQLQueryInterruptedException =>
+          HLDBErrorCode.ConnectionError("Unknown", e.getMessage).fail()
+  end connect
 
 
   override def findBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[mapper.Out] =

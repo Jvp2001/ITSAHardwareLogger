@@ -24,6 +24,14 @@ object Operators:
     infix def notIn[V](seq: MapType[T, V]): Boolean =
       !seq.contains(item)
   end extension
+  
+  extension (d: Double)
+    infix def in(rhs: Range): Boolean =
+      rhs.contains(d)
+    infix def between(rhs: Range): Boolean =
+      rhs.contains(d)
+  end extension
+  
 
   extension[E, T](either: Either[E, T])
     def ??(default: => T): T =

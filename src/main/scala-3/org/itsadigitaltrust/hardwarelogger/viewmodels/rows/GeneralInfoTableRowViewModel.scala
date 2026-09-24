@@ -8,7 +8,7 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.ViewModel
 
 final class GeneralInfoTableRowViewModel(model: GeneralInfoModel)(using HardwareGrabberService) extends TableRowViewModel[GeneralInfoModel](model):
   def computerIDProperty: StringProperty =
-    wrapper.field("computerID", _.computerID, "")(StringProperty.apply)
+    wrapper.field("versionID", _.versionID, "")(StringProperty.apply)
 
   def descriptionProperty: StringProperty =
     wrapper.field("description", _.description, "")(StringProperty.apply)

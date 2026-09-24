@@ -15,7 +15,8 @@ trait DatabaseModule(using localhost: Boolean = false) extends HardwareGrabberMo
 
   )
   import ox.either.orThrow
-  private given dataSourceLoader: DataSourceLoader = DataSourceLoader().left.map(HLDatabaseServiceException(_)).orThrow
+  private given dataSourceLoader: DataSourceLoader = 
+    DataSourceLoader().left.map(HLDatabaseServiceException(_)).orThrow
 
   
   private given backend: HLDatabase = new MySQLHLDatabase

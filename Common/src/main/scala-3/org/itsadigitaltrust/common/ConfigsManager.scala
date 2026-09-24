@@ -15,6 +15,7 @@ object ConfigFilePath:
   def apply(path: String): ConfigFilePath = path
   def toFile(path: ConfigFilePath): File = new File(path)
 
+  given Conversion[String, ConfigFilePath] = _.toString
   given Conversion[ConfigFilePath, File] = ConfigFilePath.toFile
 object ConfigsManager:
   type ConfigsError = Throwable
@@ -37,8 +38,11 @@ object ConfigsManager:
 
     private val externalDirPath: Path =
       val codeSourceLocation = getClass.getProtectionDomain.getCodeSource.getLocation.toURI
-      new File(Paths.get(codeSourceLocation).getParent.toString, "Configs").toPath
+      Paths.get(Paths.get(codeSourceLocation).getParent.toString, "Configs").toAbsolutePath
 
+
+    inline def resolvePathString(path:ConfigFilePath): String =
+      externalDirPath.resolve(path.toString).toAbsolutePath.toString
     /**
      * Copies a configuration file from the project resources to the external folder.
      *
@@ -46,15 +50,15 @@ object ConfigsManager:
      * @param fileName     Target filename in the external folder
      * @param overwrite    Replace the exsisting file.
      */
-    def copyFromResources(resourcePath: String, fileName: String, overwrite: Boolean = false): Try[Path] =
-      val inputStream: InputStream = getClass.getClassLoader.getResourceAsStream(resourcePath)
+    def copyFromResources(resourcePath: into[ConfigFilePath], fileName: into[ConfigFilePath], overwrite: Boolean = false): Try[Path] =
+      val inputStream: InputStream = getClass.getClassLoader.getResourceAsStream(resourcePath.toString)
 
       if inputStream == null then
         Failure(new FileNotFoundException(s"Resource file not found: $resourcePath"))
       else
         Try:
           ensureExternalDirectoryExists()
-          val targetPath = externalDirPath.resolve(fileName)
+          val targetPath = externalDirPath.resolve(fileName.toPath)
 
           Using.resource(inputStream): is =>
             if overwrite then
@@ -66,22 +70,23 @@ object ConfigsManager:
     /**
      * Reads the content of a configuration file located in the external folder.
      */
-    def readConfig(fileName: String): Try[String] =
+    def readConfig(fileName: into[ConfigFilePath]): Try[String] =
       Try:
-        val targetPath = externalDirPath.resolve(fileName)
+        val targetPath = externalDirPath.resolve(fileName.toPath)
         if !Files.exists(targetPath) then
           throw new FileNotFoundException(s"Config file does not exist at: $targetPath")
 
         val bytes = Files.readAllBytes(targetPath)
         new String(bytes, StandardCharsets.UTF_8)
 
+
     /**
      * Writes or updates text content into a file within the external folder.
      */
-    def writeConfig(fileName: String, content: String): Try[Path] =
+    def writeConfig(fileName: into[ConfigFilePath], content: String): Try[Path] =
       Try:
         ensureExternalDirectoryExists()
-        val targetPath = externalDirPath.resolve(fileName)
+        val targetPath = externalDirPath.resolve(fileName.toPath)
 
         Files.write(targetPath, content.getBytes(StandardCharsets.UTF_8))
         targetPath
@@ -96,4 +101,5 @@ end ConfigsManager
 extension (sc: StringContext)
   def config(args: Any*): ConfigFilePath =
     val path = sc.s(args*)
-    ConfigFilePath(s"${ConfigsManager.configsFolder}/$path")
+    ConfigsManager.resolvePathString(path)
+

@@ -5,4 +5,4 @@ import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.MediaTableRowViewModel
 
-final class MediaTabViewModel(using hardwareGrabberService: HardwareGrabberService) extends TabTableViewModel[MediaModel, MediaTableRowViewModel](MediaTableRowViewModel.apply, _.media)
+final class MediaTabViewModel(using hardwareGrabberService: HardwareGrabberService) extends TabTableViewModel(MediaTableRowViewModel.apply, _.media)

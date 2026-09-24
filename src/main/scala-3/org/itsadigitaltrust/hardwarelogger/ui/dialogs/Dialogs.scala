@@ -1,4 +1,4 @@
-package org.itsadigitaltrust.hardwarelogger.dialogs
+package org.itsadigitaltrust.hardwarelogger.ui.dialogs
 
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Operators.or
@@ -27,8 +27,8 @@ import scala.jdk.CollectionConverters.*
 object Dialogs:
 
   import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue
-  import org.itsadigitaltrust.hardwarelogger.dialogs
-  import dialogs.*
+  import org.itsadigitaltrust.hardwarelogger.ui.dialogs
+  
 
   export dialogs.{HardDriveExtraInformationDialog, IssueCustomisationDialog, WebViewDialog, showAboutDialog, showIssueCustomisationDialog, showHardDriveExtraInfoDialog}
 

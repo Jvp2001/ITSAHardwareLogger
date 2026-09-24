@@ -5,7 +5,6 @@ import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TabDelegate}
-import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IssueReporterService}
@@ -99,7 +98,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     minWidth = 0.0
     textAlignment = TextAlignment.Center
     hgrow = Always
-    margin = Insets(0, 0, 0, 10.0)
+    margin = Insets(5.0, 0, 0, 10.0)
 
   private final val idTextField = new TextField:
     hgrow = Always

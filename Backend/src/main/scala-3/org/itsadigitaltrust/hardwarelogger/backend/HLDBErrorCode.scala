@@ -11,7 +11,7 @@ enum HLDBErrorCode:
   case EntriesAlreadyExists extends HLDBErrorCode
   case PCSerialNumberAlreadyExists extends HLDBErrorCode
   case UnknownError(message: String = "") extends HLDBErrorCode
-  case ConnectionError(`type`: ConnectionErrorType = "Unknown") extends HLDBErrorCode
+  case ConnectionError(`type`: ConnectionErrorType = "Unknown", message: String = "") extends HLDBErrorCode
   case PropertiesError extends HLDBErrorCode
 end HLDBErrorCode
 

@@ -82,7 +82,9 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
 
         val hardDiskSummaries: Seq[HardDiskSummary] =
           hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+            .filterNot(_.hardDiskModelId.contains("USB"))
         val lsblk = Lsblk()
+        
 
 
         hardDiskSummaries.map: hardDiskSummary =>
@@ -150,11 +152,13 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
 
   override def loadMemory()(using ox.Ox): Result[MemoryModel] =
     ox.either:
-      hal.getMemory.getPhysicalMemory.asScala.map: memory =>
+      val result = hal.getMemory.getPhysicalMemory.asScala.map: memory =>
         val size = memory.getCapacity.GiB
         val description = memory.getManufacturer
         MemoryModel(size, description, memory.getMemoryType)
       .toList
+      logger.info(s"Loaded memory info ${result}")
+      result
   end loadMemory
 
 

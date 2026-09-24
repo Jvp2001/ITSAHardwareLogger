@@ -12,7 +12,7 @@ import scala.Conversion.into
 import scala.math.Numeric.Implicits.infixNumericOps
 
 
-final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberService) extends TabTableViewModel[MemoryModel, MemoryTableRowViewModel](MemoryTableRowViewModel.apply, _.memory):
+final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberService) extends TabTableViewModel(MemoryTableRowViewModel.apply, _.memory):
 
   def totalMemoryValue: String =
     try
@@ -21,13 +21,7 @@ final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberServ
         logger.warn("No memory modules were reported; leaving the total memory blank")
         ""
       else
-        val result = memory.map(_.size)
-          .map: i =>
-            val long: into[Long] = i
-            long
-          .reduce: (a, b) =>
-            a + b
-        result.toString + " GB"
+        memory.map(_.size).total.toGiBString
     catch
       case t: Throwable =>
         logger.error("Failed to compute the total memory", t)
@@ -38,7 +32,7 @@ final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberServ
 
 end MemoryTabViewModel
 
- 
+
 
 
 

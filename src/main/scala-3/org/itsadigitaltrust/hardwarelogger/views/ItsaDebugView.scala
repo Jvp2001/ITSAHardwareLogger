@@ -6,7 +6,6 @@ import org.itsadigitaltrust.common.Operators.{??, or, |>}
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
-import org.itsadigitaltrust.hardwarelogger.dialogs.{Dialogs, IssueCustomisationDialog}
 import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, ReportedIssue}
 import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, ReportedIssue}
 import ch.qos.logback.classic.LoggerContext
@@ -101,7 +100,7 @@ object ItsaDebugView:
         showMessage.showConfirmation("Customise Issue", "Do you want to customise the issue?").match
           case Some(ButtonType.No) =>  sendReport()
           case Some(ButtonType.Yes | ButtonType.OK) =>
-            val dialog = new IssueCustomisationDialog()
+            val dialog = new Dialogs.IssueCustomisationDialog()
             dialog.showDialog()
             if dialog.wasOKed then
               sendReport(dialog.getIssue)

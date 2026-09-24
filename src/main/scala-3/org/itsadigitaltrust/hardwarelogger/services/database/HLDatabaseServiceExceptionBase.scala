@@ -27,7 +27,7 @@ object HLDatabaseServiceException:
     case HLDBErrorCode.NoEntriesRemoved => noEntriesRemoved()
     case HLDBErrorCode.EntriesAlreadyExists => duplicateEntriesFound(args(0))
     case HLDBErrorCode.UnknownError(_) => unknownError()
-    case HLDBErrorCode.ConnectionError(_) => connectionError()
+    case HLDBErrorCode.ConnectionError(_, message) => connectionError(message = message)
     case HLDBErrorCode.PropertiesError => propertiesFileError()
 
   def noEntriesRemoved() = new HLDatabaseServiceException(HLDBErrorCode.NoEntriesRemoved, "No entries removed!")

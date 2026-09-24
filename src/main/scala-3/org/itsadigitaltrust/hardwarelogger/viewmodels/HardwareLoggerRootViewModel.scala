@@ -8,7 +8,6 @@ import org.itsadigitaltrust.common.macros.NameOf
 import org.itsadigitaltrust.common.processes.tlp.TlpStat
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.dialogs.DetailedValidationAlert
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.GeneralInfoModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{BackendValidationEvent, NotificationCentre, SaveToDBEvent}
@@ -17,6 +16,7 @@ import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, Hardware
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.tasks.{HardwareLoggerBusyWorker, HardwareLoggerSimpleTask}
+import org.itsadigitaltrust.hardwarelogger.ui.dialogs.DetailedValidationAlert
 import org.scalafx.extras
 import org.scalafx.extras.ShowMessageLogger
 import ox.OxError
@@ -100,9 +100,7 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
   end reloadTask
 
 
-
-  Platform.Preferences
-
+  
   private def performReload(): Unit =
     new HardwareLoggerBusyWorker("Reload", None)
     .doTask[Either[Throwable, Unit]]("Reloading data..."):

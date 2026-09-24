@@ -1,4 +1,4 @@
-package org.itsadigitaltrust.hardwarelogger.dialogs
+package org.itsadigitaltrust.hardwarelogger.ui.dialogs
 import javafx.scene.control.ListCell
 import org.itsadigitaltrust.common.Operators.{??, toOption}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*

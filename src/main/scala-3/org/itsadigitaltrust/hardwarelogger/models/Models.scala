@@ -5,7 +5,9 @@ import org.itsadigitaltrust.common.Types.{DataSize, Percentage}
 import org.itsadigitaltrust.common.processes.tlp.TlpBatteryStatus
 import org.itsadigitaltrust.common.types.DataSizeType.DataSize
 import org.itsadigitaltrust.common.types.FrequencyType.Frequency
+import org.itsadigitaltrust.hardwarelogger.core.DataTypes.*
 import org.itsadigitaltrust.hardwarelogger.services.HLDatabaseService
+import org.itsadigitaltrust.hardwarelogger.ui.derivation.annotations.*
 import org.itsadigitaltrust.hdsentinelreader.data.HDSentinelInterfaceTypeName
 
 import scala.Conversion.into
@@ -19,41 +21,78 @@ import scala.annotation.experimental
  *
  */
 sealed trait HLModel extends Selectable
+
 sealed trait HLModelWithSerial extends HLModel:
   def serial: String
 
 object HLModel:
-  
-  // bat health on general, cycles, age 
+  // Drives (Number of drives, status label (for not logged, bad health and no issues))
+
+  enum GeneralDriveStatus:
+    case BadHealth, NotLogged, NoIssues
+
+    override def toString: String = this match
+      case BadHealth => "One of the drives has a bad health Bad Health"
+      case NotLogged => "Not Logged"
+      case NoIssues => "No Issues"
+
+  // bat health on general, cycles, age
   final case class GeneralInfoModel(
-                                     computerID: String,
-                                     description: String, // The chassis-type
-                                     model: String,
-                                     vendor: String,
-                                     serial: String,
-                                     os: String,
+                                     @Readonly
+                                     versionID: String = "",
+                                     @Readonly
+                                     description: String = "",
+                                     @Separator
+                                     @Readonly
+                                     @DisplayName("Processor Description")
+                                     processorDescription: String = "",
+                                     // The chassis-type
+                                     @Readonly
+                                     model: String = "",
+                                     @Readonly
+                                     vendor: String = "",
+                                     @Readonly
+                                     serial: String = "",
+                                     @Separator
+                                     @Readonly
+                                     batteryHealth: BatteryHealth = BatteryHealth(0.0),
+                                     @Readonly
+                                     amountOfMemory: String = "0GB",
+                                     @Separator
+                                     @Readonly
+                                     amountOfStorage: String = "0GB",
+                                     @Readonly
+                                     @Ignore
+                                     os: String = "",
+                                     @Readonly
+                                     numberOfDrives: Int = 0,
+                                     @Ignore
                                      itsaID: Option[String] = None,
+                                     @Readonly
+                                     anyDriveIssues: Seq[GeneralDriveStatus] = Seq(GeneralDriveStatus.NoIssues)
+
+
                                    ) extends HLModelWithSerial:
     def getVendorID: String = if vendor == null then "ITSA Hardware Logger" else vendor
-  
+
   end GeneralInfoModel
-  
+
   type HardDriveType = "SSD" | "HHD" | "HDD" | "UNKNOWN"
 
-  given Conversion [String, HardDriveType] with
+  given Conversion[String, HardDriveType] with
     def apply(str: String): HardDriveType = (str.toUpperCase match
-    case "SSD" => "SSD"
-    case "HHD" => "HHD"
-    case "HDD" => "HDD"
-    case _ => "UNKNOWN"
-    ).asInstanceOf[HardDriveType]
+      case "SSD" => "SSD"
+      case "HHD" => "HHD"
+      case "HDD" => "HDD"
+      case _ => "UNKNOWN"
+      ).asInstanceOf[HardDriveType]
   end given
 
 
   /**
    * The case class represents the information, for a single row, in the [[org.itsadigitaltrust.hardwarelogger.views.tabs.HardDriveTableView HardDriveTableView]] and [[org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs.HardDriveExtraInformationDialog HardDriveExtraInformationDialog]].
    *
-   * @constructor Creates a new HardDriveModel with fields based on the parameters of this constructor  
+   * @constructor Creates a new HardDriveModel with fields based on the parameters of this constructor
    * @param health
    * @param performance
    * @param size
@@ -70,22 +109,28 @@ object HLModel:
    * @param maximumTemperature
    */
   final case class HardDriveModel(
-                                   health: into[Percentage],
-                                   performance: into[Percentage],
+                                   health: Percentage,
+                                   performance: Percentage,
                                    size: DataSize,
                                    model: String,
                                    serial: String,
                                    connectionType: HardDriveConnectionType,
                                    var itsaID: String = "NOT LOGGED",
-                                   `type`: into[HardDriveType] = "SSD",
+                                   `type`: HardDriveType = "SSD",
                                    description: String = "",
                                    actions: String = "No actions needed.",
                                    powerOnTime: String = "",
                                    estimatedRemainingLifetime: String = "",
                                    currentTemperature: String = "Unknown",
                                    maximumTemperature: String = "Unknown"
-                                 ) extends HLModelWithSerial
-  
+                                 ) extends HLModelWithSerial:
+    def inGoodHealth: Boolean =
+      `type` match
+        case "SSD" if health.toDouble > 50.0 => true
+        case "HDD" if health.toDouble == 100.0 => true
+        case "HHD" if health.toDouble > 100 => true
+        case _ => false
+
   enum HardDriveConnectionType(name: HDSentinelInterfaceTypeName) extends Enum[HardDriveConnectionType]:
     case SATA extends HardDriveConnectionType("S-ATA II")
     case NVME extends HardDriveConnectionType("NVMe")
@@ -94,12 +139,12 @@ object HLModel:
     case SAS extends HardDriveConnectionType("SAS")
     case UNKNOWN extends HardDriveConnectionType("UNKNOWN")
   end HardDriveConnectionType
-  
-  
+
+
   final case class MediaModel(description: String, handle: String) extends HLModel
-  
+
   final case class MemoryModel(size: into[DataSize], description: String, `type`: String = "") extends HLModel
-  
+
   final case class ProcessorModel(
                                    name: String,
                                    frequency: Frequency,
@@ -110,27 +155,20 @@ object HLModel:
                                    cores: Int = 0,
                                    threads: Int = 0
                                  ) extends HLModel
-  
-  
-  
+
+  import org.itsadigitaltrust.hardwarelogger.core.DataTypes.*
   final case class BatteryStatusModel(
-                                       health: Double,
+                                       health: into[BatteryHealth],
                                        charge: Double,
                                        status: String,
-                                       // 🌟 Verbose / Device-Specific Parameters (Wrapped in Option)
                                        cycleCount: Option[Int],
                                        voltage: Option[Double],
-                                     ) extends HLModel:
-    def getHealthCondition: BatteryStatusModel.BatteryHealthCondition = 
-      if health > 75.0 then BatteryStatusModel.BatteryHealthCondition.Normal
-      else if health > 50.0 then BatteryStatusModel.BatteryHealthCondition.Acceptable
-      else BatteryStatusModel.BatteryHealthCondition.Replace
+                                     ) extends HLModel
   object BatteryStatusModel:
-    enum BatteryHealthCondition:
-      case Normal, Acceptable, Replace 
+    
     def apply(status: TlpBatteryStatus): BatteryStatusModel =
       BatteryStatusModel(status.charge, status.capacity, status.status, status.cycleCount, status.voltage)
-  
+
   type HardwareModel = GeneralInfoModel | HardDriveModel | MemoryModel | MediaModel | ProcessorModel | BatteryStatusModel
 
   type ItsaIDModel = GeneralInfoModel | HardDriveModel
@@ -143,7 +181,12 @@ private object exports:
   export HLModel.MemoryModel
   export HLModel.ProcessorModel
   export HLModel.GeneralInfoModel
+  export HLModel.BatteryStatusModel
+  export HLModel.GeneralDriveStatus
   export HLModel.HardwareModel
   export HLModel.ItsaIDModel
 
 export exports.*
+extension (memory: Seq[MemoryModel])
+  def toTotalGBString: String =
+    memory.map(_.size).toTotalGBString

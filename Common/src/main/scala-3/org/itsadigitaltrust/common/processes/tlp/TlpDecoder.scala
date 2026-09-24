@@ -115,14 +115,5 @@ object TlpDecoder:
     }
   end macroImpl
   
-  private inline def summonDecoders[T <: Tuple]: List[TlpDecoder[?]] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts)  => summonInline[TlpDecoder[t]] :: summonDecoders[ts]
-
-  private inline def summonLabels[T <: Tuple]: List[String] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (t *: ts)  => constValue[t].toString :: summonLabels[ts]
 
 end TlpDecoder

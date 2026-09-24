@@ -232,7 +232,7 @@ object NotificationCentre extends HWLLoggable:
   def reload(potentialTask: Option[SimpleTask[?]] = None)(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Option[ApplicationState] =
     potentialTask.map: task => 
       startReloadDispatcher.foreach(_.apply(task))
-      reloadDispatcher.foreach(_.apply)
+      reloadDispatcher.foreach(_())
     .getOrElse:
       logger.warn("potentialTask is None")
       

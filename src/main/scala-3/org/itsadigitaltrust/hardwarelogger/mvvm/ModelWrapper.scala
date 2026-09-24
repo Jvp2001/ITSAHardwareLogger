@@ -316,13 +316,13 @@ class ModelWrapper[M](
   def field[T, R <: Property[T, Number], PS <: R](identifier: String, getter: Getter[T, M], defaultValue: Number)( propertySupplier: T => PS): PS =
     addIdentified(identifier, new BeanPropertyField(this.propertyWasChanged, getter, (m,j: Number) => (), defaultValue, propertySupplier))
 
-
+  
   def immutableField[T, J, R <: Property[T, J], PS <: R](identifier: String, getter: Getter[T, M], setter: ImmutableSetter[M, J], defaultValue: J = null.asInstanceOf[J])( propertySupplier: T => PS): PS =
     addIdentified(identifier, new ImmutableBeanPropertyField(this.propertyWasChanged, getter, setter, defaultValue, propertySupplier))
 //
 //  def field(identifier: String, accessor: StringPropertyAccessor[M]): StringProperty =
 //    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, "", () => new StringProperty(null, identifier)))
-//
+//, J,
 //  def field(identifier: String, accessor: StringPropertyAccessor[M], defaultValue: String): StringProperty =
 //    addIdentified(identifier, new FxPropertyField(this.propertyWasChanged, accessor, defaultValue, () => new StringProperty(null, identifier)))
 

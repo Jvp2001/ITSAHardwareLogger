@@ -52,7 +52,7 @@ private[database] object EntityCreatorModelConversions:
           cpuWidth = processor.width.toString.?,
           cpuDescription = processor.longDescription,
           genDesc = infoModel.description,
-          genProduct = infoModel.computerID,
+          genProduct = infoModel.versionID,
           genVendor = infoModel.vendor.?,
           genSerial = infoModel.serial.?,
           totalMemory = totalMemory.toString.?
@@ -63,13 +63,13 @@ private[database] object EntityCreatorModelConversions:
   private[mappers] given createInfoModel: FromEntity[Info, GeneralInfoModel] =
     info =>
       GeneralInfoModel(
-        computerID = info.genId,
+        versionID = info.genId,
         itsaID = info.itsaID.?,
         vendor = info.cpuVendor ?? "",
         serial = info.cpuSerial ?? "",
         os = info.os ?? "",
         model = info.cpuProduct ?? "",
-        description = info.genDesc,
+        description = info.genDesc
       )
 
   end createInfoModel
@@ -118,7 +118,7 @@ private[database] object EntityCreatorModelConversions:
           cpuWidth = processor.width.toString.?,
           cpuDescription = processor.longDescription,
           genDesc = infoModel.description,
-          genProduct = infoModel.computerID,
+          genProduct = infoModel.versionID,
           genVendor = infoModel.vendor.?,
           genSerial = infoModel.serial.?,
           totalMemory = totalMemory.toString.?

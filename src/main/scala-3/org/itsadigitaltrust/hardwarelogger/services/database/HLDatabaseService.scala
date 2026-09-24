@@ -151,17 +151,8 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
   override final def stop(): Unit = ()
 
   override def connect()(using ox.Ox): Either[HLDatabaseServiceException, Unit] =
-    ox.either:
-      try
-        val ds: MysqlDataSource = dataSource.ok()
-        magnum.connect(ds):
-          ()
-      catch
-        case e: MySQLTimeoutException =>
-          HLDatabaseServiceException.connectionError("Unknown", e.getMessage).fail()
-        case e: MySQLQueryInterruptedException =>
-          HLDatabaseServiceException.connectionError("Unknown", e.getMessage).fail()
-
+    backend.connect().left.map(HLDatabaseServiceException(_))
+    
   end connect
 
 

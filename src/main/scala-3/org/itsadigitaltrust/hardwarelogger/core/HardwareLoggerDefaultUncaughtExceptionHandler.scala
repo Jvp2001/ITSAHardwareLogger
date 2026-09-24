@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.core
 
 import com.mysql.cj.jdbc.exceptions.CommunicationsException
 import org.itsadigitaltrust.common.logging.HWLLoggable
-import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
+
 import org.scalafx.extras
 import org.scalafx.extras.ShowMessage
 

@@ -3,13 +3,10 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 import javafx.scene.control as jfxsc
 import javafx.scene.control.TableSelectionModel
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TableRowDelegate}
-import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import scalafx.beans.property.{BooleanProperty, ObjectProperty}
-import scalafx.scene.control.{Alert, ButtonType, TableRow, TableView, TextInputDialog}
-import scalafx.scene.input.{KeyCode, MouseButton}
-import scalafx.Includes.*
+import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.scene.input.MouseButton.Primary
 import ox.{Fork, Ox, either, pipe}
 import either.ok
@@ -25,7 +22,7 @@ import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.HardDriveModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.PerformBackendValidationListener
-import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
+import org.itsadigitaltrust.hardwarelogger.services.validation.*
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import scalafx.application.Platform
 import scalafx.scene.control.Alert.AlertType.Information

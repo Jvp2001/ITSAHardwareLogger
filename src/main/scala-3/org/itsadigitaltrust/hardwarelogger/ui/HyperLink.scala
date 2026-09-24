@@ -6,7 +6,6 @@ import scalafx.Includes.*
 import scalafx.stage.{Stage, Window}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
-import org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
 import scalafx.scene.control.Hyperlink
 
 class ConfirmHyperLink extends Hyperlink, HWLoggerShowMessage:
@@ -50,7 +49,7 @@ class WebSiteHyperLink(name: String, url: String) extends ConfirmHyperLink:
     result match
       case Some(true) | None =>
       // No confirmation dialog was shown; proceed with the action
-        val dialog = new org.itsadigitaltrust.hardwarelogger.dialogs.WebViewDialog(url)
+        val dialog = new Dialogs.WebViewDialog(url)
         dialog.showAndWait() match
           case Some(value) => dialog.close()
           case None => ()

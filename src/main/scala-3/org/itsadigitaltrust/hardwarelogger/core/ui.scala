@@ -7,7 +7,7 @@ object ui:
   export scalafx.Includes.*
   export scalafx.stage.Window
   export scalafx.scene.{Node, Group, Cursor}
-  export scalafx.scene.control.{Tab, TableColumn, TableView, TabPane, Button, Label, TextField, Alert, ButtonType}
+  export scalafx.scene.control.{Tab, TableColumn, TableView, TableRow, TabPane, Button, Label, TextField, Alert, ButtonType}
   export Alert.AlertType
   export scalafx.scene.layout.{VBox, HBox, BorderPane, Priority, Region, GridPane, StackPane}
   export scalafx.scene.layout.Priority.*
@@ -16,19 +16,22 @@ object ui:
 
   export scalafx.scene.input.{KeyCode, KeyEvent, MouseEvent, MouseButton}
   export scalafx.event.EventType
-  export scalafx.beans.property.{StringProperty, IntegerProperty, DoubleProperty, BooleanProperty, ObjectProperty}
   export scalafx.collections.ObservableBuffer
- 
+
+  export scalafx.beans.property.{StringProperty, BooleanProperty, IntegerProperty, DoubleProperty, ReadOnlyDoubleProperty, ReadOnlyBooleanProperty, ReadOnlyIntegerProperty, ReadOnlyObjectProperty}
   export scalafx.geometry.Insets
   export scalafx.geometry.Pos
   export Pos.{Center, CenterLeft, TopLeft, TopCenter, TopRight, CenterRight}
 
-  export scalafx.beans.property.Property
   export scalafx.event.subscriptions.Subscription
 
 //  export org.itsadigitaltrust.hardwarelogger.core.BeanConversions.given
   
-  export org.itsadigitaltrust.hardwarelogger.dialogs.Dialogs
   export org.itsadigitaltrust.hardwarelogger.core.UIAssetLoader.{image, stylesheet, asset}
+  
+  export org.itsadigitaltrust.hardwarelogger.ui.ui.*
+
+
+  
 end ui
 

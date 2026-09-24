@@ -45,7 +45,7 @@
 //
 //final class GeneralInfoTableRowViewModel(model: GeneralInfoModel) extends TableRowViewModel[GeneralInfoModel](model):
 //  def computerIDProperty: StringProperty =
-//    wrapper.field("computerID", _.computerID, (m, v) => m.copy(computerID = v), "")(() => new SimpleStringProperty())
+//    wrapper.field("versionID", _.versionID, (m, v) => m.copy(versionID = v), "")(() => new SimpleStringProperty())
 //
 //  def descriptionProperty: StringProperty =
 //    wrapper.field("description", _.description, (m, v) => m.copy(description = v), "")(() => new SimpleStringProperty())

@@ -9,10 +9,10 @@ import scala.math.Numeric.Implicits.infixNumericOps
 import org.itsadigitaltrust.hardwarelogger.services.{HardwareGrabberService, given}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
-final class MemoryTableRowViewModel(model: MemoryModel)(using HardwareGrabberService) extends TableRowViewModel[MemoryModel](model):
+final class MemoryTableRowViewModel(model: MemoryModel)(using HardwareGrabberService) extends TableRowViewModel(model):
 
   def sizeProperty: StringProperty =
-    wrapper.field("size", s => s.size.dbString, "0 GB")(StringProperty.apply)
+    wrapper.field("size", _.size.dbString, "0 GB")(StringProperty.apply)
 
   def descriptionProperty: StringProperty =
     wrapper.field("description", _.description, "")(StringProperty.apply)

@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import atlantafx.base.theme.Styles
-import javafx.scene.control
+import javafx.scene.{control, control as jfxsc}
 import javafx.util.Callback
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.BatteryStatusModel
@@ -10,10 +10,11 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.BatteryStatusTableRow
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.BatteryStatusTabViewModel
 import scalafx.scene.control.TableCell
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
 import scala.jdk.javaapi.CollectionConverters
 
-class BatteryStatusTabView(using HardwareGrabberService)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
+class BatteryStatusTabView(using HardwareGrabberService, HardwareLoggerApplicationState)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
 
   //  BatteryStatusTableRowViewModel.apply ||>
   //    sharedApplicationData.battery ?? Seq() |>
@@ -21,62 +22,62 @@ class BatteryStatusTabView(using HardwareGrabberService)(using vm: BatteryStatus
   //    items.value.setAll
 
 
-  private final class HealthTableCell extends TabTableCell[Double]:
-    private val healthStateStyles = Seq(Styles.DANGER, Styles.WARNING, Styles.SUCCESS)
+  class PercentageTableCell extends jfxsc.TableCell[BatteryStatusTabViewModel#RowViewModel, Double]:
 
-    override def updateItem(item: Double, empty: Boolean): Unit =
-      super.updateItem(item, empty)
-      if !empty then
-        styleClass --= healthStateStyles
-        if item > 75.0 then
-          styleClass += Styles.SUCCESS
-        else if item > 50.0 then
-          styleClass += Styles.WARNING
-        else
-          styleClass += Styles.DANGER
+    override def updateItem(value: Double, empty: Boolean): Unit =
+      super.updateItem(value, empty)
+
+      val healthStateStyles = Seq(Styles.DANGER, Styles.WARNING, Styles.SUCCESS)
+      styleClass --= healthStateStyles
+
+      if empty then
+        setText(null)
+        setGraphic(null)
+        setStyle("") // Clear style to prevent bleeding on recycled cells
+      else
+        val healthVal = value.doubleValue()
+
+        formatText(healthVal)
+        setText(f"$healthVal")
+
     end updateItem
-  end HealthTableCell
+    protected def formatText(value: Double): Unit = ()
+  end PercentageTableCell
+
 
 
   val chargeColumn = createAndAddColumn("Charge"): cellValue =>
     cellValue.chargeProperty
 
+  chargeColumn.delegate.setCellFactory((param: control.TableColumn[BatteryStatusTabViewModel#RowViewModel, Double]) =>
+      new PercentageTableCell:
+        override protected def formatText(value: Double): Unit =
+          if value <= 10.0 then
+            styleClass += Styles.DANGER
+            setStyle("-fx-text-fill: -color-danger-fg;")
+          else
+            styleClass -= Styles.DANGER
+            setStyle("-fx-text-fill: -color-fg-default;")
+    )
   val statusColumn = createAndAddColumn("Status")(_.statusProperty)
 
   val healthColumn = createAndAddColumn("Health")(_.healthProperty)
-
+  
   import scalafx.scene.control.TableCell
   import javafx.scene.{control => jfxsc}
 
   healthColumn.delegate.setCellFactory((param: control.TableColumn[BatteryStatusTabViewModel#RowViewModel, Double]) =>
-    new jfxsc.TableCell[BatteryStatusTabViewModel#RowViewModel, Double]:
-
-      override def updateItem(value: Double, empty: Boolean): Unit =
-        super.updateItem(value, empty)
-
-        val healthStateStyles = Seq(Styles.DANGER, Styles.WARNING, Styles.SUCCESS)
-        styleClass --= healthStateStyles
-
-        if empty then
-          setText(null)
-          setGraphic(null)
-          setStyle("") // Clear style to prevent bleeding on recycled cells
-        else
-          val healthVal = value.doubleValue()
-
-          if healthVal > 75.0 then
-            styleClass += Styles.SUCCESS
-            setStyle("-fx-text-fill: -color-success-fg;") // Explicitly hooks into AtlantaFX's theme palette
-          else if healthVal > 50.0 then
-            styleClass += Styles.WARNING
-            setStyle("-fx-text-fill: -color-warning-fg;")
-          else
-            styleClass += Styles.DANGER
-            setStyle("-fx-text-fill: -color-danger-fg;")
-
-          setText(f"$healthVal%.0f%%")
-
-
+   new PercentageTableCell:
+     override protected def formatText(healthVal: Double): Unit =
+       if healthVal > 75.0 then
+         styleClass += Styles.SUCCESS
+         setStyle("-fx-text-fill: -color-success-fg;") // Explicitly hooks into AtlantaFX's theme palette
+       else if healthVal > 50.0 then
+         styleClass += Styles.WARNING
+         setStyle("-fx-text-fill: -color-warning-fg;")
+       else
+         styleClass += Styles.DANGER
+         setStyle("-fx-text-fill: -color-danger-fg;")
   )
 
 //  healthColumn.cellFactory = (cell, value) =>

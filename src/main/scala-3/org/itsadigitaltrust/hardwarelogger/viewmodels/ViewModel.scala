@@ -6,7 +6,9 @@ import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.common.macros.NameOf
 import org.itsadigitaltrust.hardwarelogger.core.{HWLoggerShowMessage, ShowMessageHWLogger}
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
+import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.GeneralInfoModel
+import org.itsadigitaltrust.hardwarelogger.mvvm.ModelWrapper
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{ConnectedSuccessfullyAndReloadListener, ListenerExecutionConditionContext, NotificationCentre, NotificationName, ProgramModeChangeNotificationListener, SaveNotificationListener}
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
@@ -38,8 +40,7 @@ extension [E, T](either: Either[E, T])
       e
 
 
-trait BaseViewModel(using HardwareGrabberService) extends HWLLoggable:
-  final given hardwareGrabberService: HardwareGrabberService = summon[HardwareGrabberService]
+trait BaseViewModel extends HWLLoggable:
   type Error = HardwareGrabberService#Error
   type VMErrorMode = Either[Error, Unit]
 
@@ -90,7 +91,10 @@ trait ViewModel extends BaseViewModel, ConnectedSuccessfullyAndReloadListener, P
 end ViewModel
 
 
-
+trait ViewModelWithWrapper[M <: HLModel](final val model: M) extends ViewModel:
+  protected val wrapper: ModelWrapper[M] = ModelWrapper(model)
+  
+  
 
 
     
