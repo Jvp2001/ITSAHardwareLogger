@@ -51,7 +51,6 @@ object HDSentinelReader extends HWLLoggable:
       val reader = new HDSentinelReader
       if OSUtils.onLinux then
         val xml = "sudo hdsentinel -xml -dump".!!
-        logger.info(s"XML: $xml")
         reader.read(xml)
       reader
 

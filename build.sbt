@@ -3,7 +3,7 @@ ThisBuild / packageOptions += Package.ManifestAttributes(
   "Build-Time" -> java.time.Instant.now.toString
 )
 ThisBuild / normalizedName := "ITSA Hardware Logger"
-ThisBuild / version := "0.3.0-SNAPSHOT"
+ThisBuild / version := "0.4.0-SNAPSHOT"
 ThisBuild / organization := "org.itsadigitaltrust"
 ThisBuild / scalaVersion := "3.9.0"
 ThisBuild / organizationName := "ITSA Digital Trust"
@@ -12,7 +12,7 @@ ThisBuild / organizationHomepage := Some(url("https://itsadigitaltrust.org/"))
 ThisBuild / homepage := Some(url("https://github.com/jvp2001/ITSAHardwareLogger"))
 ThisBuild / licenses += "GNUv3" -> url("https://www.gnu.org/licenses/gpl-3.0.en.html#license-text")
 ThisBuild / scalacOptions ++= Seq("-java-output-version", "25")
-// Optional: Enforce JDK 24 for Java sources if mixed
+// Optional: Enforce JDK 25 for Java sources if mixed
 ThisBuild / javacOptions ++= Seq("--release", "25")
 
 ThisBuild / buildInfoPackage := "org.itsadigitaltrust.hardwarelogger.core"

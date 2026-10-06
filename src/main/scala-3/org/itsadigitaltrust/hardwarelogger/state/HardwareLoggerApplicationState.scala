@@ -7,51 +7,50 @@ import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
 import org.itsadigitaltrust.hardwarelogger.core.DataTypes.*
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, RequiresGlobalValidationContext}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.*
 import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.scalafx.extras.BusyWorker.SimpleTask
-import ox.Ox
+import ox.{Ox, Fork}
 import ox.either.ok
 import scalafx.application.Platform
 
-import scala.languageFeature.implicitConversions
+import java.util.concurrent.atomic.AtomicReference
+import scala.collection.mutable.ArrayBuffer
 
 private[state] type Data = HardwareLoggerSharedData
 
-case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLDatabaseService) extends HWLLoggable, RequiresGlobalValidationContext:
-  private var data: Data = HardwareLoggerSharedData()
+case class HardwareLoggerApplicationState()(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)
+  extends HWLLoggable, RequiresGlobalValidationContext:
+
+  private val dataRef = AtomicReference(HardwareLoggerSharedData())
   private val globalValidationContext: GlobalValidationContext[? <: HLModel] = GlobalValidationContext.globalValidationContext
 
-  def getData: Data = data
+  private def updateData(func: HardwareLoggerSharedData => HardwareLoggerSharedData): HardwareLoggerSharedData =
+    dataRef.updateAndGet(func(_))
 
-  def generalInfo: Option[Seq[GeneralInfoModel]] = data.info
+  def getData: Data = dataRef.get
 
-  def memory: Option[Seq[MemoryModel]] = data.memory
+  def generalInfo: Option[Seq[GeneralInfoModel]] = getData.info
+  def memory: Option[Seq[MemoryModel]] = getData.memory
+  def hardDrives: Option[Seq[HardDriveModel]] = getData.drives
+  def media: Option[Seq[MediaModel]] = getData.media
+  def processors: Option[Seq[ProcessorModel]] = getData.processors
+  def itsaID: Option[String] = getData.itsaID
+  def oldItsaID: Option[String] = getData.oldItsaID
+  def battery: Option[Seq[BatteryStatusModel]] = getData.battery
 
-  def hardDrives: Option[Seq[HardDriveModel]] = data.drives
+  def addDrives(hardDriveModels: HardDriveModel*): Unit =
+    updateData { current =>
+      current.copy(drives = (current.drives ?? Seq()).concat(hardDriveModels).?)
+    }
 
-  def media: Option[Seq[MediaModel]] = data.media
-
-  def processors: Option[Seq[ProcessorModel]] = data.processors
-
-  def itsaID: Option[String] = data.itsaID
-
-  def oldItsaID: Option[String] = data.oldItsaID
-
-  def battery: Option[Seq[BatteryStatusModel]] = data.battery
-
-
-  def addDrives(hardDriveModels: HardDriveModel*): Unit = data = data.copy(drives = (data.drives ?? Seq()).concat(hardDriveModels).?)
   // ==========================================
   // Extracted Component Reload Options (Thread-Safe)
   // ==========================================
 
-  /**
-   * This is executed last (as it depends on everything else to be loaded)
-   */
-  private def reloadGeneralInfo()(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)(using Ox): Either[Throwable, Seq[GeneralInfoModel]] =
+  private def reloadGeneralInfo()(using HardwareGrabberService, HLDatabaseService)(using Ox): Either[Throwable, Seq[GeneralInfoModel]] =
     ox.either:
       val option: Seq[GeneralInfoModel] = hardwareGrabberService.loadGeneralInfo().ok()
       val updatedOption =
@@ -77,21 +76,14 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
             itsaID = itsaID,
             chipType = processors.map(_.head).map(_.name) ?? "")
       end updatedOption
-      val result =
-        if updatedOption.isDefined then
-          Seq(updatedOption.get).?
-        else
-          Seq.empty.?
-        end if
-      end result
-      data = data.copy(info = result)
+      val result = if updatedOption.isDefined then Seq(updatedOption.get).? else Seq.empty.?
+      updateData(_.copy(info = result))
       result ?? Seq()
   end reloadGeneralInfo
 
-
-  private def checkItsaID()(using databaseService: HLDatabaseService)(using Ox): Either[Throwable, Option[String]] =
+  private def checkItsaID()(using HLDatabaseService)(using Ox): Either[Throwable, Option[String]] =
     ox.either:
-      val id = data.info
+      val id = getData.info
         .flatMap(_.headOption)
         .flatMap: info =>
           databaseService.findBySerialNumber[GeneralInfoModel](info.serial).toOption.flatMap(_.itsaID)
@@ -100,130 +92,112 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
       id
   end checkItsaID
 
-
-  private def reloadMemory()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Seq[MemoryModel]] =
+  private def reloadMemory()(using HardwareGrabberService)(using Ox): Either[Throwable, Seq[MemoryModel]] =
     ox.either:
       val memoryModel: Seq[MemoryModel] = hardwareGrabberService.loadMemory().ok()
-      data = data.copy(memory = memoryModel.?)
+      updateData(_.copy(memory = memoryModel.?))
       memoryModel
 
-  private def reloadHardDrives()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Seq[HardDriveModel]] =
+  private def reloadHardDrives()(using HardwareGrabberService)(using Ox): Either[Throwable, Seq[HardDriveModel]] =
     ox.either:
       val result: Option[Seq[HardDriveModel]] = hardwareGrabberService.loadHardDrives().?
-      data = data.copy(drives = result)
+      updateData(_.copy(drives = result))
       result ?? Seq()
 
-  private def reloadProcessors()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Seq[ProcessorModel]] =
+  private def reloadProcessors()(using HardwareGrabberService)(using Ox): Either[Throwable, Seq[ProcessorModel]] =
     ox.either:
       val processors: Seq[ProcessorModel] = hardwareGrabberService.loadProcessors().ok()
-      data = data.copy(processors = processors.?)
+      updateData(_.copy(processors = processors.?))
       processors
 
-  private def reloadMedia()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Any] =
+  private def reloadMedia()(using HardwareGrabberService)(using Ox): Either[Throwable, Any] =
     ox.either:
       val media: Seq[MediaModel] = hardwareGrabberService.loadMedia().ok()
-      data = data.copy(media = media.?)
+      updateData(_.copy(media = media.?))
       media
 
-  /**
-   * Public standalone endpoint targeted by granular ViewModel ScheduledServices.
-   */
-  def reloadBattery()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Unit] =
+  def reloadBattery()(using HardwareGrabberService)(using Ox): Either[Throwable, Unit] =
     val batteryResult = hardwareGrabberService.loadBatteryStatus()
-    data = data.copy(battery = batteryResult.?)
-    data.info.map(_.head).foreach: info =>
+    updateData(_.copy(battery = batteryResult.?))
+    getData.info.flatMap(_.headOption).foreach: info =>
       val health = batteryResult.map(_.headOption.map(_.health)).map(_.head).getOrElse(BatteryHealth(0.0))
       val result = Seq(info.copy(batteryHealth = health))
-      data = data.copy(info = result.?)
+      updateData(_.copy(info = result.?))
     Right(())
 
   // ==========================================
-  // Core Pipeline Orchestrator
+  // Core Parallel Pipeline Execution Ring
   // ==========================================
 
-  /**
-   * Orchestrates an expensive, comprehensive load pipeline.
-   *
-   * @param task         UI representation tracking overall task progress.
-   * @param currentIndex Initial placement configuration context.
-   * @return The updated index tracking progress markers.
-   */
-  def reload[T <: SimpleTask[R], R](task: T, currentIndex: Double = 0D)(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, totalNumberOfItems: Int = 0)(using Ox): Either[Throwable, Double] =
+  private def runPipeline(task: SimpleTask[?])(using Ox): Either[Throwable, Unit] =
     val mode = ox.EitherMode[Throwable]()
     ox.supervisedError(mode):
-      var index = currentIndex
+      val totalNumberOfItems = 8
+      var index = 0D
 
-      def performAsTask(msg: String)(using allowedMode: ProgramMode = "Normal")(body: => Either[Throwable, Any]) =
-        ox.forkUserError:
-          ox.either:
-            if ProgramMode.mode != allowedMode && allowedMode != "Both" then
-              ()
-            else
-              Platform.runLater:
-                task.message() = msg
+      val forkBuffer = ArrayBuffer[Fork[Either[Throwable, Any]]]()
 
-              body.map: res =>
-                index += 1
-                Platform.runLater(task.progress() = index / totalNumberOfItems)
-                res
-        .join()
-      end performAsTask
+      def scheduleAsTask(msg: String)(using allowedMode: ProgramMode = "Normal")(body: => Either[Throwable, Any]): Unit =
+        if ProgramMode.mode == allowedMode || allowedMode == "Both" then
+          val newFork: Fork[Either[Throwable, Any]] = ox.forkUserError:
+              ox.either:
+                logger.info(msg)
+                body
+          forkBuffer += newFork
+      end scheduleAsTask
 
+      def performSequentialTask(msg: String)(body: => Either[Throwable, Any]): Either[Throwable, Any] =
+        ox.either:
+          Platform.runLater(task.message() = msg)
+          body.ok()
+          index += 1
+          Platform.runLater(task.progress() = index / totalNumberOfItems)
 
-      performAsTask("Checking for ITSA ID..."):
+      // 1. Core State Hardware processing runs concurrently first
+      scheduleAsTask("Loading memory...")(reloadMemory())
+      scheduleAsTask("Loading drives...")(using allowedMode = "Both")(reloadHardDrives())
+      scheduleAsTask("Loading processors...")(reloadProcessors())
+      scheduleAsTask("Loading media...")(reloadMedia())
+      scheduleAsTask("Loading battery...")(reloadBattery())
+
+      // 2. Synchronise background hardware data tasks
+      forkBuffer.foreach: fork =>
+        ox.either:
+          fork.join().ok()
+          index += 1
+          Platform.runLater(task.progress() = index / totalNumberOfItems)
+
+      // 3. Process structural schema layout configurations sequentially
+      performSequentialTask("Checking for ITSA ID..."):
         checkItsaID()
 
-      performAsTask("Loading memory..."):
-        reloadMemory()
-
-      performAsTask("Loading drives...")(using allowedMode = "Both"):
-        reloadHardDrives()
-
-      performAsTask("Loading processors..."):
-        reloadProcessors()
-
-      performAsTask("Loading media..."):
-        reloadMedia()
-
-      performAsTask("Loading battery..."):
-        reloadBattery()
-
-      performAsTask("Loading general info...")(using allowedMode = "Both"):
+      performSequentialTask("Loading general info..."):
         reloadGeneralInfo()
 
+      // ====================================================
+      // PHASE 2: Tell all ViewModels to reload now that data is safe
+      // ====================================================
+      NotificationCentre.publish(ReloadViewModelsEvent)
 
-      Right(index)
-  end reload
+      Right(())
+  end runPipeline
 
   // ==========================================
   // Event-Driven Boundary Configuration Hooks
   // ==========================================
 
-  NotificationCentre.bindToFetchData:
-    data |> Right.apply
+  // Registers this component frame onto the central event architecture network channels
+  NotificationCentre.subscribe[StartReloadEvent]: event =>
+    // Spawns a structured background concurrency scope ring to execute the hardware loads safely
+    ox.supervised:
+      runPipeline(event.task)
 
-  NotificationCentre.bindToGetData:
-    Option(data)
+  NotificationCentre.registerDataProvider(getData)
+  NotificationCentre.registerValidationContextProvider(globalValidationContext)
 
-  NotificationCentre.bindToFetchGlobalValidationContext(globalValidationContext)
+  NotificationCentre.subscribe[ItsaIDChangedEvent]: event =>
+    updateData:current =>
+      current.copy(oldItsaID = current.itsaID, itsaID = event.itsaID.?)
 
-  NotificationCentre.bindToUpdateSharedData: newData =>
-    if newData.info.isDefined then
-      data = data.copy(info = newData.info)
-    if newData.drives.isDefined then
-      data = data.copy(drives = newData.drives)
-    if newData.processors.isDefined then
-      data = data.copy(processors = newData.processors)
-    if newData.memory.isDefined then
-      data = data.copy(memory = newData.memory)
-    if newData.drives.isDefined then
-      data = data.copy(drives = newData.drives)
-    if newData.media.isDefined then
-      data = data.copy(media = newData.media)
-    if newData.itsaID.isDefined then
-      data = data.copy(itsaID = newData.itsaID)
-
-  NotificationCentre.addItsaIDChangedListener: newItsaID =>
-    data = data.copy(oldItsaID = data.itsaID, itsaID = newItsaID.?)
 
 end HardwareLoggerApplicationState

@@ -9,9 +9,10 @@ import org.itsadigitaltrust.hardwarelogger.services.database.HLDatabaseService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.*
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, ReloadNotificationListener}
 import org.itsadigitaltrust.hardwarelogger.ui.derivation.annotations.{DisplayName, Readonly, UISchemaAnnotation}
 import org.itsadigitaltrust.hardwarelogger.ui.derivation.{DeferredField, FieldUI, UIControlFactory, UIGeneration}
+import scalafx.application.Platform
 import scalafx.scene.layout.ColumnConstraints
 import ui.*
 
@@ -19,35 +20,22 @@ import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.classTag
 import scala.language.experimental.modularity
 
-private[views] final class GeneralInfoTabView(using HardwareGrabberService, HLDatabaseService)(using applicationState: HardwareLoggerApplicationState) extends VBox(5):
-
-  NotificationCentre.addReloadListener(): () =>
-    reload()
-
-  reload()
-
-
-
-
-  //
-//    private val computerIDColumn = createAndAddColumn("Version ID", minimumWidth = ColumnSize.big): cellValue =>
-//      val string = cellValue.computerIDProperty.value + s" ${BuildInfo.version.replace("-SNAPSHOT", "")}"
-//      string.replace("null ", "ITSAHardwareLogger ")
-//      |> StringProperty.apply
-
-
+private[views] final class GeneralInfoTabView(using HardwareGrabberService, HLDatabaseService)(using applicationState: HardwareLoggerApplicationState) extends VBox(5), ReloadNotificationListener:
   import  GeneralInfoTabView.given 
   import org.itsadigitaltrust.hardwarelogger.ui.ui.given
-  private def reload() =
-    applicationState.generalInfo.map(_.head).map(_.head).foreach: info =>
-      children.clear()
-      val pane = UIGeneration.createInfoPane(info)
-      pane.columnConstraints = Seq(ColumnConstraints(), new ColumnConstraints():
-        hgrow = Always
-        margin = Insets(10, 0, 0, 10)
-      )
-      VBox.setVgrow(pane, Always)
-      children += pane
+
+  reload()
+  override def reload(): Either[Error, Unit] =
+    Platform.runLater:
+      applicationState.generalInfo.map(_.head).map(_.head).foreach: info =>
+        children.clear()
+        val pane = UIGeneration.createInfoPane(info)
+        pane.columnConstraints = Seq(ColumnConstraints(), new ColumnConstraints():
+          hgrow = Always
+          margin = Insets(10, 0, 0, 10)
+        )
+        VBox.setVgrow(pane, Always)
+        children += pane
     Right(())
 end GeneralInfoTabView
 

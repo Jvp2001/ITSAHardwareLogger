@@ -6,6 +6,7 @@ import org.itsadigitaltrust.common.{ConfigsManager, config}
 import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.ConnectionError
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, StartReloadEvent}
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService, HardwareIDValidationService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.tasks.OxErrorModeSimpleTask
@@ -93,8 +94,8 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
       ox.forkUserError:
         ox.either:
 
-
-          index = applicationState.reload(task, index).ok()
+          NotificationCentre.startReload(task)
+          index  = task.progressBarValue() * 10
           ()
       .join()
 

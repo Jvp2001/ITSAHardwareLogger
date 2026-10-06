@@ -83,7 +83,7 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
   private val reloadTask = new HardwareLoggerSimpleTask[Throwable, Unit](1)(using this):
     override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
       this.message() = "Reloading data..."
-      NotificationCentre.reload().forkJoin()
+      NotificationCentre.startReload(this)
       this.incrementProgress()
       Right(())
 
@@ -136,7 +136,7 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
                 this.message() = "Reconnecting..."
                 databaseService.connect().forkJoin().ok()
                 this.message() = "Reloading data..."
-                NotificationCentre.reload().forkJoin()
+                NotificationCentre.startReload(this)
                 this.incrementProgress()
 
           override def onFinished(either: Either[Throwable, Unit]): Unit =

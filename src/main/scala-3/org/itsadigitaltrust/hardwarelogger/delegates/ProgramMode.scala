@@ -1,7 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.delegates
 
 import org.itsadigitaltrust.hardwarelogger.services.ApplicationServicesRegistry
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, NotificationName}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, ProgramModeChangedEvent}
 import scalafx.beans.property.*
 
 sealed trait ProgramOperationMode
@@ -22,11 +22,10 @@ object ProgramMode:
   def modeProperty: StringProperty = currentProgramMode
 
   val isModeNormal: BooleanProperty = new BooleanProperty()
-  isModeNormal.value = currentProgramMode.value == "Normal"
-
+  isModeNormal <== modeProperty.isEqualTo("Normal")
 
   val isHardDriveMode: BooleanProperty = new BooleanProperty
-  isHardDriveMode.value = currentProgramMode.value == "HardDrive"
+  isHardDriveMode <== currentProgramMode.isEqualTo("HardDrive")
 
   def toggleMode(): Unit =
     if isModeNormal.value then
@@ -34,32 +33,18 @@ object ProgramMode:
     else
       currentProgramMode.value = "Normal"
   end toggleMode
-  
 
-  def addProgramModeChangedListener(f: ProgramMode => Unit): Unit =
-    currentProgramMode.addListener: (_, _, newValue) =>
-      f(newValue.asInstanceOf[ProgramMode])
-  private def postProgramModeChangedNotification(oldMode: String, newMode: String): Unit =
-    ox.supervised:
-      NotificationCentre.programModeChanged(mode)
+
+
   currentProgramMode.onChange: (_, oldValue, newValue) =>
-    isModeNormal.value = newValue == "Normal"
-    isHardDriveMode.value  = newValue == "HardDrive"
-    postProgramModeChangedNotification(oldValue, newValue)
-
+    NotificationCentre.publish(ProgramModeChangedEvent(newValue))
 
   def isInNormalMode: Boolean = isModeNormal.get
   def isInHardDriveMode: Boolean = isHardDriveMode.get
   def mode_=(mode: ProgramMode): Unit =
-    val oldMode = currentProgramMode.value.asInstanceOf[ProgramMode]
-    currentProgramMode.value = mode
-    postProgramModeChangedNotification(oldMode, mode)
+    currentProgramMode() = mode
 
   def mode: ProgramMode =
     currentProgramMode.value.asInstanceOf[ProgramMode]
 
-  currentProgramMode.addListener: (_, oldValue, newValue) =>
-    postProgramModeChangedNotification(oldValue, newValue)
-    
-  def apply()(using ox.Ox): Unit =
-    NotificationCentre.programModeChanged(mode)
+end ProgramMode
