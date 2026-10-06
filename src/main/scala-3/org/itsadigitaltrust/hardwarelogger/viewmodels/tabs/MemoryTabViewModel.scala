@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.viewmodels.tabs
 
 import org.itsadigitaltrust.common.Operators.{??, |>}
 import org.itsadigitaltrust.common.types.DataSizeType.total
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.MenuManagerService
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
@@ -12,7 +13,7 @@ import scala.Conversion.into
 import scala.math.Numeric.Implicits.infixNumericOps
 
 
-final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberService) extends TabTableViewModel(MemoryTableRowViewModel.apply, _.memory):
+final class MemoryTabViewModel(using hardwareGrabberService: HardwareGrabberService, menuManagerService: MenuManagerService) extends TabTableViewModel(MemoryTableRowViewModel.apply, _.memory):
 
   def totalMemoryValue: String =
     try

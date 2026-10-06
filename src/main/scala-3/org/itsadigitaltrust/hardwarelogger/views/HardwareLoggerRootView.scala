@@ -1,7 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 import atlantafx.base.theme.Styles
-import org.itsadigitaltrust.common.Operators.{??, |>}
+import org.itsadigitaltrust.common.Operators.{?, ??, |>}
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.{ContextBasedMenuBar, ContextBasedMenuBarTabPane, ContextualBaseMenuTabView, MenuContributor, MenuManagerService}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TabDelegate}
@@ -14,11 +15,12 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewMode
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{MemoryTableRowViewModel, TableRowViewModel}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.tabs.*
+import qupath.ui.logviewer.api.manager.LoggerManager
 import scalafx.Includes.*
 import scalafx.application.Platform
 import scalafx.beans.value.ObservableValue
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
-import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar}
+import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar, SeparatorMenuItem}
 import scalafx.scene.input.{KeyCodeCombination, KeyCombination}
 import qupath.ui.logviewer.ui.main.LogViewer
 
@@ -26,69 +28,71 @@ import scala.collection.mutable
 import scala.util.Try
 
 
-class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)(using HardwareIDValidationService, IssueReporterService)(using viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel) extends BorderPane with View(using viewModel) with HWLoggerShowMessage:
+class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState, menuManagerService: MenuManagerService)(using idValidation: HardwareIDValidationService, issueReporter: IssueReporterService, loggerManager: LoggerManager)(using viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel) extends BorderPane with View(using viewModel) with HWLoggerShowMessage:
 
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
   
   private type TabsMapKey = "General" | "Memory" | "Processor" | "HDD" | "Media" | "Debug" | "Battery"
 
-    private val generalTab = createTab("General", new GeneralInfoTabView)
-    private val memoryTab = createTab("Memory", new MemoryTabView)
-    private val processorTab = createTab("Processor", new ProcessorTabView)
-    private val hardDrivesTab = createTab("HDD", new HardDrivesTabView)
-    private val mediaTab = createTab("Media", new MediaTabView)
-    private val debugTab = createTab("Debug", new ItsaDebugView)
-    private val batteryTab = createTab("Battery", new BatteryStatusTabView)
+
+  private final val fileMenu = new Menu("_File"):
+    items ++= Seq(
+      new MenuItem("Quit"):
+        accelerator = new KeyCodeCombination(KeyCode.Q, KeyCombination.ShortcutDown)
+        onAction = _ => Platform.exit()
+
+    )
+  private final val helpMenu = new Menu("_Help"):
+    items ++= Seq(
+//      new MenuItem("Report"):
+//        onAction = _ => issueReporter.report()
+//      ,
+      new SeparatorMenuItem(),
+      new MenuItem("About"):
+        onAction = _ => Dialogs.showAboutDialog()
+
+    )
+  end helpMenu
 
 
   private final val viewMenu = new Menu("_View"):
     private final val modeMenu = new Menu("_Mode"):
       items ++= Seq(
-      new CheckMenuItem("_Normal"):
-        accelerator = new KeyCodeCombination(KeyCode.N, KeyCombination.ShortcutDown, KeyCombination.AltDown)
-        onAction = _ =>
-            switchMode("Normal")
-        selected <==> ProgramMode.isModeNormal
-        ,
-        new CheckMenuItem("_HardDrive"):
-          accelerator = new KeyCodeCombination(KeyCode.H, KeyCombination.ShortcutDown, KeyCombination.AltDown)
+        new CheckMenuItem("_Normal"):
+          accelerator = new KeyCodeCombination(KeyCode.N, KeyCombination.ShortcutDown, KeyCombination.AltDown)
           onAction = _ =>
-            switchMode("HardDrive")
-          selected <==> ProgramMode.isHardDriveMode
-        ,
+            switchMode("Normal")
+          selected <==> ProgramMode.isModeNormal
+          ,
+          new CheckMenuItem("_HardDrive"):
+            accelerator = new KeyCodeCombination(KeyCode.H, KeyCombination.ShortcutDown, KeyCombination.AltDown)
+            onAction = _ =>
+              switchMode("HardDrive")
+            selected <==> ProgramMode.isHardDriveMode
+          ,
       )
     end modeMenu
     private val themeMenu = new ThemeSelectionMenu()
-    
+
     items ++= Seq(modeMenu, themeMenu)
 
   end viewMenu
-  private final val menuBar = new MenuBar:
+
+
+  private given menuBar: ContextBasedMenuBar = new ContextBasedMenuBar(fileMenu, viewMenu, helpMenu):
     useSystemMenuBar = true
     disable <== viewModel.disableNodeWhileTaskRunningProperty
-    private final val fileMenu = new Menu("File"):
-      items ++= Seq(
-        new MenuItem("Quit"):
-          accelerator = new KeyCodeCombination(KeyCode.Q, KeyCombination.ShortcutDown)
-          onAction = _ => Platform.exit()
-      )
-    private final val helpMenu = new Menu("_Help"):
-      items ++= Seq(
-//        new MenuItem("Report"):
-//          ()
-//        //          onAction = _ => ItsaDebugView.report(viewModel.issueReporterService.report)
-//        ,
-        new MenuItem("About"):
 
-
-          onAction = _ => Dialogs.showAboutDialog()
-      )
-    menus ++= Seq(
-      fileMenu,
-      viewMenu,
-      helpMenu
-    )
   end menuBar
+
+
+  private val generalTab = createTab("General", new GeneralInfoTabView)
+  private val memoryTab = createTab("Memory", new MemoryTabView)
+  private val processorTab = createTab("Processor", new ProcessorTabView)
+  private val hardDrivesTab = createTab("HDD", new HardDrivesTabView(using fileMenu))
+  private val mediaTab = createTab("Media", new MediaTabView)
+  private val debugTab = createTab("Debug", new ItsaDebugView)
+  private val batteryTab = createTab("Battery", new BatteryStatusTabView)
 
 
   top = menuBar
@@ -133,7 +137,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     children ++= Seq(idContainer, idErrorLabel)
   end topContainer
 
-  private final given tabPane: TabPane = new TabPane:
+  private final given tabPane: TabPane = new TabPane with ContextBasedMenuBarTabPane:
     styleClass ++= Seq(
       Styles.FLAT,
     )
@@ -239,13 +243,19 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     createTab(title, rootContent)
 
   private def createTab(title: TabsMapKey, rootContent: Node): Tab =
-    val tab: Tab = new Tab:
+
+    val tab: Tab = new ContextualBaseMenuTabView:
       VBox.setVgrow(rootContent, Always)
       text = title
       closable = false
       content = rootContent
+      userData = rootContent.userData
       selected.onChange: (_, _, isNowSelected) =>
         if isNowSelected then
+          rootContent.userData match
+            case tabDelegate: TabDelegate =>
+              tabDelegate.onSelected(this)
+            case _ => ()
           rootContent match
             case tabDelegate: TabDelegate =>
               tabDelegate.onSelected(this)
@@ -298,6 +308,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
           mediaTab,
           debugTab,
         )
+
         
         if viewModel.hasABattery then
           tabPane.tabs.add(batteryTab)

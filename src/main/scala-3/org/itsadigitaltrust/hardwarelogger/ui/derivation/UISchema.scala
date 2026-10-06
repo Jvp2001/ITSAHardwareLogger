@@ -24,7 +24,7 @@ object UISchema:
    * type checker to strip away the opaque path wrapper and evaluate the underlying type
    * structurally as a true, unrollable `Tuple` sequence.
    */
-  type AsTuple[T <: Tuple] = T
+  private type AsTuple[T <: Tuple] = T
 
   // Recursively summons individual UI factories for each element in the structural type tuple
   private inline def summonDecoders[T <: Tuple]: List[UIControlFactory[?]] =

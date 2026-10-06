@@ -98,7 +98,7 @@ object DataSizeType:
       s"${ds.toSize(DataSizeUnit.GiB).toLong} GiB"
 
     inline def toGBString: String =
-    s"${ds.toSize(DataSizeUnit.GB).toLong} GB"
+      s"${ds.toSize(DataSizeUnit.GB).toLong} GB"
 
   end extension
 
@@ -131,6 +131,8 @@ object DataSizeType:
       seq.sum
     def toTotalGBString: String =
       seq.total.toGBString
+    def toTotalGiBString: String =
+      seq.total.toGiBString
     // ✅ Clean utility to aggregate directly into a distinct target unit type safely
     def sumAs(targetUnit: DataSizeUnit): DataSize =
       val totalBytes = seq.map(_.toBytes).sum
@@ -138,5 +140,4 @@ object DataSizeType:
   end extension
 end DataSizeType
 
-export DataSizeType.*
 

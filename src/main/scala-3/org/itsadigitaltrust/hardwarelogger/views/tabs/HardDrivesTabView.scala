@@ -3,22 +3,24 @@ package org.itsadigitaltrust.hardwarelogger.views.tabs
 import javafx.event.EventHandler
 import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.control.{TableCell, cell}
-import javafx.scene.{control, input as jfxi, control as jfxsc}
+import javafx.scene.{control, control as jfxsc, input as jfxi}
 import javafx.util.{Callback, converter}
-import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
+import org.itsadigitaltrust.common.Operators.{?, ??, |>, ||>}
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.{MenuContributor, MenuManagerService}
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import scalafx.Includes.*
-import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TabDelegate, TableRowDelegate}
+import org.itsadigitaltrust.hardwarelogger.delegates.{ProgramMode, TabDelegate}
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.ProgramModeChangeNotificationListener
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.HardDrivesTabViewModel
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{HardDrivesHardModeTestingHelperViewModel, HardDrivesTabViewModel}
 import org.itsadigitaltrust.hardwarelogger.views.{View, createAndAddColumn}
 import scalafx.Includes.*
 import scalafx.application.Platform
 import scalafx.beans.value.ObservableValue
-import scalafx.scene.control.{ContextMenu, MenuItem, TableSelectionModel, Tooltip}
+import scalafx.scene.control.{ContextMenu, MenuBar, MenuItem, SeparatorMenuItem, TableSelectionModel, Tooltip}
 import scalafx.util.StringConverter
 import scalafx.util.converter.DefaultStringConverter
 
@@ -35,26 +37,23 @@ class ItsaIDConverter(model: HardDriveTableRowViewModel) extends StringConverter
   override def toString(t: String): String =
     t
 
+private trait HardDriveModeTestingHelper(using menu: Menu, hardDriveTabViewModel: HardDrivesHardModeTestingHelperViewModel) extends MenuContributor:
+  self: HardDriveTableView =>
 
-class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel)(using HardwareGrabberService) extends TabTableView[HardDrivesTabViewModel#Model, HardDrivesTabViewModel#RowViewModel, HardDrivesTabViewModel]:
+end HardDriveModeTestingHelper
 
+class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel, menu: Menu)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TabTableView[HardDrivesTabViewModel#Model, HardDrivesTabViewModel#RowViewModel, HardDrivesTabViewModel], HardDriveModeTestingHelper:
 
+  stylesheets += stylesheet"extrainfodialog.css"
   requestFocus()
 
+  userData = this.asInstanceOf[MenuContributor]
 
-  private given rowDelegate: Option[TableRowDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel)
-  //  override val rowDelegate: WeakReference[TableRowDelegate[HardDriveTableRowViewModel]] = tabViewModel.rowDelegate
+  private given rowDelegate: Option[org.itsadigitaltrust.hardwarelogger.delegates.TableDelegate[HardDriveTableRowViewModel]] = Option(tabViewModel)
+  //  override val rowDelegate: WeakReference[TableDelegate[HardDriveTableRowViewModel]] = tabViewModel.rowDelegate
   //
   //  override val showHandCursorOnHover: Boolean = true
 
-  rowFactory = _ => new TableTabRow[HardDriveTableRowViewModel](true):
-    contextMenu =
-      val moreInfoMenuItem = new MenuItem("More Info (i)"):
-        onMouseClicked = (event: jfxi.MouseEvent) =>
-          if event.getButton == jfxi.MouseButton.PRIMARY then
-            tabViewModel.showExtraInfo(selectionModel.value.getSelectedItem)
-
-      new ContextMenu(moreInfoMenuItem)
 
 
   private val healthColumn = createAndAddColumn("Health"): cellValue =>
@@ -77,10 +76,14 @@ class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel)(using Hardw
   private val typeColumn = createAndAddColumn("Type"): cellValue =>
     cellValue.typeProperty
 
-  private val idColumn = createAndAddColumn("ID"): cellValue =>
+  private val idColumn = createAndAddColumn("ID", ColumnSize.big): cellValue =>
     cellValue.idProperty
 
+
+
   idColumn.editable <== tabViewModel.editIDColumn
+
+
 
   
   idColumn.setCellFactory((param: control.TableColumn[HardDriveTableRowViewModel, String]) =>
@@ -101,7 +104,7 @@ class HardDriveTableView(using tabViewModel: HardDrivesTabViewModel)(using Hardw
 end HardDriveTableView
 
 
-class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService)(using viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel) extends BorderPane with TabDelegate with View[HardDrivesTabViewModel]:
+class HardDrivesTabView(using menu: Menu)(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, hardwareLoggerApplicationState: HardwareLoggerApplicationState, menuManagerService: MenuManagerService)(using viewModel: HardDrivesTabViewModel = new HardDrivesTabViewModel) extends BorderPane, View[HardDrivesTabViewModel]:
   private val tableView = new HardDriveTableView
 
 
@@ -133,17 +136,7 @@ class HardDrivesTabView(using databaseService: HLDatabaseService, hardwareGrabbe
       tableView.requestFocus()
       tableView.scrollTo(index)
 
-
-  override def onSelected(tab: Tab): Unit =
-
-    selectRow()
-
-  
-  tableView.addEventFilter(scalafx.scene.input.KeyEvent.KeyReleased, (t: KeyEvent) => 
-    viewModel.onRowKeyboardKeyReleased(t, tableView.getSelectionModel.selectedItemProperty().get() |> Option.apply)
-  )
-
-
+  selectRow()
 
 
 

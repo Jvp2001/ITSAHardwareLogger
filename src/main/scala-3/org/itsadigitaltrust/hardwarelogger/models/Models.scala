@@ -40,22 +40,21 @@ object HLModel:
   final case class GeneralInfoModel(
                                      @Readonly
                                      versionID: String = "",
-                                     @Readonly
-                                     description: String = "",
                                      @Separator
                                      @Readonly
-                                     @DisplayName("Processor Description")
-                                     processorDescription: String = "",
-                                     // The chassis-type
+                                     description: String = "",
+
+                                     /** The chassis-type */
                                      @Readonly
                                      model: String = "",
                                      @Readonly
                                      vendor: String = "",
                                      @Readonly
                                      serial: String = "",
-                                     @Separator
                                      @Readonly
-                                     batteryHealth: BatteryHealth = BatteryHealth(0.0),
+                                     @DisplayName("Chip Type")
+                                     chipType: String = "",
+                                     @Separator
                                      @Readonly
                                      amountOfMemory: String = "0GB",
                                      @Separator
@@ -66,10 +65,13 @@ object HLModel:
                                      os: String = "",
                                      @Readonly
                                      numberOfDrives: Int = 0,
+                                     @Readonly
+                                     anyDriveIssues: Seq[GeneralDriveStatus] = Seq(GeneralDriveStatus.NoIssues),
                                      @Ignore
                                      itsaID: Option[String] = None,
+                                     @Separator
                                      @Readonly
-                                     anyDriveIssues: Seq[GeneralDriveStatus] = Seq(GeneralDriveStatus.NoIssues)
+                                     batteryHealth: BatteryHealth = BatteryHealth(0.0),
 
 
                                    ) extends HLModelWithSerial:
@@ -157,6 +159,7 @@ object HLModel:
                                  ) extends HLModel
 
   import org.itsadigitaltrust.hardwarelogger.core.DataTypes.*
+
   final case class BatteryStatusModel(
                                        health: into[BatteryHealth],
                                        charge: Double,
@@ -164,8 +167,9 @@ object HLModel:
                                        cycleCount: Option[Int],
                                        voltage: Option[Double],
                                      ) extends HLModel
+
   object BatteryStatusModel:
-    
+
     def apply(status: TlpBatteryStatus): BatteryStatusModel =
       BatteryStatusModel(status.charge, status.capacity, status.status, status.cycleCount, status.voltage)
 
@@ -190,3 +194,5 @@ export exports.*
 extension (memory: Seq[MemoryModel])
   def toTotalGBString: String =
     memory.map(_.size).toTotalGBString
+  def toTotalGiBString: String =
+    memory.map(_.size).toTotalGiBString

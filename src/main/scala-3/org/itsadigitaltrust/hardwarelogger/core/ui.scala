@@ -1,5 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.core
 
+import javafx.scene.control as jfxsc
+import org.scalafx.extras
 
 
 object ui:
@@ -7,7 +9,7 @@ object ui:
   export scalafx.Includes.*
   export scalafx.stage.Window
   export scalafx.scene.{Node, Group, Cursor}
-  export scalafx.scene.control.{Tab, TableColumn, TableView, TableRow, TabPane, Button, Label, TextField, Alert, ButtonType}
+  export scalafx.scene.control.{Tab, TableColumn, TableView, TableRow, TabPane, Button, Label, TextField, Alert, ButtonType, MenuBar, Menu, MenuItem}
   export Alert.AlertType
   export scalafx.scene.layout.{VBox, HBox, BorderPane, Priority, Region, GridPane, StackPane}
   export scalafx.scene.layout.Priority.*
@@ -30,8 +32,6 @@ object ui:
   export org.itsadigitaltrust.hardwarelogger.core.UIAssetLoader.{image, stylesheet, asset}
   
   export org.itsadigitaltrust.hardwarelogger.ui.ui.*
-
-
   
 end ui
 

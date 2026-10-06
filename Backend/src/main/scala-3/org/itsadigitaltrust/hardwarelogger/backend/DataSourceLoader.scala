@@ -10,8 +10,6 @@ import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.ConnectionError
 import org.itsadigitaltrust.hardwarelogger.backend.utils.IPAddressFinder
 import ox.either.{fail, ok}
-import pureconfig.{ConfigReader, ConfigSource}
-import pureconfig.generic.derivation.*
 
 import java.sql.SQLException
 import scala.Conversion.into
@@ -43,8 +41,7 @@ final case class DBProperties(
                                fallbackAddress: String,
                              @ConfigComment(" Timeout in milliseconds")
                                timeout: Int
-                             ) derives ConfigReader
-
+                             ) 
 object DBProperties:
   given default: DBProperties = DBProperties(
     name = "hwlogger",
@@ -52,7 +49,7 @@ object DBProperties:
     serverTimeZone = "UTC",
     username = "itsa",
     password = "itsa123",
-    primaryAddress = "localhost",
+    primaryAddress = "10.0.1.222",
     fallbackAddress = "localhost",
     timeout = 5,
     autoReconnect = true,

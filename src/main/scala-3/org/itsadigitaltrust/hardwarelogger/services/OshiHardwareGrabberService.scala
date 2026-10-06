@@ -71,7 +71,31 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
           LoadError(e).fail()
   end loadGeneralInfo
 
+  
+  private def getAllDrivesFromReader(hdSentinelReader: HDSentinelReader) =
+    hdSentinelReader.getAllNodesInElementsStartingWith[HardDiskSummary]("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
+      .filterNot(_.hardDiskModelId.contains("USB"))
+      .filterNot(_.hardDiskModelId.contains("MassStorage"))
 
+  override def loadHardDrives(xml: String)(using Ox): Result[HardDriveModel] =
+    ox.either:
+      try
+        val hdSentinelReader =
+          HDSentinelReader[HardDiskSummary](xml).left.map(LoadError.apply).ok()
+        end hdSentinelReader
+
+        val hardDiskSummaries: Seq[HardDiskSummary] = getAllDrivesFromReader(hdSentinelReader)
+
+        given lsblk: Lsblk = Lsblk()
+
+        hardDiskSummaries.map: hardDiskSummary =>
+          loadHardDrive(hardDiskSummary)
+      catch
+        case e: Exception =>
+          logger.trace("Error while loading hard drive info", e)
+          LoadError(e.getMessage).fail()
+  end loadHardDrives
+  
   override def loadHardDrives()(using ox.Ox): Result[HardDriveModel] =
     import org.itsadigitaltrust.hardwarelogger.core.Givens.given
     ox.either:
@@ -80,67 +104,13 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
           HDSentinelReader[HardDiskSummary]().left.map(LoadError.apply).ok()
         end hdSentinelReader
 
-        val hardDiskSummaries: Seq[HardDiskSummary] =
-          hdSentinelReader.getAllNodesInElementsStartingWith("Physical_Disk_Information_Disk", "Hard_Disk_Summary")
-            .filterNot(_.hardDiskModelId.contains("USB"))
-        val lsblk = Lsblk()
+        val hardDiskSummaries: Seq[HardDiskSummary] = getAllDrivesFromReader(hdSentinelReader)
+        given lsblk: Lsblk = Lsblk()
         
-
 
         hardDiskSummaries.map: hardDiskSummary =>
 
-          val id: String = itsaID
-
-
-          val hdType: HardDriveType =
-            if OSUtils.onLinux then
-              val rotaOpt = lsblk(hardDiskSummary.hardDiskDevice).map(_.rota)
-              rotaOpt match
-                case Some(true)  => "HDD"
-                case Some(false) => "SSD"
-                case None        => "UNKNOWN"
-            else
-              "UNKNOWN"
-
-          def sizeStringToBytes(s: String): Long =
-            val parts = s.trim.split("\\s+").toList
-            val numberOpt: Option[Long] =
-              parts.headOption
-                .map(_.replaceAll("[^0-9]", "")) // keep digits only
-                .filter(_.nonEmpty)
-                .flatMap(_.toLongOption)
-
-            val unitOpt = parts.drop(1).headOption.map(_.toUpperCase)
-
-            (numberOpt, unitOpt) match
-              case (Some(n), Some(u)) if u.startsWith("TB") => n * 1_000_000_000_000L
-              case (Some(n), Some(u)) if u.startsWith("GB") => n * 1_000_000_000L
-              case (Some(n), Some(u)) if u.startsWith("MB") => n * 1_000_000L
-              case (Some(n), Some(u)) if u.startsWith("KB") => n * 1_000L
-              case (Some(n), Some(u)) if u.startsWith("B")  => n
-              case (Some(n), None)                           => n
-              case _                                         => 0L
-          end sizeStringToBytes
-
-          val totalBytes: Long = sizeStringToBytes(hardDiskSummary.totalSize)
-          val dataSize = DataSize(totalBytes.toDouble, DataSizeUnit.GB) // value treated as bytes (converted to GB)
-          logger.info(s"Drive size: ${dataSize.dbString}")
-
-          val drive = HardDriveModel(
-            hardDiskSummary.health.asPercentage,
-            hardDiskSummary.performance.asPercentage,
-            dataSize,
-            hardDiskSummary.hardDiskModelId,
-            hardDiskSummary.hardDiskSerialNumber,
-            itsaID = id,
-            connectionType = hardDiskSummary.interfaceType,
-            `type` = hdType,
-            actions = hardDiskSummary.tip,
-            description = hardDiskSummary.description,
-            powerOnTime = hardDiskSummary.powerOnTime,
-            estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
-          )
-          drive
+          loadHardDrive(hardDiskSummary)
       catch
         case e: Exception =>
           logger.trace("Error while loading hard drive info", e)
@@ -149,6 +119,60 @@ trait OshiHardwareGrabberService(using databaseService: HLDatabaseService) exten
   end loadHardDrives
 
 
+  private def loadHardDrive(hardDiskSummary: HardDiskSummary)(using lsblk: Lsblk) =
+    val id: String = itsaID
+
+    val hdType: HardDriveType =
+      if OSUtils.onLinux then
+        val rotaOpt = lsblk(hardDiskSummary.hardDiskDevice).map(_.rota)
+        rotaOpt match
+          case Some(true) => "HDD"
+          case Some(false) => "SSD"
+          case None => "UNKNOWN"
+      else
+        "UNKNOWN"
+
+    def sizeStringToBytes(s: String): Long =
+      val parts = s.trim.split("\\s+").toList
+      val numberOpt: Option[Long] =
+        parts.headOption
+          .map(_.replaceAll("[^0-9]", "")) // keep digits only
+          .filter(_.nonEmpty)
+          .flatMap(_.toLongOption)
+
+      val unitOpt = parts.drop(1).headOption.map(_.toUpperCase)
+
+      (numberOpt, unitOpt) match
+        case (Some(n), Some(u)) if u.startsWith("TB") => n * 1_000_000_000_000L
+        case (Some(n), Some(u)) if u.startsWith("GB") => n * 1_000_000_000L
+        case (Some(n), Some(u)) if u.startsWith("MB") => n * 1_000_000L
+        case (Some(n), Some(u)) if u.startsWith("KB") => n * 1_000L
+        case (Some(n), Some(u)) if u.startsWith("B") => n
+        case (Some(n), None) => n
+        case _ => 0L
+    end sizeStringToBytes
+
+    val totalBytes: Long = sizeStringToBytes(hardDiskSummary.totalSize)
+    val dataSize = DataSize(totalBytes.toDouble, DataSizeUnit.GB) // value treated as bytes (converted to GB)
+    logger.info(s"Drive size: ${dataSize.dbString}")
+
+    val drive = HardDriveModel(
+      hardDiskSummary.health.asPercentage,
+      hardDiskSummary.performance.asPercentage,
+      dataSize,
+      hardDiskSummary.hardDiskModelId,
+      hardDiskSummary.hardDiskSerialNumber,
+      itsaID = id,
+      connectionType = hardDiskSummary.interfaceType,
+      `type` = hdType,
+      actions = hardDiskSummary.tip,
+      description = hardDiskSummary.description,
+      powerOnTime = hardDiskSummary.powerOnTime,
+      estimatedRemainingLifetime = hardDiskSummary.estimatedRemainingLifetime
+    )
+    drive
+  end loadHardDrive
+  
 
   override def loadMemory()(using ox.Ox): Result[MemoryModel] =
     ox.either:

@@ -20,6 +20,7 @@ trait HWLoggerShowMessage extends ShowMessageHWLogger, ShowMessage:
 
   override protected def parentWindow: Option[Window] = None
 
+  
   def showInformation(message: String): Unit = showInformation("Info", message, "")
 
 

@@ -25,6 +25,8 @@ trait HardwareGrabberService extends FrontendService:
 
   def loadHardDrives()(using ox.Ox): Result[HardDriveModel]
 
+  def loadHardDrives(xml: String)(using ox.Ox): Result[HardDriveModel]
+
   def loadMemory()(using ox.Ox): Result[MemoryModel]
 
   def loadProcessors()(using ox.Ox): Result[ProcessorModel]

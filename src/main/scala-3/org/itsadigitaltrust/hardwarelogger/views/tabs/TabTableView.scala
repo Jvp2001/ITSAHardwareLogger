@@ -1,8 +1,8 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
-import org.itsadigitaltrust.common.Operators.{in, |>}
+import org.itsadigitaltrust.common.Operators.{?, in, |>}
 import scalafx.Includes.*
-import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableRowDelegate}
+import org.itsadigitaltrust.hardwarelogger.delegates.{TabDelegate, TableDelegate, TableEvent}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.TableRowViewModel
 import javafx.beans.value
@@ -19,19 +19,23 @@ import org.itsadigitaltrust.hardwarelogger.viewmodels.BaseViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.views.View
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
+
 import scala.reflect.ClassTag
 
 
-private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using rowDelegate: Option[TableRowDelegate[R]]) extends jfxsc.TableRow[R]:
+private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using rowDelegate: Option[TableDelegate[R]]) extends jfxsc.TableRow[R]:
+
+
 
 
 
 
   private val onMouseButtonEventHandler = (e: jfxsi.MouseEvent) =>
-    if e.getClickCount == 2 then
-      rowDelegate.map: r =>
-        val item1 = getItem
-        r.onRowDoubleClicked(e.getButton, Option(item1))
+    val times = e.getClickCount
+    val button = e.getButton
+    rowDelegate.map: r =>
+      val item1 = getItem
+      r.onRowClicked(TableEvent.RowClickedEvent(item1.?, button, times))
 
   setOnMouseClicked( event => onMouseButtonEventHandler(event))
 
@@ -48,13 +52,8 @@ private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using
     if empty || item == null then
       setGraphic(null)
     else if !empty && item != null && rowDelegate.isDefined then
-      rowDelegate.get.onUpdateItem(Option(item), this)
+      rowDelegate.get.onUpdateItem(TableEvent.UpdateItemEvent(Option(item), getStyleClass))
   end updateItem
-
-  setOnMouseClicked: event =>
-    if event.getClickCount == 2 then
-      if rowDelegate.isDefined then
-        rowDelegate.get.onRowDoubleClicked(event.getButton, Option(getItem))
 
 
 
@@ -68,8 +67,6 @@ private class TableTabRow[R <: Object](val showHandCursorOnHover: Boolean)(using
     
   end updateSelected
 
-
-  addEventFilter[javafx.scene.input.KeyEvent](javafx.scene.input.KeyEvent.KEY_RELEASED, e => rowDelegate.map(_.onRowKeyboardKeyReleased(e, Option(getItem))))
 
 end TableTabRow
 
@@ -88,6 +85,10 @@ abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[
 
   items() = viewModel.rows
 
+  rowFactory = _ => new TableTabRow[RowViewModel](true)(using viewModel.delegate)
+
+  viewModel.delegate.foreach: delegate =>
+    selectionModel().cellSelectionEnabledProperty <== delegate.cellSelectionEnabled
   /**
    * Generates a TableColumn with proper ScalaFX Observable bounds.
    *
@@ -115,6 +116,7 @@ abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[
    */
   protected def createAndAddColumn[P](name: String, minimumWidth: Double = 50D )(f: RowViewModel => ObservableValue[P, ?]): TabTableColumn[P] =
     val column = new TabTableColumn[P]():
+
       text = name
       minWidth = minimumWidth
       cellValueFactory = cellData =>
@@ -123,6 +125,18 @@ abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[
       delegate.setReorderable(reorderableColumns)
     columns += column
     column
+
+  end createAndAddColumn
+
+  def getSelectedRowItem: Option[RowViewModel] =
+    if selectionModel().isCellSelectionEnabled then
+      selectionModel().getSelectedCells.headOption.map(_.getFirst.row).map(items().get(_))
+    else
+      selectionModel().getSelectedItem.?
+  end getSelectedRowItem
+
+  onKeyReleased = e =>
+    viewModel.delegate.map(_.onRowKeyboardKeyReleased(TableEvent.KeyPressedEvent(getSelectedRowItem, e.getCode.getName)))
 
   //  selectionModel.apply().selectedItem.onChange: (op, newValue, oldValue) =>
 //    onValidRowDelegate(_.foreach(_.onSelected(selectionModel.apply().getSelectedItem |> Option[T])))

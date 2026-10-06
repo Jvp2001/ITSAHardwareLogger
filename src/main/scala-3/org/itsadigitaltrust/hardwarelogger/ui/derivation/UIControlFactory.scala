@@ -109,7 +109,7 @@ object UIControlFactory:
       DeferredField(
         controlBuilder = () =>
           if isReadOnly then
-            Label(initialValue)
+          Label(initialValue)
           else
             new TextField:
               text <==> localProp

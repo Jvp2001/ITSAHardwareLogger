@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.MenuManagerService
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.models.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
@@ -12,7 +13,7 @@ import org.itsadigitaltrust.hardwarelogger.views.View
 import scala.jdk.javaapi.CollectionConverters
 
 
-final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService)(using viewModel: MemoryTabViewModel = new MemoryTabViewModel) extends VBox, View[MemoryTabViewModel](using viewModel):
+final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService, menuManagerService: MenuManagerService)(using viewModel: MemoryTabViewModel = new MemoryTabViewModel) extends VBox, View[MemoryTabViewModel](using viewModel):
 
   private val totalMemLabel = new Label:
     text = "Total Memory"

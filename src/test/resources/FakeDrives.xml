@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="ISO-8859-2"?>
+<Hard_Disk_Sentinel>
+    <General_Information>
+        <Application_Information>
+            <Installed_version>Hard Disk Sentinel 0.20c-x64</Installed_version>
+            <Current_Date_And_Time>6-10-26 08:45:11</Current_Date_And_Time>
+            <Report_Creation_Time>0.192 s</Report_Creation_Time>
+        </Application_Information>
+        <Computer_Information>
+            <Computer_Name>itsa</Computer_Name>
+            <MAC_Address>20:2b:20:be:9c:a3</MAC_Address>
+        </Computer_Information>
+        <System_Information>
+            <OS_Version>Linux : 7.2.6-1-cachyos (#1 SMP PREEMPT_DYNAMIC Thu, 17 Sep 2026 10:26:35 +0000)</OS_Version>
+            <Process_ID>2289485</Process_ID>
+            <Uptime>267368 sec (3 days, 2 hours, 16 min, 8 sec)</Uptime>
+        </System_Information>
+    </General_Information>
+    <Physical_Disk_Information_Disk_0>
+        <Hard_Disk_Summary>
+            <Hard_Disk_Number>0</Hard_Disk_Number>
+            <Hard_Disk_Device>/dev/nvme0</Hard_Disk_Device>
+            <Interface>NVMe</Interface>
+            <Hard_Disk_Model_ID>SAMSUNG MZVLQ256HBJD-00BH</Hard_Disk_Model_ID>
+            <Firmware_Revision>HPS1NFAV</Firmware_Revision>
+            <Hard_Disk_Serial_Number>S672NX1T469189</Hard_Disk_Serial_Number>
+            <Total_Size>244198 MB</Total_Size>
+            <Current_Temperature>42 �C (108 �F)</Current_Temperature>
+            <Maximum_temperature_during_entire_lifespan>42 �C (108 �F)</Maximum_temperature_during_entire_lifespan>
+            <Power_on_time>39 days, 17 hours</Power_on_time>
+            <Estimated_remaining_lifetime>more than 1000 days</Estimated_remaining_lifetime>
+            <Lifetime_writes>6.94 TB</Lifetime_writes>
+            <Health>98 %</Health>
+            <Performance>100 %</Performance>
+            <Description>The status of the solid state disk is PERFECT. Problematic or weak sectors were not found.  The health is determined by SSD specific S.M.A.R.T. attribute(s):  Available Spare (Percent), Percentage Used</Description>
+            <Tip>No actions needed.</Tip>
+        </Hard_Disk_Summary>
+        <Properties>
+            <NVMe_Standard_Version>1.4</NVMe_Standard_Version>
+            <PCI_Vendor_ID_VID>0x144D (Samsung)</PCI_Vendor_ID_VID>
+            <PCI_Subsystem_Vendor_ID_SSVID>0x144D (Samsung)</PCI_Subsystem_Vendor_ID_SSVID>
+            <IEEE_OUI_Identifier>38-25-00</IEEE_OUI_Identifier>
+            <Recommended_Arbitration_Burst_RAB>2</Recommended_Arbitration_Burst_RAB>
+            <Multi_Interface_Capabilities>0</Multi_Interface_Capabilities>
+            <Maximum_Data_Transfer_Size>512 (9)</Maximum_Data_Transfer_Size>
+            <Abort_Command_Limit>8</Abort_Command_Limit>
+            <Asynchronous_Event_Request_Limit>8</Asynchronous_Event_Request_Limit>
+            <Number_FW_Slots_Support>3</Number_FW_Slots_Support>
+            <Maximum_Error_Log_Page_Entries>64</Maximum_Error_Log_Page_Entries>
+            <Total_Number_Of_Power_States>5</Total_Number_Of_Power_States>
+            <Admin_Vendor_Specific_CMD_Format>1</Admin_Vendor_Specific_CMD_Format>
+            <Submission_Queue_Entry_Size>Max: 64, Min: 64</Submission_Queue_Entry_Size>
+            <Completion_Queue_Entry_Size>Max: 16, Min: 16</Completion_Queue_Entry_Size>
+            <Number_of_Namespaces>1</Number_of_Namespaces>
+            <Stripe_Size>0</Stripe_Size>
+            <Maximum_Power_mW>5360</Maximum_Power_mW>
+        </Properties>
+        <NVMe_Features>
+            <Doorbell_Buffer_Config>Not supported [0]</Doorbell_Buffer_Config>
+            <Virtualization_Management>Not supported [0]</Virtualization_Management>
+            <NVMe_MI_Send_Receive>Not supported [0]</NVMe_MI_Send_Receive>
+            <Directives>Not supported [0]</Directives>
+            <Device_Self_test>Supported [1]</Device_Self_test>
+            <Extended_Self_test_Estimated_Time>35 minutes</Extended_Self_test_Estimated_Time>
+            <Only_One_Device_Self_test>No</Only_One_Device_Self_test>
+            <Namespace_Management>Not supported [0]</Namespace_Management>
+            <Firmware_Activate_Download>Supported [1]</Firmware_Activate_Download>
+            <Format_NVM>Supported [1]</Format_NVM>
+            <Security_Send_Receive>Supported [1]</Security_Send_Receive>
+            <Firmware_Activation_Without_Reset>Supported [1]</Firmware_Activation_Without_Reset>
+            <First_Firmware_Slot_Read_Only>No</First_Firmware_Slot_Read_Only>
+            <Command_Effects_Log_Page>Supported [1]</Command_Effects_Log_Page>
+            <SMART_Information_Per_Namespace>Supported [1]</SMART_Information_Per_Namespace>
+            <Reservations>Not supported [0]</Reservations>
+            <Save_Select_Fields>Supported [1]</Save_Select_Fields>
+            <Write_Zeroes>Supported [1]</Write_Zeroes>
+            <Dataset_Management_Command>Supported [1]</Dataset_Management_Command>
+            <Write_Uncorrectable_Command>Supported [1]</Write_Uncorrectable_Command>
+            <Compare_Command>Supported [1]</Compare_Command>
+            <Compare_and_Write_Fused_Operation>Not supported [0]</Compare_and_Write_Fused_Operation>
+            <Cryptographic_Erase>Not supported [0]</Cryptographic_Erase>
+            <Secure_Erase_All_Namespaces>Not supported [0]</Secure_Erase_All_Namespaces>
+            <Format_All_Namespaces>Not supported [0]</Format_All_Namespaces>
+            <Volatile_Write_Cache_Present>Supported [1]</Volatile_Write_Cache_Present>
+            <Autonomous_Power_State_Transitions>Supported [1]</Autonomous_Power_State_Transitions>
+            <Atomic_Compare_And_Write_Unit>Not supported [0]</Atomic_Compare_And_Write_Unit>
+            <Scatter_Gather_List_SGL>Not supported [0]</Scatter_Gather_List_SGL>
+            <Host_Controlled_Thermal_Management>Supported [1]</Host_Controlled_Thermal_Management>
+            <Thermal_Management_Temperature_1>Unknown</Thermal_Management_Temperature_1>
+            <Thermal_Management_Temperature_2>Unknown</Thermal_Management_Temperature_2>
+            <Warning_Composite_Temperature_Threshold>354 �K (81 �C)</Warning_Composite_Temperature_Threshold>
+            <Critical_Composite_Temperature_Threshold>358 �K (85 �C)</Critical_Composite_Temperature_Threshold>
+            <Sanitize_Overwrite>Not supported [0]</Sanitize_Overwrite>
+            <Sanitize_Block_Erase>Supported [1]</Sanitize_Block_Erase>
+            <Sanitize_Crypto_Erase>Not supported [0]</Sanitize_Crypto_Erase>
+            <Sanitize_Status>Never sanitized [0]</Sanitize_Status>
+        </NVMe_Features>
+        <NVMe_Namespace_Information>
+            <NS_1_Total_Sectors>500118192</NS_1_Total_Sectors>
+            <NS_1_Sector_Size>512 bytes</NS_1_Sector_Size>
+            <NS_1_Active_LBA_Format_Index>0</NS_1_Active_LBA_Format_Index>
+            <NS_1_LBA_Formats_Supported>2</NS_1_LBA_Formats_Supported>
+            <NS_1_LBA_Format_List_Performance>512 bytes (Best), 4096 bytes (Best)</NS_1_LBA_Format_List_Performance>
+        </NVMe_Namespace_Information>
+        <Disk_Information>
+            <Disk_Information></Disk_Information>
+            <Form_Factor>M.2 2280</Form_Factor>
+            <Capacity>256 GB (256 x 1,000,000,000 bytes)</Capacity>
+            <SSD_Controller>Samsung</SSD_Controller>
+            <Disk_Interface>PCI-Express x4 (3.0)</Disk_Interface>
+            <Device_Type>Samsung NAND</Device_Type>
+        </Disk_Information>
+        <S.M.A.R.T.>
+            <Attribute Name="Critical Warning" Threshold="" Value="0" />
+            <Attribute Name="Composite Temperature (Kelvin)" Threshold="" Value="315" />
+            <Attribute Name="Available Spare (Percent)" Threshold="" Value="100" />
+            <Attribute Name="Available Spare Threshold" Threshold="" Value="5" />
+            <Attribute Name="Percentage Used" Threshold="" Value="2" />
+            <Attribute Name="Data Units Read (512000 Bytes)" Threshold="" Value="53,889,231" />
+            <Attribute Name="Data Units Written (512000 Bytes)" Threshold="" Value="14,909,619" />
+            <Attribute Name="Host Read Commands" Threshold="" Value="723,713,175" />
+            <Attribute Name="Host Write Commands" Threshold="" Value="255,612,514" />
+            <Attribute Name="Controller Busy Time (minutes)" Threshold="" Value="2,656" />
+            <Attribute Name="Power Cycles" Threshold="" Value="408" />
+            <Attribute Name="Power On Hours" Threshold="" Value="953" />
+            <Attribute Name="Unsafe Shutdowns" Threshold="" Value="63" />
+            <Attribute Name="Media and Data Integrity Errors" Threshold="" Value="0" />
+            <Attribute Name="Number of Error Information Log Entries" Threshold="" Value="0" />
+            <Attribute Name="Warning Composite Temperature Time (minutes)" Threshold="" Value="507" />
+            <Attribute Name="Critical Composite Temperature Time (minutes)" Threshold="" Value="0" />
+            <Attribute Name="Temperature Sensor 1" Threshold="" Value="315" />
+        </S.M.A.R.T.>
+    </Physical_Disk_Information_Disk_0>
+    <Partition_Information>
+        <Partition Drive="/" Total_Space="240,100 MB" Free_Space="200,020 MB" Free_Space_Percent=" 83 %" Disk="/" BlockSize="4096" Files="0" FileSystem="2435016766" />
+    </Partition_Information>
+</Hard_Disk_Sentinel>

@@ -1,21 +1,24 @@
 package org.itsadigitaltrust.hardwarelogger.ui.dialogs
 
+import org.itsadigitaltrust.common.logging.HWLLoggable
+import org.itsadigitaltrust.hardwarelogger.core.UIAssetLoader.stylesheet
 import scalafx.scene.text.Text
 import org.itsadigitaltrust.hardwarelogger.models.HardDriveModel
-
 import org.scalafx.extras.generic_pane.GenericDialogFX
 import scalafx.scene.control.Label
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 
-class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDialogFX(s"${model.serial}'s Information"):
+class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDialogFX(s"${model.serial}'s Information"), HWLLoggable:
   private var gridPane: Option[GridPane] = None
   private val descriptionContainer =  new StackPane:
     private val container = new VBox(20):
+
       prefWidth = 400
       prefHeight = 150
       private def addHDSentinelText(text: String): Label =
         val label = new Label(text):
           styleClass ++= List("hdsentinel-text", "value-label")
+          style = "-fx-text-fill: #000000;"
           wrapText = true
         children += label
         label
@@ -36,7 +39,7 @@ class HardDriveExtraInformationDialog(model: HardDriveModel) extends GenericDial
     addNode(label, hdSentinelText)
     hdSentinelText
 
-  private final val commonStyleSheet = "org/itsadigitaltrust/hardwarelogger/views/stylesheets/extrainfodialog.css"
+  private final val commonStyleSheet = stylesheet"extrainfodialog.css"
 
 
 

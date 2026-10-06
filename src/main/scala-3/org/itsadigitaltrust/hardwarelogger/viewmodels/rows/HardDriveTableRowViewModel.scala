@@ -1,18 +1,17 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
-import org.itsadigitaltrust.common.Types.*
-import org.itsadigitaltrust.hardwarelogger.models.{HardDriveConnectionType, HardDriveModel}
-import scalafx.beans.property.*
-import org.itsadigitaltrust.common.percent
+import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.types.DataSizeType.*
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
+import org.itsadigitaltrust.hardwarelogger.models.{HardDriveConnectionType, HardDriveModel}
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.ProgramModeChangeNotificationListener
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
+import org.scalafx.extras.generic_pane.GenericDialogFX
+import scalafx.beans.property.*
+import scalafx.scene.control.TextArea
 
-import java.lang
 
-
-final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using HardwareGrabberService) extends TableRowViewModel[HardDriveModel](_model):
+final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[HardDriveModel](_model):
 
 
   def healthProperty: StringProperty =

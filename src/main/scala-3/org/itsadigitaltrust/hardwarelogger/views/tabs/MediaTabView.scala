@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.MenuManagerService
 import org.itsadigitaltrust.hardwarelogger.models.*
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.*
@@ -26,7 +27,7 @@ private[views] final class MediaTabTableView private[tabs](using mediaTabViewMod
     cellValue.handleProperty
 end MediaTabTableView
 
-class MediaTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService)(using viewModel: MediaTabViewModel = new MediaTabViewModel) extends VBox with TabDelegate with View:
+class MediaTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, menuManagerService: MenuManagerService)(using viewModel: MediaTabViewModel = new MediaTabViewModel) extends VBox with View:
   
   private val tableView = new MediaTabTableView(using viewModel)
   

@@ -3,8 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.views.tabs
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
 import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
 import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.GeneralInfoTableRowViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{GeneralInfoTabViewModel, TabTableViewModel}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.TabTableViewModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.services.database.HLDatabaseService
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState

@@ -90,7 +90,6 @@ ThisBuild / assemblyMergeStrategy := {
 
 
 // for the log viewer based dependencies
-resolvers += "SciJava Public" at "https://maven.scijava.org/content/repositories/public/"
 
 
 val javafxVersion = "25.0.3"
@@ -109,16 +108,13 @@ lazy val scalaFXDeps = Seq(
 )
 
 lazy val atlantaFX = Seq(
-  "io.github.mkpaz" % "atlantafx-base" % "2.1.0"
-)
-lazy val logViewer = Seq(
-  // Source: https://mvnrepository.com/artifact/io.github.qupath/logviewer-ui-main
-  "io.github.qupath" % "logviewer-ui-main" % "0.3.0",
-  "io.github.qupath" % "logviewer-logging-logback" % "0.2.0",
+  "io.github.mkpaz" % "atlantafx-base" % "3.0.0",
+  "org.kordamp.ikonli" % "ikonli-javafx" % "12.4.0",
+  "org.kordamp.ikonli" % "ikonli-materialdesign2-pack" % "12.4.0"
 )
 
 
-lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ atlantaFX ++ logViewer)
+lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ atlantaFX)
   .map(_ withJavadoc() withSources())
 
 lazy val root = (project in file("."))
@@ -142,8 +138,16 @@ lazy val root = (project in file("."))
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
     scalacOptions += "-experimental"
 
-  ).dependsOn(common, backend, hdsentinelreader, issueReporter)
+  ).dependsOn(common, backend, hdsentinelreader, issueReporter, logViewer)
 
+
+lazy val logViewer = (project in file("LogViewer"))
+  .settings(
+    name := "LogViewer",
+    scalaVersion := "3.9.0",
+    resolvers += "SciJava Public" at "https://maven.scijava.org/content/repositories/public/",
+    libraryDependencies ++= uiDependencies ++ Seq(  "io.github.qupath" % "logviewer-logging-logback" % "0.2.0").map(_ withSources() withJavadoc())
+  ).dependsOn(common, issueReporter)
 
 lazy val common = (project in file("Common"))
   .settings(
@@ -159,12 +163,11 @@ lazy val loggingDeps = Seq(
 lazy val commonDependencies = Seq(
   "org.apache.commons" % "commons-text" % "1.15.0",
   //  "org.checkerframework" % "checker" % "3.54.0",
-  "com.softwaremill.ox" %% "core" % "1.0.7",
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.2",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.2",
+  "com.softwaremill.ox" %% "core" % "1.0.8",
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.3",
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.3.1",
   "org.scala-lang.modules" %% "scala-xml" % "2.5.0",
   "com.somainer" %% "scala3-nameof" % "0.0.1",
-  "com.github.pureconfig" %% "pureconfig-core" % "0.17.8"
 
 ) ++ loggingDeps.map(_ withJavadoc() withSources())
 
@@ -173,8 +176,8 @@ lazy val hdsentinelreader = (project in file("HDSentinelReader")).
     name := "HDSentinelReader",
 
     libraryDependencies ++= Seq(
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.2",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.2",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.3",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.3.1",
       "org.scala-lang.modules" %% "scala-xml" % "2.5.0",
     ).map(_ withJavadoc() withSources()),
     scalacOptions += "-experimental"

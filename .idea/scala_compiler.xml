@@ -7,7 +7,7 @@
     <option name="debuggingInfoLevel" value="Notailcalls" />
     <option name="incrementalityType" value="IDEA" />
     <option name="separateProdTestSources" value="true" />
-    <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.IssueReporter,ITSAHardwareLogger.itsaLogger,ITSAHardwareLogger.itsaLoggerFX,ITSAHardwareLogger.itsaLoggerFX~1,ITSAHardwareLogger.itsaLogger~1,itsahardwarelogger_7881,itsahardwarelogger_7881.main,itsahardwarelogger_7881.test" />
+    <profile name="sbt 1" modules="ITSAHardwareLogger,ITSAHardwareLogger.Backend,ITSAHardwareLogger.Common,ITSAHardwareLogger.HDSentinelReader,ITSAHardwareLogger.HardwareLoggerLogView,ITSAHardwareLogger.HardwareLoggerLogView~1,ITSAHardwareLogger.IssueReporter,ITSAHardwareLogger.LogViewer,ITSAHardwareLogger.itsaLogger,ITSAHardwareLogger.itsaLoggerFX,ITSAHardwareLogger.itsaLoggerFX~1,ITSAHardwareLogger.itsaLogger~1,itsahardwarelogger_7881,itsahardwarelogger_7881.main,itsahardwarelogger_7881.test" />
     <profile name="sbt 10" modules="ITSAHardwareLogger.Backend.main">
       <parameters>
         <parameter value="-java-output-version" />
@@ -99,6 +99,96 @@
         <parameter value="$PROJECT_DIR$/IssueReporter/target/scala-3.9.0/test-meta" />
       </parameters>
     </profile>
+    <profile name="sbt 15" modules="ITSAHardwareLogger.HardwareLoggerLogView.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="25" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/LogView/target/scala-3.9.0/test-meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 16" modules="ITSAHardwareLogger.HardwareLoggerLogView.main">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="25" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/LogView/target/scala-3.9.0/meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 17" modules="ITSAHardwareLogger.HardwareLoggerLogView~1.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="25" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/LogViewe0r/target/scala-3.9.0/test-meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 18" modules="ITSAHardwareLogger.HardwareLoggerLogView~1.main">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="25" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/LogViewe0r/target/scala-3.9.0/meta" />
+      </parameters>
+    </profile>
+    <profile name="sbt 19" modules="ITSAHardwareLogger.LogViewer.test">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="25" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/LogViewer/target/scala-3.9.0/test-meta" />
+      </parameters>
+    </profile>
     <profile name="sbt 2" modules="ITSAHardwareLogger.HDSentinelReader.main~1,ITSAHardwareLogger.HDSentinelReader.test~1,ITSAHardwareLogger.main~1,ITSAHardwareLogger.test~1">
       <parameters>
         <parameter value="-java-output-version" />
@@ -109,6 +199,24 @@
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
         <parameter value="-experimental" />
+      </parameters>
+    </profile>
+    <profile name="sbt 20" modules="ITSAHardwareLogger.LogViewer.main">
+      <parameters>
+        <parameter value="-java-output-version" />
+        <parameter value="25" />
+        <parameter value="-groups" />
+        <parameter value="-Xwiki-syntax" />
+        <parameter value="-experimental" />
+        <parameter value="-explain-cyclic" />
+        <parameter value="-preview" />
+        <parameter value="--Yrelaxed-lambdas" />
+        <parameter value="--Ydebug-cyclic" />
+        <parameter value="--explain-cyclic" />
+        <parameter value="-Xno-enrich-error-messages" />
+        <parameter value="-Xsemanticdb" />
+        <parameter value="-semanticdb-target" />
+        <parameter value="$PROJECT_DIR$/LogViewer/target/scala-3.9.0/meta" />
       </parameters>
     </profile>
     <profile name="sbt 3" modules="ITSAHardwareLogger.Backend.main~1,ITSAHardwareLogger.Backend.test~1,ITSAHardwareLogger.Common.main~1,ITSAHardwareLogger.Common.test~1,ITSAHardwareLogger.IssueReporter.main~1,ITSAHardwareLogger.IssueReporter.test~1">

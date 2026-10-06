@@ -1,9 +1,9 @@
 package org.itsadigitaltrust.hardwarelogger.ui.dialogs
 
-import org.scalafx.extras.generic_pane.GenericDialogFX
+import org.scalafx.extras.generic_pane.{GenericDialogFX, GenericPaneBase}
 import org.itsadigitaltrust.hardwarelogger.ui.*
-
-import scalafx.scene.control.Label
+import scalafx.beans.property.StringProperty
+import scalafx.scene.control.{Label, TextArea}
 trait GenericDialogFXExtras:
   this: GenericDialogFX =>
 
@@ -16,5 +16,6 @@ trait GenericDialogFXExtras:
     addNode(label, new Label(text):
       minWidth = textMinWidth
     )
-
+    
+  
 end GenericDialogFXExtras

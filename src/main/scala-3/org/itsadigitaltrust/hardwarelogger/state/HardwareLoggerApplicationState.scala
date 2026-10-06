@@ -1,35 +1,22 @@
 package org.itsadigitaltrust.hardwarelogger.state
 
-import org.itsadigitaltrust.common.Operators.{?, ??, toOption, |>}
+import org.itsadigitaltrust.common.Operators.{?, ??, |>}
 import org.itsadigitaltrust.common.logging.HWLLoggable
-import org.itsadigitaltrust.common.processes.tlp.TlpStat
-import org.itsadigitaltrust.common.{forkJoin, forkUserJoin, orThrowOption}
-import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase
-import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
-import org.itsadigitaltrust.hardwarelogger.models.*
-import org.itsadigitaltrust.hardwarelogger.services.OshiHardwareGrabberApplicationService.HardwareGrabberException
-import org.itsadigitaltrust.hardwarelogger.services.database.mappers.HLModelToBackendMappers
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, PerformBackendValidationListener, RequiresGlobalValidationContext}
-import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
-import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HLDatabaseServiceException, HardwareGrabberService}
-import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
-import org.itsadigitaltrust.hardwarelogger.tasks.HardwareLoggerSimpleTask
-import org.itsadigitaltrust.hardwarelogger.core.DataTypes.*
-import org.scalafx.extras
-import org.scalafx.extras.BusyWorker.SimpleTask
-import ox.Ox
-import ox.either.{catching, fail, ok, orThrow}
-import scalafx.application.Platform
-
-import scala.::
-import scala.languageFeature.implicitConversions
-import scala.Conversion.into
-import scala.concurrent.duration.DurationInt
-import scala.math.Fractional.Implicits.infixFractionalOps
-import scala.math.Integral.Implicits.infixIntegralOps
-import scala.math.Numeric.Implicits.infixNumericOps
 import org.itsadigitaltrust.common.types.*
 import org.itsadigitaltrust.hardwarelogger.core.BuildInfo
+import org.itsadigitaltrust.hardwarelogger.core.DataTypes.*
+import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
+import org.itsadigitaltrust.hardwarelogger.models.*
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, RequiresGlobalValidationContext}
+import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationContext
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
+import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
+import org.scalafx.extras.BusyWorker.SimpleTask
+import ox.Ox
+import ox.either.ok
+import scalafx.application.Platform
+
+import scala.languageFeature.implicitConversions
 
 private[state] type Data = HardwareLoggerSharedData
 
@@ -38,54 +25,67 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
   private val globalValidationContext: GlobalValidationContext[? <: HLModel] = GlobalValidationContext.globalValidationContext
 
   def getData: Data = data
+
   def generalInfo: Option[Seq[GeneralInfoModel]] = data.info
+
   def memory: Option[Seq[MemoryModel]] = data.memory
+
   def hardDrives: Option[Seq[HardDriveModel]] = data.drives
+
   def media: Option[Seq[MediaModel]] = data.media
+
   def processors: Option[Seq[ProcessorModel]] = data.processors
+
   def itsaID: Option[String] = data.itsaID
+
   def oldItsaID: Option[String] = data.oldItsaID
+
   def battery: Option[Seq[BatteryStatusModel]] = data.battery
 
+
+  def addDrives(hardDriveModels: HardDriveModel*): Unit = data = data.copy(drives = (data.drives ?? Seq()).concat(hardDriveModels).?)
   // ==========================================
   // Extracted Component Reload Options (Thread-Safe)
   // ==========================================
 
-  // This is executed last (as it depends on everything else to be loaded)
+  /**
+   * This is executed last (as it depends on everything else to be loaded)
+   */
   private def reloadGeneralInfo()(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)(using Ox): Either[Throwable, Seq[GeneralInfoModel]] =
     ox.either:
       val option: Seq[GeneralInfoModel] = hardwareGrabberService.loadGeneralInfo().ok()
-        val updatedOption =
-          option.headOption.map: info =>
-            val issues: Seq[GeneralDriveStatus] =
-              val drives = hardDrives ?? Seq()
-              drives.collect:
-                case drive if !drive.inGoodHealth => GeneralDriveStatus.BadHealth
-                case drive if databaseService.findBySerialNumber[HardDriveModel](drive.itsaID).isLeft => GeneralDriveStatus.NotLogged
-                case _ => GeneralDriveStatus.NoIssues
-              .distinct
-            end issues
-            val mem = memory
-            val versionID = s"${info.versionID} ${BuildInfo.version.toLowerCase.replaceAll("-snapshot", " ")}"
-            info.copy(
-              versionID = versionID,
-              batteryHealth = battery.map(_.head).map(_.health).getOrElse(BatteryHealth(0.0)),
-              amountOfMemory = mem.map(_.toTotalGBString) ?? "0GB",
-              numberOfDrives = hardDrives.map(_.size) ?? 0,
-              anyDriveIssues = issues,
-              amountOfStorage =  hardDrives.map(_.map(_.size).toTotalGBString) ?? "0GB",
-              itsaID = itsaID,
-              processorDescription = processors.map(_.head).map(_.longDescription)?? "")
-        end updatedOption
-        val result =
-          if updatedOption.isDefined then
-            Seq(updatedOption.get).?
-          else
-            Seq.empty.?
-          end if
-        end result
-        data = data.copy(info = result)
-        result ?? Seq()
+      val updatedOption =
+        option.headOption.map: info =>
+          val issues: Seq[GeneralDriveStatus] =
+            val drives = hardDrives ?? Seq()
+            drives.collect:
+              case drive if !drive.inGoodHealth => GeneralDriveStatus.BadHealth
+              case drive if databaseService.findBySerialNumber[HardDriveModel](drive.itsaID).isLeft => GeneralDriveStatus.NotLogged
+              case _ => GeneralDriveStatus.NoIssues
+            .distinct
+          end issues
+          val mem = memory
+          val versionID = s"${info.versionID} ${BuildInfo.version.toLowerCase.replaceAll("-snapshot", " ")}"
+          info.copy(
+            model = info.model.split("\\(").headOption.getOrElse(info.model),
+            versionID = versionID,
+            batteryHealth = battery.map(_.head).map(_.health).getOrElse(BatteryHealth(0.0)),
+            amountOfMemory = mem.map(_.toTotalGiBString.replace("GiB", "GB")) ?? "0GB",
+            numberOfDrives = hardDrives.map(_.size) ?? 0,
+            anyDriveIssues = issues,
+            amountOfStorage = hardDrives.map(_.map(_.size).toTotalGBString) ?? "0GB",
+            itsaID = itsaID,
+            chipType = processors.map(_.head).map(_.name) ?? "")
+      end updatedOption
+      val result =
+        if updatedOption.isDefined then
+          Seq(updatedOption.get).?
+        else
+          Seq.empty.?
+        end if
+      end result
+      data = data.copy(info = result)
+      result ?? Seq()
   end reloadGeneralInfo
 
 
@@ -95,7 +95,7 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
         .flatMap(_.headOption)
         .flatMap: info =>
           databaseService.findBySerialNumber[GeneralInfoModel](info.serial).toOption.flatMap(_.itsaID)
-          .flatMap(_.split("-E").headOption)
+            .flatMap(_.split("-E").headOption)
       NotificationCentre.sendItsaIDChangedNotification(id ?? "")
       id
   end checkItsaID
@@ -103,7 +103,7 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
 
   private def reloadMemory()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Seq[MemoryModel]] =
     ox.either:
-      val memoryModel: Seq[MemoryModel] =hardwareGrabberService.loadMemory().ok()
+      val memoryModel: Seq[MemoryModel] = hardwareGrabberService.loadMemory().ok()
       data = data.copy(memory = memoryModel.?)
       memoryModel
 
@@ -112,17 +112,17 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
       val result: Option[Seq[HardDriveModel]] = hardwareGrabberService.loadHardDrives().?
       data = data.copy(drives = result)
       result ?? Seq()
+
   private def reloadProcessors()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Seq[ProcessorModel]] =
     ox.either:
       val processors: Seq[ProcessorModel] = hardwareGrabberService.loadProcessors().ok()
-      logger.info(s"Loaded processors $processors")
       data = data.copy(processors = processors.?)
       processors
 
   private def reloadMedia()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Any] =
     ox.either:
       val media: Seq[MediaModel] = hardwareGrabberService.loadMedia().ok()
-        data = data.copy(media = media.?)
+      data = data.copy(media = media.?)
       media
 
   /**
@@ -130,11 +130,11 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
    */
   def reloadBattery()(using hardwareGrabberService: HardwareGrabberService)(using Ox): Either[Throwable, Unit] =
     val batteryResult = hardwareGrabberService.loadBatteryStatus()
-      data = data.copy(battery = batteryResult.?)
-      data.info.map(_.head).foreach: info =>
-        val health = batteryResult.map(_.headOption.map(_.health)).map(_.head).getOrElse(BatteryHealth(0.0))
-        val result = Seq(info.copy(batteryHealth = health))
-        data = data.copy(info = result.?)
+    data = data.copy(battery = batteryResult.?)
+    data.info.map(_.head).foreach: info =>
+      val health = batteryResult.map(_.headOption.map(_.health)).map(_.head).getOrElse(BatteryHealth(0.0))
+      val result = Seq(info.copy(batteryHealth = health))
+      data = data.copy(info = result.?)
     Right(())
 
   // ==========================================
@@ -144,7 +144,7 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
   /**
    * Orchestrates an expensive, comprehensive load pipeline.
    *
-   * @param task UI representation tracking overall task progress.
+   * @param task         UI representation tracking overall task progress.
    * @param currentIndex Initial placement configuration context.
    * @return The updated index tracking progress markers.
    */
@@ -169,7 +169,7 @@ case class HardwareLoggerApplicationState()(using HardwareGrabberService, HLData
         .join()
       end performAsTask
 
-     
+
       performAsTask("Checking for ITSA ID..."):
         checkItsaID()
 

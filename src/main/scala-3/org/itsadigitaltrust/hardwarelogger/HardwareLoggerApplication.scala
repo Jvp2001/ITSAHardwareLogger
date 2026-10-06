@@ -12,6 +12,7 @@ import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.services.ApplicationServicesRegistry
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView
+import org.scalafx.extras
 import org.scalafx.extras.ShowMessage
 import scalafx.Includes.*
 import scalafx.application.Platform.{Preferences, preferences}
@@ -25,13 +26,16 @@ import scala.compiletime.uninitialized
 
 object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, HWLoggerShowMessage, WithThemeSwitching:
 
-  Thread.setDefaultUncaughtExceptionHandler(HardwareLoggerDefaultUncaughtExceptionHandler())
+  private val exceptionHandler = HardwareLoggerDefaultUncaughtExceptionHandler()
+  Thread.setDefaultUncaughtExceptionHandler(exceptionHandler)
 
   private given applicationState: HardwareLoggerApplicationState = new HardwareLoggerApplicationState
 
   private lazy val titleProperty: StringProperty = StringProperty("Hardware Logger")
 
   private var applicationStage: Stage | Null = uninitialized
+
+
 
   override protected lazy val darkAtlantaTheme = new CupertinoDark()
   override protected lazy val lightAtlantaTheme = new CupertinoLight()
@@ -94,6 +98,7 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
         registerScene(scene())
 
       stage = splashStage
+      exceptionHandler.currentStage = Some(splashStage)
       stage.onShown = _ =>
         splashScreen.load()
       stage.show()
@@ -119,9 +124,8 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
         Platform.exit()
 
     end mainStage
-//    mainStage.scene().root.asInstanceOf[HardwareLoggerRootView].viewModel.parentWindow = Some(mainStage)
 
-
+    exceptionHandler.currentStage = Some(mainStage)
     mainStage
 
   end createApplicationStage

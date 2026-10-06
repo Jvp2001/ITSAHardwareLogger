@@ -60,5 +60,12 @@ object HDSentinelReader extends HWLLoggable:
     reader.read(elem)
     reader
 
+  inline def apply[T: ClassTag](xml: String): Either[Throwable, HDSentinelReader] =
+    ox.either.catchAll:
+      val reader = new HDSentinelReader
+      logger.info(s"XML: $xml")
+      reader.read(xml)
+      reader
+
 end HDSentinelReader
 

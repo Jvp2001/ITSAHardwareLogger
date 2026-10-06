@@ -4,6 +4,7 @@ import atlantafx.base.theme.Styles
 import javafx.scene.{control, control as jfxsc}
 import javafx.util.Callback
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.MenuManagerService
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.BatteryStatusModel
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.BatteryStatusTableRowViewModel
@@ -14,7 +15,7 @@ import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
 import scala.jdk.javaapi.CollectionConverters
 
-class BatteryStatusTabView(using HardwareGrabberService, HardwareLoggerApplicationState)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
+class BatteryStatusTabView(using HardwareGrabberService, HardwareLoggerApplicationState, MenuManagerService)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
 
   //  BatteryStatusTableRowViewModel.apply ||>
   //    sharedApplicationData.battery ?? Seq() |>
@@ -26,9 +27,8 @@ class BatteryStatusTabView(using HardwareGrabberService, HardwareLoggerApplicati
 
     override def updateItem(value: Double, empty: Boolean): Unit =
       super.updateItem(value, empty)
-
       val healthStateStyles = Seq(Styles.DANGER, Styles.WARNING, Styles.SUCCESS)
-      styleClass --= healthStateStyles
+      styleClass.removeAll(healthStateStyles*)
 
       if empty then
         setText(null)

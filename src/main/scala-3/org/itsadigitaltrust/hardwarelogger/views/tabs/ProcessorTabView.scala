@@ -2,6 +2,7 @@ package org.itsadigitaltrust.hardwarelogger.views.tabs
 
 import javafx.scene.control
 import org.itsadigitaltrust.common.Operators.{??, |>, ||>}
+import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.MenuManagerService
 import org.itsadigitaltrust.hardwarelogger.models.ProcessorModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.ProcessorTableRowViewModel
 import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{ProcessorTabViewModel, TabTableViewModel}
@@ -15,7 +16,7 @@ import scalafx.scene.control.TableCell
 import scala.jdk.javaapi.CollectionConverters.asJavaCollection
 import scala.reflect.{ClassTag, classTag}
 
-private[views] final class ProcessorTabView(using HardwareGrabberService)(using vm: ProcessorTabViewModel = new ProcessorTabViewModel) extends TabTableView[ProcessorTabViewModel#Model, ProcessorTabViewModel#RowViewModel, ProcessorTabViewModel]:
+private[views] final class ProcessorTabView(using HardwareGrabberService, MenuManagerService)(using vm: ProcessorTabViewModel = new ProcessorTabViewModel) extends TabTableView[ProcessorTabViewModel#Model, ProcessorTabViewModel#RowViewModel, ProcessorTabViewModel]:
 
   private val nameColumn = createAndAddColumn("Chip Type", minimumWidth = ColumnSize.massive): cellValue =>
     cellValue.nameProperty

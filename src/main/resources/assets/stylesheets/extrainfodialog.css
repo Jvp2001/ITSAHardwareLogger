@@ -2,6 +2,8 @@
 .hdsentinel-background
 {
     -fx-background-color: #befdbe;
+    -fx-text-fill: -color-bg-default;
+
 }
 
 .label
