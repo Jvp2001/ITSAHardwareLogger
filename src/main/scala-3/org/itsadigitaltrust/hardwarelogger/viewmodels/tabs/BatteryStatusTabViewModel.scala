@@ -22,7 +22,7 @@ class BatteryStatusTabViewModel(using applicationState: HardwareLoggerApplicatio
   
   service.onSucceeded = _ =>
     reload()
-  
+
 
   service.period = javafx.util.Duration.seconds(2)
   service.restart()

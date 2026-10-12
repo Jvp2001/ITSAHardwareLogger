@@ -43,6 +43,8 @@ object ProgramMode:
   def isInHardDriveMode: Boolean = isHardDriveMode.get
   def mode_=(mode: ProgramMode): Unit =
     currentProgramMode() = mode
+    NotificationCentre.publish(ProgramModeChangedEvent(mode))
+
 
   def mode: ProgramMode =
     currentProgramMode.value.asInstanceOf[ProgramMode]

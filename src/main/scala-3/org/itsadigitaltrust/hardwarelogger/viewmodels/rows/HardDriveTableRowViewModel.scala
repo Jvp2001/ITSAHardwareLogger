@@ -1,10 +1,10 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels.rows
 
-import org.itsadigitaltrust.common.Operators.|>
+import org.itsadigitaltrust.common.Operators.{?, |>}
 import org.itsadigitaltrust.common.types.DataSizeType.*
 import org.itsadigitaltrust.hardwarelogger.models.{HardDriveConnectionType, HardDriveModel}
 import org.itsadigitaltrust.hardwarelogger.services.HardwareGrabberService
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.ProgramModeChangeNotificationListener
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{NotificationCentre, ProgramModeChangeNotificationListener}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.scalafx.extras.generic_pane.GenericDialogFX
 import scalafx.beans.property.*
@@ -13,6 +13,7 @@ import scalafx.scene.control.TextArea
 
 final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using HardwareGrabberService, HardwareLoggerApplicationState) extends TableRowViewModel[HardDriveModel](_model):
 
+  val hasAValidIDProperty: BooleanProperty = BooleanProperty(false)
 
   def healthProperty: StringProperty =
     wrapper.field("Health", _.health.toString, "100%")(StringProperty.apply)
@@ -38,6 +39,7 @@ final case class HardDriveTableRowViewModel(_model: HardDriveModel)(using Hardwa
   def driveTypeProperty: StringProperty =
     wrapper.field("isSSD", _.`type`, "SSD")(StringProperty.apply)
     
-    
-  
 
+  idProperty.onChange: (_, oldValue, newValue) =>
+    summon[HardwareLoggerApplicationState].updateDriveItsaIDBySerial(serialProperty().?, idProperty().?)
+  

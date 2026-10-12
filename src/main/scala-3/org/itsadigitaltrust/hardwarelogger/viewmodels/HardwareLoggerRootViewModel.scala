@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.viewmodels
 
 
+import javafx.beans.value.ObservableBooleanValue
 import javafx.concurrent
 import org.itsadigitaltrust.common.Operators.{??, toOption}
 import org.itsadigitaltrust.common.forkJoin
@@ -9,30 +10,30 @@ import org.itsadigitaltrust.common.processes.tlp.TlpStat
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.models.HLModel
-import org.itsadigitaltrust.hardwarelogger.models.HLModel.GeneralInfoModel
-import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{BackendValidationEvent, NotificationCentre, SaveToDBEvent}
+import org.itsadigitaltrust.hardwarelogger.models.HLModel.{GeneralInfoModel, HardDriveModel}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{BackendValidationEvent, HardDriveIDsChangedEvent, NotificationCentre, ProgramModeChangeNotificationListener, ReloadViewModelsEvent, SaveToDBEvent, SystemEvent}
 import org.itsadigitaltrust.hardwarelogger.services.validation.{GlobalValidationContext, HLDBValidationError, ValidationIssue}
-import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IDParser}
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IDParser, Issue, IssueReporterService}
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.tasks.{HardwareLoggerBusyWorker, HardwareLoggerSimpleTask}
+import org.itsadigitaltrust.hardwarelogger.ui.derivation.UIGeneration
 import org.itsadigitaltrust.hardwarelogger.ui.dialogs.DetailedValidationAlert
 import org.scalafx.extras
 import org.scalafx.extras.ShowMessageLogger
 import ox.OxError
 import ox.either.ok
 import scalafx.application.Platform
+import scalafx.beans.binding.{Bindings, BooleanBinding}
 import scalafx.beans.property.*
 import scalafx.event.ActionEvent
-import scalafx.scene.control.Alert.AlertType
-import scalafx.scene.control.{Alert, ButtonType}
 import scalafx.scene.input.MouseEvent
 import scalafx.stage.Window
 
 import scala.concurrent.duration.DurationInt
 
-final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGrabberService, hardwareIDValidationService: HardwareIDValidationService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState)
-  extends RootViewModel, HWLoggerShowMessage:
+final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGrabberService, hardwareIDValidationService: HardwareIDValidationService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState, issueReporterService: IssueReporterService)
+  extends RootViewModel, HWLoggerShowMessage, ProgramModeChangeNotificationListener:
 
   lazy val identifier: String = NameOf[HardwareLoggerRootViewModel]
   lazy val idValidatorSchedule = new javafx.concurrent.ScheduledService[Unit]:
@@ -47,16 +48,25 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
   val idFieldFocusProperty: BooleanProperty = BooleanProperty(false)
   val validIDProperty: BooleanProperty = BooleanProperty(false)
   val idErrorStringProperty: StringProperty = StringProperty("")
-  val isInNormalMode: BooleanProperty = BooleanProperty(ProgramMode.isInNormalMode)
+  val isInNormalMode: BooleanProperty = ProgramMode.isModeNormal
   val shouldCaretBeAtEnd: BooleanProperty = BooleanProperty(false)
   val idStringProperty: StringProperty = StringProperty("")
 
-  
+  import scalafx.Includes.*
+  private val isAllHardDriveIDsValid: BooleanProperty = BooleanProperty(false)
+  val isSaveButtonEnabled: BooleanProperty = BooleanProperty(false)
+  isSaveButtonEnabled <== validIDProperty && disableNodeWhileTaskRunningProperty
+
   val hasABattery = TlpStat.hasBattery
   private var wasDuplicateIDWarningAlreadyShown = false
-  private var isSaving = false
 
   idStringProperty() = applicationState.itsaID ?? ""
+
+  NotificationCentre.subscribe[ReloadViewModelsEvent.type]: _ =>
+    Platform.runLater:
+      setIDToMatchValueInDB()
+      if !isInNormalMode.value then
+        NotificationCentre.publish(HardDriveIDsChangedEvent)
 
   given sharedData: Option[HardwareLoggerSharedData] = NotificationCentre.getFetchedData
 
@@ -80,22 +90,34 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
     performReload()
   end reload
 
-  private val reloadTask = new HardwareLoggerSimpleTask[Throwable, Unit](1)(using this):
+  override protected def programModeChanged(mode: ProgramMode): Either[Error, Unit] =
+    mode match
+      case "Normal" =>
+        isSaveButtonEnabled.unbind()
+        isSaveButtonEnabled <== validIDProperty && !disableNodeWhileTaskRunningProperty
+      case "HardDrive" =>
+        isSaveButtonEnabled.unbind()
+        isSaveButtonEnabled <== isAllHardDriveIDsValid && !disableNodeWhileTaskRunningProperty
+        NotificationCentre.publish(HardDriveIDsChangedEvent)
+      case _ => ()
+    Right(())
+
+  private final val saveTask =
+      new HardwareLoggerSimpleTask[Throwable, Unit](2)(using this):
+        override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
+          given task: HardwareLoggerSimpleTask[Throwable, Unit] = this
+          Right(performGlobalSave())
+
+        override def onFinished(either: Either[Throwable, Unit]): Unit =
+          taskMessageProperty.unbind()
+          taskMessageProperty() = "Save process completed."
+
+  private final val reloadTask = new HardwareLoggerSimpleTask[Throwable, Unit](1)(using this):
     override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
       this.message() = "Reloading data..."
       NotificationCentre.startReload(this)
       this.incrementProgress()
       Right(())
-
-    override def onFinished(either: Either[Throwable, Unit]): Unit =
-      if isSaving && either.isRight then
-        isSaving = false
-        Platform.runLater:
-          new Alert(AlertType.Information):
-            title = "Save Successful"
-            headerText = "Data saved successfully!"
-            contentText = "The data has been saved to the database successfully."
-            showAndWait()
 
   end reloadTask
 
@@ -112,14 +134,20 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
   end performReload
 
+
   def setIDToMatchValueInDB(): Unit =
-    ox.either:
-      if isInNormalMode.value then
-        idStringProperty.value = applicationState.generalInfo.map(_.head).ok().itsaID ?? ""
-      else
-        idStringProperty.value = applicationState.hardDrives.ok().headOption.ok().itsaID ?? ""
-      shouldCaretBeAtEnd.value = idStringProperty.value.nonEmpty
-    .showIfFailed()
+    val loggedComputerID =
+      applicationState.generalInfo.flatMap(_.headOption).flatMap(_.itsaID)
+        .orElse(applicationState.itsaID)
+        .filter(HardDriveModel.hasLoggedItsaID)
+    val hardDriveID =
+      if isInNormalMode.value then None
+      else applicationState.hardDrives.flatMap(_.headOption).flatMap(_.itsaID)
+        .filter(HardDriveModel.hasLoggedItsaID)
+    val matchingID = loggedComputerID.orElse(hardDriveID)
+    matchingID.foreach: id =>
+      idStringProperty.value = id
+      shouldCaretBeAtEnd.value = true
 
   given toOptionConv[T]: Conversion[T, Option[T]] = Option.apply
 
@@ -154,23 +182,19 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
   def switchMode(mode: ProgramMode): Unit =
     ProgramMode.mode = mode
-    isInNormalMode.value = mode == "Normal"
 
   def save(): Unit =
     given context: GlobalValidationContext[? <: HLModel] = GlobalValidationContext.globalValidationContext
 
     NotificationCentre.sendItsaIDChangedNotification(idStringProperty.get())
     // run the save task and wait for result so it actually executes
-    new HardwareLoggerBusyWorker("Saving", None)
-      .doTask[Either[Throwable, Unit]]("Saving data..."):
-        new HardwareLoggerSimpleTask[Throwable, Unit](2)(using this):
-          override def onCall()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]]): Either[Throwable, Unit] =
-            given task: HardwareLoggerSimpleTask[Throwable, Unit] = this
-            Right(performGlobalSave())
 
-          override def onFinished(either: Either[Throwable, Unit]): Unit =
-            taskMessageProperty.unbind()
-            taskMessageProperty() = "Save and reloaded data successfully!"
+    val hasValidID =
+      if isInNormalMode.value then validIDProperty()
+      else isAllHardDriveIDsValid()
+
+    if hasValidID then
+      new HardwareLoggerBusyWorker("Save").doTask("Saving")(saveTask)
 
 
 
@@ -178,14 +202,15 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
 
   private def performGlobalSave()(using context: OxError[Throwable, [X] =>> Either[Throwable, X]])(using task: HardwareLoggerSimpleTask[Throwable, Unit]): Unit =
     NotificationCentre.getGlobalValidationContext.clear()
-    isSaving = true
+    var saveCompleted = false
     given context: GlobalValidationContext[? <: HLModel] = NotificationCentre.getGlobalValidationContext
 
     def performSave(): Unit =
       task.message() = "Saving data to database..."
       ox.forkUserError:
-        ox.either.catchAll:
+        ox.either:
           NotificationCentre.executeSaveToDBEvent()
+          ()
       .join()
       task.incrementProgress()
     end performSave
@@ -202,7 +227,6 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
     val softWarnings = allIssues.filter(_.isSoftWarning)
 
     logger.info(s"Validation issues: ${allIssues.size} hard: ${hardErrors.size} soft: ${softWarnings.size}")
-    var continueToSave = true
     if hardErrors.nonEmpty then
       // show hard validation issues on the FX thread and do NOT proceed with saving
       extras.onFX:
@@ -212,10 +236,13 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
         handleSoftValidationIssues(softWarnings)
       if shouldSave then
         performSave().forkJoin()
+        saveCompleted = true
     else
       performSave().forkJoin()
+      saveCompleted = true
 
-    reloadTask.call().forkJoin()
+    if saveCompleted then
+      reloadTask.call().forkJoin()
 
   end performGlobalSave
 
@@ -240,7 +267,7 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
       if currentID == "" then
         idErrorStringProperty.set("ID cannot be empty!")
         return false
-      val result = hardwareIDValidationService.validate(currentID.strip())
+      val result = hardwareIDValidationService(currentID.strip())
       result match
         case Left(value) =>
           validIDProperty.value = false
@@ -259,8 +286,31 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
     //              _idStringProperty.value = value.toString
 
     validIDProperty.value
+
   end validateID
 
 
-end HardwareLoggerRootViewModel
+  NotificationCentre.subscribe[HardDriveIDsChangedEvent.type]: _ =>
+    applicationState.hardDrives.map: drives =>
+      isAllHardDriveIDsValid() = false
+      if !drives.forall: drive =>
+        HardDriveModel.hasLoggedItsaID(drive.itsaID) &&
+          hardwareIDValidationService(drive.itsaID).isRight
+      then
+        idErrorStringProperty() = "Make sure all hard drives have valid IDs!"
+      else
+        idErrorStringProperty() = ""
+        isAllHardDriveIDsValid() = true
 
+  def reportBug(): Unit =
+    import scalafx.Includes.*
+    import org.itsadigitaltrust.hardwarelogger.ui.derivation.CustomDataTypeSchemaGivens.given
+    val result = UIGeneration.createDialog[Issue.BugReport](Issue.BugReport("Bug Report", ""), "Report Bug").delegate.showAndWait()
+    result.map:
+       case Some(value) =>
+         ox.either:
+          issueReporterService.report(value).left.foreach(error => showError("Error", error))
+       case None => () // Cancelled
+       case _ => showError("Error", "An error occurred whilst reporting the bug!")
+
+end HardwareLoggerRootViewModel

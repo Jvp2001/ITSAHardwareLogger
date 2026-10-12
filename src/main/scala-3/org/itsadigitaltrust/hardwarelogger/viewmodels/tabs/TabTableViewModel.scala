@@ -63,8 +63,7 @@ class TabTableViewModel[M <: HLModel : ClassTag, VM <: TableRowViewModel[M]]
 
 
   override protected def save()(using Ox): Either[Error, Unit] =
-    databaseService.executeFinalSave(models*)
-    Right(())
+    databaseService.executeFinalSave(models*).left.map(hardwareGrabberService.LoadError(_))
 
 
   override def onSelected(tab: Tab): Unit =

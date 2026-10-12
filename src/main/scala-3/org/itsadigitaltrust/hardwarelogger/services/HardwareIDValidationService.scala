@@ -41,7 +41,7 @@ object HardwareIDValidationService:
     override def toString: String =
       this match
         case ParserError(error) => error.toString()
-        case IncorrectCheckDigit(expected, got) => s"Not a valid ID. Check if the ID is correct on the device."
+        case IncorrectCheckDigit(expected, got) => s"Expected check digit $expected, got $got"
         case NoIDProvided => "ID must not be empty!"
 
   given Conversion[IDParser.ParserError, ValidationError] with
@@ -61,7 +61,7 @@ private[services] class SimpleHardwareIDValidationService extends HardwareIDVali
   private final val multiplier = 3
 
   override def validate(input: String): ValidationResult =
-    IDParser(input, ProgramMode.isInHardDriveMode) match
+    IDParser(input)(using hardDriveMode = ProgramMode.isInHardDriveMode) match
         case Right(value) if value.nonEmpty =>
           val userCheckDigit = value.checkDigit.getOrElse("0").toInt
           validateCheckDigit(value, userCheckDigit)

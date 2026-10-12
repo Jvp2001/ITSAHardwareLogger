@@ -15,7 +15,7 @@ import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
 import scala.jdk.javaapi.CollectionConverters
 
-class BatteryStatusTabView(using HardwareGrabberService, HardwareLoggerApplicationState, MenuManagerService)(using vm: BatteryStatusTabViewModel = new BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
+class BatteryStatusTabView(using BatteryStatusTabViewModel) extends TabTableView[BatteryStatusTabViewModel#Model, BatteryStatusTabViewModel#RowViewModel, BatteryStatusTabViewModel]:
 
   //  BatteryStatusTableRowViewModel.apply ||>
   //    sharedApplicationData.battery ?? Seq() |>

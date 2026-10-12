@@ -56,6 +56,10 @@ trait HLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataSource
 
   def findFirstByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[mapper.Out]
 
+  def replaceItsaID[EC <: HLEntityCreatorWithSomeKindOfID](oldItsaID: String, newItsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
+
+  def updateItsaIDBySerial[EC <: HLEntityCreatorWithSomeKindOfID](serial: String, newItsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit]
+
   def findItsaIDBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[String]
 
   def findBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[mapper.Out]
@@ -113,12 +117,9 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
     transact:
       itsaIDRepo match
         case serial: HLRepoWithSerial[EC, mapper.Out] =>
-          val result = serial.findBySerialNumber(serialNumber)
-          if result.isDefined then
-            Right(result.get)
-          else
-            HLDBErrorCode.NoEntriesFound.fail()
-        case _ => HLDBErrorCode.UnknownError("Must be a serial repo to find by serial number!").fail()
+          serial.findBySerialNumber(serialNumber).toRight(HLDBErrorCode.NoEntriesFound)
+        case _ =>
+          Left(HLDBErrorCode.UnknownError("Must be a serial repo to find by serial number!"))
 
   end findBySerialNumber
 
@@ -149,15 +150,12 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
           case Success(value) => value.ok()
 
   override def findItsaIDBySerialNumber[EC <: HLEntityCreatorWithSomeKindOfID](serialNumber: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[String] =
-    transact[String]:
-      repo match
+    transact:
+      itsaIDRepo match
         case serialRepo: HLRepoWithSerial[EC, mapper.Out] =>
-          val result = serialRepo.findItsaIDBySerialNumber(serialNumber)
-          if result.isDefined then
-            Right(result.get)
-          else
-            Left(HLDBErrorCode.NoEntriesFound.fail())
-        case _ => Left(HLDBErrorCode.UnknownError("Must be a serial repo to find itsaID by serial number!"))
+          serialRepo.findItsaIDBySerialNumber(serialNumber).toRight(HLDBErrorCode.NoEntriesFound)
+        case _ =>
+          Left(HLDBErrorCode.UnknownError("Must be a serial repo to find itsaID by serial number!"))
 
   override def insert[EC <: HLEntityCreatorWithSomeKindOfID](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
     transact:
@@ -171,7 +169,7 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
 
   override def findAllByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Vector[mapper.Out]] =
     transact:
-      val result = itsaIDRepo.findAllByIDStartingWith(itsaID)
+      val result = itsaIDRepo.findAllByItsaID(itsaID)
       if result.isEmpty then
         HLDBErrorCode.NoEntriesFound.fail()
       Right(result.filter(_.isDefined).map(_.get))
@@ -180,42 +178,39 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
   override def findFirstByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[mapper.Out] =
     transact:
       itsaIDRepo.findByItsaID(itsaID).toRight(HLDBErrorCode.NoEntriesFound)
+
+  override def replaceItsaID[EC <: HLEntityCreatorWithSomeKindOfID](oldItsaID: String, newItsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
+    transact:
+      itsaIDRepo.replaceIdWith(oldItsaID, newItsaID)(using summon[DbCon])(using itsaIDRepo.table)
+      Right(())
+
+  override def updateItsaIDBySerial[EC <: HLEntityCreatorWithSomeKindOfID](serial: String, newItsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
+    transact:
+      itsaIDRepo match
+        case serialRepo: HLRepoWithSerial[EC, ?] =>
+          serialRepo.replaceItsaIDBySerial(serial, newItsaID)
+          Right(())
+        case _ =>
+          HLDBErrorCode.UnknownError("The selected table does not support serial-number updates.").fail()
   
   override def updateAndInsertAll[EC <: HLEntityCreatorWithSomeKindOfID : UpdateAndInsert as handler](entityCreators: EC*)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
     transact:
       handler.updateAndInsertAll(entityCreators)
 
-  private def insertHelper[EC <: HLEntityCreatorWithSomeKindOfID](entityCreator: EC)(using mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out], dbCon: DbCon): HLDBTransactionResult[Unit] =
-    ox.either:
-      if itsaIDRepo.findByItsaID(entityCreator.getItsaID).isDefined then
-        itsaIDRepo.markRowAsError(entityCreator.getItsaID)
-
-      itsaIDRepo match
-        case serialRepo: HLRepoWithSerial[EC, ?] =>
-          serialRepo.updateItsaIDBySerial(entityCreator)
-        case _ => ()
-  end insertHelper
-
-
-
   override def deleteByItsaID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
     transact:
       itsaIDRepo.deleteByItsaID(itsaID) match
-        case 0 => HLDBErrorCode.NoEntriesFound.fail()
         case _ => Right(())
   end deleteByItsaID
 
   override def deleteByAllSerials[EC <: HLEntityCreatorWithSomeKindOfID](serials: String*)(using mapper: EntityCreatorToEntityMapper[EC], repoFromEntityCreator: RepoFromEntityCreator[EC, mapper.Out]): HLDBTransactionResult[Unit] =
     transact:
-      infoRepo match
+      itsaIDRepo match
         case serialRepo: HLRepoWithSerial[EC, ?] =>
-          val result = serials.map: serial =>
-            serialRepo.deleteBySerial(serial)
-          .sum
-          if result == 0 then
-            HLDBErrorCode.NoEntriesRemoved.fail()
-          else
-            Right(())
+          serials.foreach(serialRepo.deleteBySerial)
+          Right(())
+        case _ =>
+          HLDBErrorCode.UnknownError("The selected table does not support serial-number deletion.").fail()
   end deleteByAllSerials
 
 
@@ -227,4 +222,3 @@ class MySQLHLDatabase(using dataSourceLoader: DataSourceLoaderService[HLSqlDataS
 
 
 end MySQLHLDatabase
-

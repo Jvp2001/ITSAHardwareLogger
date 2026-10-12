@@ -15,6 +15,7 @@ object ConfigFilePath:
   def apply(path: String): ConfigFilePath = path
   def toFile(path: ConfigFilePath): File = new File(path)
 
+  given Conversion[ConfigFilePath, String] = _.toString
   given Conversion[String, ConfigFilePath] = _.toString
   given Conversion[ConfigFilePath, File] = ConfigFilePath.toFile
 object ConfigsManager:
@@ -46,26 +47,27 @@ object ConfigsManager:
     /**
      * Copies a configuration file from the project resources to the external folder.
      *
-     * @param resourcePath Path to resource relative to the resources root (no leading slash)
+     * @param resourcePath Classpath resource name or URL returned by an asset string context
      * @param fileName     Target filename in the external folder
      * @param overwrite    Replace the exsisting file.
      */
     def copyFromResources(resourcePath: into[ConfigFilePath], fileName: into[ConfigFilePath], overwrite: Boolean = false): Try[Path] =
-      val inputStream: InputStream = getClass.getClassLoader.getResourceAsStream(resourcePath.toString)
-
-      if inputStream == null then
-        Failure(new FileNotFoundException(s"Resource file not found: $resourcePath"))
-      else
-        Try:
+      Try:
+        Using.resource(openResource(resourcePath.toString)): is =>
           ensureExternalDirectoryExists()
           val targetPath = externalDirPath.resolve(fileName.toPath)
 
-          Using.resource(inputStream): is =>
-            if overwrite then
-              Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING)
-            else
-              Files.copy(is, targetPath)
-          targetPath
+          if !overwrite && Files.exists(targetPath) then
+            targetPath
+          else
+            try
+              if overwrite then
+                Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING)
+              else
+                Files.copy(is, targetPath)
+              targetPath
+            catch
+              case _: java.nio.file.FileAlreadyExistsException if !overwrite => targetPath
 
     /**
      * Reads the content of a configuration file located in the external folder.
@@ -91,9 +93,32 @@ object ConfigsManager:
         Files.write(targetPath, content.getBytes(StandardCharsets.UTF_8))
         targetPath
 
+    def writeConfigIfMissing(fileName: into[ConfigFilePath], content: String): Try[Path] =
+      Try:
+        ensureExternalDirectoryExists()
+        val targetPath = externalDirPath.resolve(fileName.toPath)
+        try
+          Files.write(
+            targetPath,
+            content.getBytes(StandardCharsets.UTF_8),
+            java.nio.file.StandardOpenOption.CREATE_NEW,
+            java.nio.file.StandardOpenOption.WRITE
+          )
+        catch
+          case _: java.nio.file.FileAlreadyExistsException => ()
+        targetPath
+
     private def ensureExternalDirectoryExists(): Unit =
       if !Files.exists(externalDirPath) then
         Files.createDirectories(externalDirPath)
+
+    private def openResource(resourcePath: String): InputStream =
+      val hasUrlScheme = resourcePath.matches("^[A-Za-z][A-Za-z0-9+.-]*:.*")
+      if hasUrlScheme then
+        java.net.URI.create(resourcePath).toURL.openStream()
+      else
+        Option(getClass.getClassLoader.getResourceAsStream(resourcePath))
+          .getOrElse(throw new FileNotFoundException(s"Resource file not found: $resourcePath"))
 
 
 end ConfigsManager
@@ -102,4 +127,3 @@ extension (sc: StringContext)
   def config(args: Any*): ConfigFilePath =
     val path = sc.s(args*)
     ConfigsManager.resolvePathString(path)
-

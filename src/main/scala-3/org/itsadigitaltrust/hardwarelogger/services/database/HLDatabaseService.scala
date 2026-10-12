@@ -4,7 +4,8 @@ import com.augustnagro.magnum
 import com.augustnagro.magnum.DbTx
 import com.mysql.cj.jdbc.MysqlDataSource
 import com.mysql.cj.jdbc.exceptions.{MySQLQueryInterruptedException, MySQLTimeoutException}
-import org.itsadigitaltrust.common.Operators.??
+import org.itsadigitaltrust.hardwarelogger.backend.entities.{DiskCreator, WipingCreator}
+import org.itsadigitaltrust.common.Operators.{?, ??}
 import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase
 import org.itsadigitaltrust.hardwarelogger.backend.{DataSourceLoaderService, HLSqlDataSource}
@@ -58,6 +59,9 @@ trait HLDatabaseService(using localhost: Boolean,  val backend: HLDatabase, data
   
   def findBySerialNumber[M <: HLModel : ClassTag](serial: String)(using HardwareGrabberService)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using ox.Ox): HLDBTransaction[M]
 
+  def findWipingIDBySerialNumber(serial: String)(using ox.Ox): Either[HLDatabaseServiceExceptionBase, Option[String]]
+  def findDiskIDBySerialNumber(serial: String)(using ox.Ox): Either[HLDatabaseServiceExceptionBase, Option[String]]
+
   def findAllInfoModelsWithErrorNumber(withID: String)(using HardwareGrabberService)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using ox.Ox): HLDBTransaction[Vector[GeneralInfoModel]]
 
   //
@@ -98,20 +102,22 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
 
 
 
-  inline given getMapper[Mode <: ProgramOperationMode, M <: HLModel : ClassTag](using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext): HLModelToBackendMapper[Mode, M] =
+  inline given getMapper[Mode <: ProgramOperationMode, M <: HLModel : ClassTag](using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext): Option[HLModelToBackendMapper[Mode, M]] =
     if classTag[M].runtimeClass == classOf[GeneralInfoModel] then
-      generalInfoToInfoCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]]
+      generalInfoToInfoCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]].?
     else if classTag[M].runtimeClass == classOf[MemoryModel] then
-      memoryToInfoCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]]
+      memoryToInfoCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]].?
     else if classTag[M].runtimeClass == classOf[ProcessorModel] then
-      processorToInfoCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]]
+      processorToInfoCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]].?
     else if classTag[M].runtimeClass == classOf[MediaModel] then
-      mediaToMediaCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]]
+      mediaToMediaCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]].?
     else if classTag[M].runtimeClass == classOf[HardDriveModel] && context.mode == "Normal" then
-      hardDriveToDiskCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]]
+      hardDriveToDiskCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]].?
     else if classTag[M].runtimeClass == classOf[HardDriveModel] && context.mode == "HardDrive" then
-      wipingToWipingCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]]
-    else throw HLFrontendException(s"No backend mapper found for model type ${classTag[M].runtimeClass.getName} in mode ${context.mode}")
+      wipingToWipingCreator.asInstanceOf[HLModelToBackendMapper[Mode, M]].?
+    else
+      logger.warn(s"No backend mapper found for model type ${classTag[M].runtimeClass.getName} in mode ${context.mode}")
+      None
 
 
   end getMapper
@@ -138,13 +144,13 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
     Right(())
 
   def runValidation[M <: HLModel : ClassTag](models: M*)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using globalValidationContext: GlobalValidationContext[? <: HLModel])(using ox.Ox): HLDBTransaction[Unit] =
-    getMapperMatchingMode.provideValidationContext(models*)
+    getMapperMatchingMode.foreach(_.provideValidationContext(models*))
     Right(())
 
 
   override def executeFinalSave[M <: HLModel : ClassTag](models: M*)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using ox.Ox): HLDBTransaction[Unit] =
     ox.either:
-      getMapper.executeSave(models*)
+      getMapper.map(_.executeSave(models*))
       ()
 
 
@@ -165,13 +171,13 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
 
   override def doesPCRecordExist(info: GeneralInfoModel)(using hardwareGrabberService: HardwareGrabberService)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext): Boolean =
     info.itsaID.map: itsaID =>
-      getMapperMatchingMode[GeneralInfoModel].findByItsaID(itsaID).isRight
+      getMapperMatchingMode[GeneralInfoModel].map(_.findByItsaID(itsaID)).isDefined
     ?? false
 
 
   override def updateAndInsertAll[M <: HLModel : ClassTag](models: M*)(using hardwareGrabberService: HardwareGrabberService)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using ox.Ox): HLDBTransaction[Unit] =
     ox.either:
-      getMapper.updateAndInsertAll(models*)
+      getMapper.map(_.updateAndInsertAll(models*))
       ()
 
 
@@ -179,28 +185,46 @@ class MySQLHardwareLoggerDatabaseService(using localhost: Boolean = false, overr
   
 
   override def findByID[M <: HLModel: ClassTag](itsaID: String)(using hardwareGrabberService: HardwareGrabberService)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using Ox): HLDBTransaction[M] =
-    getMapperMatchingMode[M].findByItsaID(itsaID)
+    ox.either:
+      val mapper = getMapperMatchingMode[M]
+      if mapper.isDefined then
+        mapper.get.findByItsaID(itsaID).ok()
+      HLDatabaseServiceException.unknownError().fail()
 
   end findByID
 
 
-  def addWipingRecords(drives: Seq[HardDriveModel])(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext): HLDBTransaction[Unit] =
-//
-
-
-
-//      NotificationCentre.sendUpdateSharedDataNotification(HardwareLoggerSharedData(drives = newDisks.?))
-
-    ???
+  def addWipingRecords(drives: Seq[HardDriveModel])(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using Ox): HLDBTransaction[Unit] =
+    ox.either:
+      drives.foreach: drive =>
+        executeFinalSave[HardDriveModel](drive).ok()
+      ()
 
   end addWipingRecords
 
   override def findBySerialNumber[M <: HLModel : ClassTag](serial: String)(using HardwareGrabberService)(using context: HLDatabaseServiceCoordinatorOperationContext = HLDatabaseServiceCoordinator.programModeBasedContext)(using Ox): HLDBTransaction[M] =
-    getMapper.findBySerial(serial)
-
-
+    ox.either:
+      val mapper = getMapperMatchingMode[M]
+      if mapper.isDefined then
+        mapper.get.findBySerial(serial) .ok()
+      HLDatabaseServiceException.unknownError().fail()
   end findBySerialNumber
-  
+
+  override def findWipingIDBySerialNumber(serial: String)(using Ox): Either[HLDatabaseServiceExceptionBase, Option[String]] =
+    import org.itsadigitaltrust.hardwarelogger.backend.database.RepoToEntityCreatorGivens.given
+    import org.itsadigitaltrust.hardwarelogger.services.database.mappers.EntityCreatorModelConversions.given
+    backend.findItsaIDBySerialNumber[WipingCreator](serial) match
+      case Right(itsaID) => Right(Some(itsaID))
+      case Left(org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.NoEntriesFound) => Right(None)
+      case Left(error) => Left(HLDatabaseServiceException(error))
+
+  override def findDiskIDBySerialNumber(serial: String)(using Ox): Either[HLDatabaseServiceExceptionBase, Option[String]] =
+    import org.itsadigitaltrust.hardwarelogger.backend.database.RepoToEntityCreatorGivens.given
+    import org.itsadigitaltrust.hardwarelogger.services.database.mappers.EntityCreatorModelConversions.given
+    backend.findItsaIDBySerialNumber[DiskCreator](serial) match
+      case Right(itsaID) => Right(Some(itsaID))
+      case Left(org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.NoEntriesFound) => Right(None)
+      case Left(error) => Left(HLDatabaseServiceException(error))
 
 
   // Supports up to ZZ (702 letters) for the hddID prefix

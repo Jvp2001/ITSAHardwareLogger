@@ -14,7 +14,6 @@ private[configformats] object PropertyReaderMacros:
 
     val configGroupPrefixAnn = TypeRepr.of[ConfigGroupPrefix]
     val configKeyAnn = TypeRepr.of[ConfigKey]
-    val commentAnn = TypeRepr.of[ConfigComment]
 
     val tpe = TypeRepr.of[A]
     val tpeSymbol = tpe.typeSymbol

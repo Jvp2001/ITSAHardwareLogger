@@ -17,7 +17,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -35,7 +34,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -53,7 +51,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -71,7 +68,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -90,7 +86,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -180,7 +175,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -210,7 +204,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -239,7 +232,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -258,7 +250,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -276,7 +267,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -304,7 +294,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />
@@ -323,7 +312,6 @@
         <parameter value="-experimental" />
         <parameter value="-explain-cyclic" />
         <parameter value="-preview" />
-        <parameter value="--Yrelaxed-lambdas" />
         <parameter value="--Ydebug-cyclic" />
         <parameter value="--explain-cyclic" />
         <parameter value="-Xno-enrich-error-messages" />

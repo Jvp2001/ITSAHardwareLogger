@@ -39,7 +39,7 @@ private class Chars(val input: String):
 
 end Chars
 
-class IDScanner(input: String, hdMode: Boolean = false):
+class IDScanner(input: String)(using val hdMode: Boolean = false):
 
   import IDScanner.*
 
@@ -147,15 +147,19 @@ final class IDParser:
   type ![T] = Label[Either[ParserError, T]] ?=> T
   private type ContextLabel[T] = Label[Either[ParserError, T]]
 
-  def parse(input: String, hardDriveMode: Boolean = false): ParserResult =
+  def parse(input: String)(using hardDriveMode: Boolean = false): ParserResult =
     ox.either:
-      val scanner = new IDScanner(input, hardDriveMode)
+      val scanner = new IDScanner(input)
       val tokens: Seq[Token] = readTokens(scanner).ok()
       handleTokens(tokens)
 
   @tailrec
-  private def handleTokens(tokens: Seq[Token], index: Int = 0, result: ParsedResult = ParsedResult())
-                          (using label: ContextLabel[ParsedResult]): ![ParsedResult] =
+  private def handleTokens(
+                            tokens: Seq[Token],
+                            index: Int = 0,
+                            result: ParsedResult = ParsedResult())(using 
+                            hardDriveMode: Boolean // Add this parameter)
+                          )(using label: ContextLabel[ParsedResult]): ![ParsedResult] =
 
     if tokens.isEmpty || tokens.length == 1 && tokens.head == Token.End then
       ParsedResult().ok()
@@ -166,20 +170,28 @@ final class IDParser:
     if index == 0 then
       token match
         case Token.Letter(value) =>
-          if value.toLowerCase |> IDScanner.hdPrefixLetters.contains then
+          if value.length > 1 then
+            ParserError.InvalidCharacter("a single prefix letter", value, index + 1).fail()
+          else if value.toLowerCase |> IDScanner.hdPrefixLetters.contains then
             val validChars = IDScanner.hdPrefixLetters.map(_.toUpper).mkString(", ")
             val validStr = validChars.replace("L, ", "L or ")
-             ParserError.InvalidCharacter(validStr, value, index + 1).fail()
+            ParserError.InvalidCharacter(validStr, value, index + 1).fail()
           else
-            handleTokens(tokens, index + 1, result.copy(Some(value)))
+            handleTokens(tokens, index + 1, result.copy(prefix = Some(value)))
         case Token.Number(value) => handleTokens(tokens, index + 1, result.copy(number = Some(value)))
         case Token.DecimalPoint => ParserError.MissingNumber.fail()
         case Token.End => result
         case error@Token.Error(_, _, _) => error.toParserError.fail()
     else
       token match
-        case Token.Letter(value) if index == tokens.length - 2 => // Last token before End
-          handleTokens(tokens, index + 1, result.copy(suffix = Some(value)))
+        // Match the suffix token (the last element before the End token)
+        case Token.Letter(value) if index == tokens.length - 2 =>
+          // Validation: If NOT in hardDriveMode and string contains multiple characters, fail it
+          if !hardDriveMode && value.length > 1 then
+            ParserError.InvalidCharacter("a single suffix letter", value, index + 1).fail()
+          else
+            handleTokens(tokens, index + 1, result.copy(suffix = Some(value)))
+
         case Token.Letter(value) =>  ParserError.InvalidCharacter("number or a decimal point", value, index+1).fail()
         case Token.Number(value) =>
           if result.number.isEmpty then
@@ -277,7 +289,7 @@ object IDParser:
       Right(x)
 
 
-  def apply(input: String, hardDriveMode: Boolean = false): ParserResult =
+  def apply(input: String)(using hardDriveMode: Boolean = false): ParserResult =
     val parser = new IDParser
-    parser.parse(input, hardDriveMode)
+    parser.parse(input)
 end IDParser

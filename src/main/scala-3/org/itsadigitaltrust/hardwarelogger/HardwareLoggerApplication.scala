@@ -2,7 +2,7 @@ package org.itsadigitaltrust.hardwarelogger
 
 
 import atlantafx.base.theme.{CupertinoDark, CupertinoLight, Theme}
-import org.itsadigitaltrust.common.AssetLoader.service
+import org.itsadigitaltrust.common.AssetLoader.{asset, service}
 import org.itsadigitaltrust.common.{ConfigsManager, config}
 import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.processes.RootChecker
@@ -11,6 +11,7 @@ import org.itsadigitaltrust.hardwarelogger.core.{HWLoggerShowMessage, HardwareLo
 import org.itsadigitaltrust.hardwarelogger.delegates.ProgramMode
 import org.itsadigitaltrust.hardwarelogger.services.ApplicationServicesRegistry
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.ViewModelsModule
 import org.itsadigitaltrust.hardwarelogger.views.HardwareLoggerRootView
 import org.scalafx.extras
 import org.scalafx.extras.ShowMessage
@@ -18,19 +19,18 @@ import scalafx.Includes.*
 import scalafx.application.Platform.{Preferences, preferences}
 import scalafx.application.{JFXApp3, Platform}
 import scalafx.scene.Scene
+import scalafx.scene.image.Image
 import scalafx.stage.{Stage, StageStyle}
 import scalafx.util.Duration
 
 import scala.compiletime.uninitialized
 
 
-object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, HWLoggerShowMessage, WithThemeSwitching:
+object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, HWLoggerShowMessage, WithThemeSwitching, ViewModelsModule:
 
   private val exceptionHandler = HardwareLoggerDefaultUncaughtExceptionHandler()
   Thread.setDefaultUncaughtExceptionHandler(exceptionHandler)
-
-  private given applicationState: HardwareLoggerApplicationState = new HardwareLoggerApplicationState
-
+  
   private lazy val titleProperty: StringProperty = StringProperty("Hardware Logger")
 
   private var applicationStage: Stage | Null = uninitialized
@@ -66,26 +66,33 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   )
 
 
-  override def start(): Unit =
-    println(preferences.colorScheme)
-    setProgramMode()
-    import org.itsadigitaltrust.common.AssetLoader.service
+  private def loadIcons(stage: Stage): Unit =
+    val iconSizes = Seq(16, 32, 48, 64, 128, 256)
+    iconSizes.foreach: size =>
+      val iconUrl = image"icons/Icon$size.png"
+      if iconUrl.isEmpty then
+        throw new IllegalStateException(s"Missing application icon: Icon$size.png")
+      stage.icons += new Image(iconUrl)
 
+
+  override def start(): Unit =
+    setProgramMode()
     setupThemeManager()
 
-    // Must happen before any view is built: the hardware grabber returns nothing without
-    // root, and reporting that from inside a view constructor deadlocks the FX thread.
-//    if !RootChecker.isRunningAsRoot then
-//      showError(
-//        "Invalid Permissions",
-//        "Please run Logger as Root!",
-//        "Hardware details cannot be read without root privileges."
-//      )
-//      Platform.exit()
-//    else
+    if !RootChecker.isRunningAsRoot then
+      logger.error("Not running as root. Please run Logger as Root! Hardware details cannot be read without root privileges.")
+      showError(
+        "Invalid Permissions",
+        "Please run Logger as Root!",
+        "Hardware details cannot be read without root privileges."
+      )
+      Platform.exit()
+    else
+      logger.info("Running as root, proceeding with application startup.")
+      startSplash()
+  end start
 
-
-
+  private def startSplash(): Unit =
       ThemeManager.parseArgs(parameters)
       val splashScreen = new HardwareLoggerSplashScreen(480, 360)(showApplication)
       val splashStage =  new JFXApp3.PrimaryStage:
@@ -94,18 +101,16 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
         maxWidth = splashScreen.maxWidth()
         maxHeight = splashScreen.maxHeight()
 //      initStyle(StageStyle.Undecorated)
-        scene = new HardwareLoggerScene(splashScreen)
+        scene = new Scene(splashScreen)
         registerScene(scene())
 
+      splashStage |> loadIcons
       stage = splashStage
       exceptionHandler.currentStage = Some(splashStage)
       stage.onShown = _ =>
         splashScreen.load()
       stage.show()
-//    end if
-
-  end start
-
+  end startSplash
 
 
 
@@ -117,13 +122,15 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
       minHeight = applicationSize._2
       resizable = false
       
-      scene = new HardwareLoggerScene(new HardwareLoggerRootView, applicationSize._1, applicationSize._2)
+      scene = new Scene(new HardwareLoggerRootView, applicationSize._1, applicationSize._2)
       registerScene(scene())
 //
       onCloseRequest = event =>
         Platform.exit()
 
     end mainStage
+   
+    mainStage |> loadIcons
 
     exceptionHandler.currentStage = Some(mainStage)
     mainStage
@@ -176,5 +183,3 @@ object HardwareLoggerApplication extends JFXApp3, ApplicationServicesRegistry, H
   override protected def parentWindow: Option[Window] = Option(stage)
   
 end HardwareLoggerApplication
-
-

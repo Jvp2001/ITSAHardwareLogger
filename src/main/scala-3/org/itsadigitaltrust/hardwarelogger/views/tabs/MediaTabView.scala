@@ -18,8 +18,8 @@ import scala.reflect.classTag
 private[tabs] given[T]: Conversion[T, Seq[T]] with
   override def apply(x: T): Seq[T] = Seq(x)
 
-private[views] final class MediaTabTableView private[tabs](using mediaTabViewModel: MediaTabViewModel)(using HardwareGrabberService) extends TabTableView:
-  MediaTableRowViewModel.apply ||> sharedApplicationData.media ?? Seq() |> asJavaCollection |> items.value.setAll
+private[views] final class MediaTabTableView private[tabs](using mediaTabViewModel: MediaTabViewModel) extends TabTableView:
+
   private val descriptionColumn = createAndAddColumn("Description", minimumWidth = 125): cellValue =>
     cellValue.descriptionProperty
 
@@ -27,7 +27,7 @@ private[views] final class MediaTabTableView private[tabs](using mediaTabViewMod
     cellValue.handleProperty
 end MediaTabTableView
 
-class MediaTabView(using databaseService: HLDatabaseService, hardwareGrabberService: HardwareGrabberService, menuManagerService: MenuManagerService)(using viewModel: MediaTabViewModel = new MediaTabViewModel) extends VBox with View:
+class MediaTabView(using viewModel: MediaTabViewModel) extends VBox with View:
   
   private val tableView = new MediaTabTableView(using viewModel)
   

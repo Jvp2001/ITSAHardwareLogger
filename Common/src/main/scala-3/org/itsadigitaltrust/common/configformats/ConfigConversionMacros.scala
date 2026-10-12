@@ -47,7 +47,7 @@ object AnnotationExtractor:
 end AnnotationExtractor
 
 
-object ConfigConversionMacros:
+private[configformats] object ConfigConversionMacros:
 
   inline def mappingFunction[T]: T => CaseClassConfigInfo =
     ${ impl[T] }

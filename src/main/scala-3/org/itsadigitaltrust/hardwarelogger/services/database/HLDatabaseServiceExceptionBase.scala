@@ -26,7 +26,7 @@ object HLDatabaseServiceException:
     case HLDBErrorCode.PCSerialNumberAlreadyExists => duplicateEntry(args(0), args(1))
     case HLDBErrorCode.NoEntriesRemoved => noEntriesRemoved()
     case HLDBErrorCode.EntriesAlreadyExists => duplicateEntriesFound(args(0))
-    case HLDBErrorCode.UnknownError(_) => unknownError()
+    case HLDBErrorCode.UnknownError(message) => unknownError(message)
     case HLDBErrorCode.ConnectionError(_, message) => connectionError(message = message)
     case HLDBErrorCode.PropertiesError => propertiesFileError()
 
