@@ -1,6 +1,7 @@
 package org.itsadigitaltrust.hardwarelogger.views
 
 import atlantafx.base.theme.Styles
+import javafx.scene.control.TabPane.TabDragPolicy
 import org.itsadigitaltrust.common.Operators.{?, ??, |>}
 import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.{ContextBasedMenuBar, ContextBasedMenuBarTabPane, ContextualBaseMenuTabView, MenuContributor, MenuManagerService}
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
@@ -10,25 +11,29 @@ import org.itsadigitaltrust.hardwarelogger.models.HLModel.MemoryModel
 import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.NotificationCentre
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService, IssueReporterService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
-import org.itsadigitaltrust.hardwarelogger.ui.ThemeSelectionMenu
+import org.itsadigitaltrust.hardwarelogger.ui.controls.ItsaIDTextField
 import org.itsadigitaltrust.hardwarelogger.viewmodels.HardwareLoggerRootViewModel
-import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.{MemoryTableRowViewModel, TableRowViewModel}
-import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.{MemoryTabViewModel, TabTableViewModel}
+import org.itsadigitaltrust.hardwarelogger.viewmodels.tabs.*
 import org.itsadigitaltrust.hardwarelogger.views.tabs.*
 import qupath.ui.logviewer.api.manager.LoggerManager
-import scalafx.Includes.*
 import scalafx.application.Platform
 import scalafx.beans.value.ObservableValue
 import scalafx.scene.control.TabPane.TabClosingPolicy.Unavailable
-import scalafx.scene.control.{CheckMenuItem, Menu, MenuBar, MenuItem, ProgressBar, SeparatorMenuItem}
-import scalafx.scene.input.{KeyCodeCombination, KeyCombination}
 import qupath.ui.logviewer.ui.main.LogViewer
 
 import scala.collection.mutable
 import scala.util.Try
 
 
-class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService, applicationState: HardwareLoggerApplicationState, menuManagerService: MenuManagerService)(using idValidation: HardwareIDValidationService, issueReporter: IssueReporterService, loggerManager: LoggerManager)(using viewModel: HardwareLoggerRootViewModel = new HardwareLoggerRootViewModel) extends BorderPane with View(using viewModel) with HWLoggerShowMessage:
+class HardwareLoggerRootView(using MenuManagerService)(
+  using HardwareLoggerRootViewModel,
+                            GeneralInfoTabViewModel,
+                            MemoryTabViewModel,
+                            ProcessorTabViewModel,
+                            BatteryStatusTabViewModel,
+                            HardDrivesTabViewModel,
+                            MediaTabViewModel
+) extends BorderPane with View(using summon[HardwareLoggerRootViewModel]) with HWLoggerShowMessage:
 
   Seq(minWidth, minHeight, maxWidth, maxHeight).map(_.value = Double.NegativeInfinity)
   
@@ -44,9 +49,10 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     )
   private final val helpMenu = new Menu("_Help"):
     items ++= Seq(
-//      new MenuItem("Report"):
-//        onAction = _ => issueReporter.report()
-//      ,
+      new Menu("_Report"):
+        items += new MenuItem("_Bug"):
+          onAction = _ => viewModel.reportBug()
+      ,
       new SeparatorMenuItem(),
       new MenuItem("About"):
         onAction = _ => Dialogs.showAboutDialog()
@@ -89,7 +95,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
   private val generalTab = createTab("General", new GeneralInfoTabView)
   private val memoryTab = createTab("Memory", new MemoryTabView)
   private val processorTab = createTab("Processor", new ProcessorTabView)
-  private val hardDrivesTab = createTab("HDD", new HardDrivesTabView(using fileMenu))
+  private val hardDrivesTab = createTab("HDD", new HardDrivesTabView)
   private val mediaTab = createTab("Media", new MediaTabView)
   private val debugTab = createTab("Debug", new ItsaDebugView)
   private val batteryTab = createTab("Battery", new BatteryStatusTabView)
@@ -104,7 +110,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     hgrow = Always
     margin = Insets(5.0, 0, 0, 10.0)
 
-  private final val idTextField = new TextField:
+  private final val idTextField = new ItsaIDTextField:
     hgrow = Always
     margin = Insets(0, 10.0, 0, 0)
     text <==> viewModel.idStringProperty
@@ -142,6 +148,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
       Styles.FLAT,
     )
 
+
     disable <== viewModel.disableNodeWhileTaskRunningProperty
     tabClosingPolicy = Unavailable
     alignmentInParent = Pos.Center
@@ -154,6 +161,10 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
               tabDelegate.onSelected(newTab)
             case _ => ()
 
+    tabDragPolicy = TabDragPolicy.REORDER
+
+
+
   private final val reconnectButton = new Button:
     text = "Reconnect"
     disable <== viewModel.disableNodeWhileTaskRunningProperty
@@ -161,6 +172,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     onAction = _ => viewModel.reconnect()
     alignment = Center
     margin = Insets(0, 20.0, 0, 0)
+
 
 
   private final val reloadButton = new Button:
@@ -179,14 +191,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
 
     alignment = Center
     margin = Insets(0, 10.0, 0, 0)
-    disable <== !viewModel.validIDProperty
-
-  private final val hardDriveModeSaveButton = new Button:
-    text = "Save"
-    disable <== viewModel.disableNodeWhileTaskRunningProperty
-    onAction = _ => viewModel.save()
-    alignment = Center
-    margin = Insets(0, 10.0, 0, 0)
+    disable <== !viewModel.isSaveButtonEnabled
 
 
   private final val saveButton: Button = normalSaveButton
@@ -293,6 +298,7 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
     ProgramMode.mode = newMode
     refreshTabs()
     viewModel.reload()
+    viewModel.switchMode(newMode)
 
 
   private def refreshTabs() =
@@ -306,13 +312,13 @@ class HardwareLoggerRootView(using hardwareGrabberService: HardwareGrabberServic
           processorTab,
           hardDrivesTab,
           mediaTab,
-          debugTab,
         )
 
         
         if viewModel.hasABattery then
           tabPane.tabs.add(batteryTab)
       end if
+      tabPane.tabs.add(debugTab)
   //    end if
   end refreshTabs
 

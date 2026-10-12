@@ -2,7 +2,9 @@ package org.itsadigitaltrust.hardwarelogger
 
 import javafx.beans.value.ObservableValue
 import org.itsadigitaltrust.common.AssetLoader.service
-import org.itsadigitaltrust.common.{ConfigsManager, config}
+import org.itsadigitaltrust.common.ConfigsManager
+import org.itsadigitaltrust.common.configformats.ToConfigFormat
+import org.itsadigitaltrust.hardwarelogger.backend.DBProperties
 import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode.ConnectionError
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
@@ -21,13 +23,12 @@ import scalafx.application.Platform
 import scalafx.concurrent.WorkerStateEvent
 import scalafx.scene.control.ProgressBar
 import scalafx.scene.image.ImageView
-
 import java.util.concurrent.Future
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.boundary
 
-trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, OxErrorModeSimpleTask[E, R], ViewModel:
 
+trait SplashScreenViewModel[E <: Throwable, R] extends HWLoggerShowMessage, OxErrorModeSimpleTask[E, R], ViewModel:
   override val exitIfFailed: Boolean = true
 
   given progressBarValue: DoubleProperty = DoubleProperty(0.0)
@@ -72,9 +73,22 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
     val task = this
     val result = ox.supervisedError(ox.EitherMode[Throwable]):
       ox.forkUserError:
-        val result = ConfigsManager.copyFromResources("assets/services/db.properties", "db.properties")
-        logger.info("Copied db.properties file")
-        Right(result)
+        ox.either:
+          val dbConfigPath =
+            ConfigsManager
+              .writeConfigIfMissing("db.properties", ToConfigFormat(DBProperties.default))
+              .toEither
+              .ok()
+          val issueReporterConfigPath =
+            ConfigsManager
+              .copyFromResources(
+                service"issuereporter.properties",
+                "issuereporter.properties"
+              )
+              .toEither
+              .ok()
+          logger.info(s"Configuration files available at $dbConfigPath and $issueReporterConfigPath")
+          ()
 
       .join()
       ox.forkUserError:
@@ -155,6 +169,3 @@ class HardwareLoggerSplashScreen[E <: Throwable, R, VM <: SplashScreenViewModel[
     viewModel.load()
 
 end HardwareLoggerSplashScreen
-
-
-

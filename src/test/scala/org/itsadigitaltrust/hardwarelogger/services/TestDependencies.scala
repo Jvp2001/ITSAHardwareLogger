@@ -6,12 +6,14 @@ import org.itsadigitaltrust.hardwarelogger.backend.{DataSourceLoader, DataSource
 import org.itsadigitaltrust.hardwarelogger.services.{DatabaseTestService, HLDatabaseService, HardwareIDValidationService, OshiHardwareGrabberService, OshiHardwareGrabberTestService, SimpleHardwareIDValidationService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 
+import ox.either.orThrow
+
 trait TestDependencies:
   given useLocalhost: Boolean = true
 
 
   
-  private final given dataSourceLoader: DataSourceLoaderService[HLSqlDataSource] = DataSourceLoader(dbName = "hwloggertesting")
+  private final given dataSourceLoader: DataSourceLoaderService[HLSqlDataSource] = DataSourceLoader().toOption.get
   private final given backend: HLDatabase = new MySQLHLDatabase
   final protected given databaseService: DatabaseTestService = new DatabaseTestService
 

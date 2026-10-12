@@ -3,6 +3,7 @@ ThisBuild / packageOptions += Package.ManifestAttributes(
   "Build-Time" -> java.time.Instant.now.toString
 )
 ThisBuild / normalizedName := "ITSA Hardware Logger"
+// Development version: the release script publishes X.Y.Z, then bumps this to the next X.Y.Z-SNAPSHOT.
 ThisBuild / version := "0.4.0-SNAPSHOT"
 ThisBuild / organization := "org.itsadigitaltrust"
 ThisBuild / scalaVersion := "3.9.0"
@@ -29,7 +30,6 @@ ThisBuild / scalacOptions ++= Seq(
   "-experimental",
   "-explain-cyclic",
   "-preview",
-  "--Yrelaxed-lambdas",
   "--Ydebug-cyclic",
   "--explain-cyclic",
   "-Xno-enrich-error-messages"
@@ -53,7 +53,6 @@ assembly := (assembly dependsOn (Compile / compile)).value
 fork := true
 
 val runtimeJavaOptions = Seq(
-  "-Djavafx.preloader=SplashPreloader",
   "--enable-native-access=javafx.graphics"
 )
 javaOptions ++= runtimeJavaOptions
@@ -69,7 +68,10 @@ ThisBuild / assemblyTargetOs := "linux"
 //Global / onChangedBuildSource := IgnoreSourceChanges
 ThisBuild / assemblyOutputPath := file(s"${(ThisBuild / assemblyTargetOs).value}/ITSAHardwareLogger.jar")
 
+
 ThisBuild / assemblyMergeStrategy := {
+
+  case PathList("META-INF", "services", _*) => MergeStrategy.concat
 
   case PathList(ps@_*) if ps.last.endsWith(".dll") || ps.last.endsWith(".so") || ps.last.endsWith(".dylib") =>
     val target = (ThisBuild / assemblyTargetOs).value
@@ -79,7 +81,8 @@ ThisBuild / assemblyMergeStrategy := {
   case PathList("META-INF", xs@_*) =>
     xs map {
       _.toLowerCase
-    } match {
+    }
+    match {
       case "services" :: xs =>
         MergeStrategy.filterDistinctLines
 
@@ -113,8 +116,12 @@ lazy val atlantaFX = Seq(
   "org.kordamp.ikonli" % "ikonli-materialdesign2-pack" % "12.4.0"
 )
 
+lazy val controlsFX = Seq(
+  "org.controlsfx" % "controlsfx" % "11.2.5"
+)
 
-lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ atlantaFX)
+
+lazy val uiDependencies = (javaFXDeps ++ scalaFXDeps ++ atlantaFX ++ controlsFX)
   .map(_ withJavadoc() withSources())
 
 lazy val root = (project in file("."))
@@ -131,7 +138,7 @@ lazy val root = (project in file("."))
 
 
     libraryDependencies ++= uiDependencies,
-    libraryDependencies += "com.github.oshi" % "oshi-core" % "7.6.1",
+    libraryDependencies += "com.github.oshi" % "oshi-core" % "7.7.0",
     //    libraryDependencies ++= commonDependencies,
 
     // addForegroundTask scalatest
@@ -157,13 +164,14 @@ lazy val common = (project in file("Common"))
   ).dependsOn()
 lazy val loggingDeps = Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
-  "ch.qos.logback" % "logback-classic" % "1.6.3"
+  "ch.qos.logback" % "logback-classic" % "1.6.5"
 )
 
 lazy val commonDependencies = Seq(
+  "io.github.bishabosha" %% "enum-extensions" % "0.1.1",
   "org.apache.commons" % "commons-text" % "1.15.0",
   //  "org.checkerframework" % "checker" % "3.54.0",
-  "com.softwaremill.ox" %% "core" % "1.0.8",
+  "com.softwaremill.ox" %% "core" % "1.0.9",
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-xml" % "2.22.3",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.22.3.1",
   "org.scala-lang.modules" %% "scala-xml" % "2.5.0",

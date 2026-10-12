@@ -13,7 +13,7 @@ import org.itsadigitaltrust.hardwarelogger.views.View
 import scala.jdk.javaapi.CollectionConverters
 
 
-final class MemoryTabView(using hardwareGrabberService: HardwareGrabberService, menuManagerService: MenuManagerService)(using viewModel: MemoryTabViewModel = new MemoryTabViewModel) extends VBox, View[MemoryTabViewModel](using viewModel):
+final class MemoryTabView(using viewModel: MemoryTabViewModel) extends VBox, View[MemoryTabViewModel](using viewModel):
 
   private val totalMemLabel = new Label:
     text = "Total Memory"

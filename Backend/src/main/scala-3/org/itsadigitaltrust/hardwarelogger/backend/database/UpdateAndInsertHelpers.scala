@@ -3,7 +3,7 @@ package org.itsadigitaltrust.hardwarelogger.backend.database
 import com.augustnagro.magnum.{DbCodec, DbCon}
 import org.itsadigitaltrust.common.Operators.{?, ??, |>}
 import org.itsadigitaltrust.hardwarelogger.backend.{HLDBErrorCode, HLDBTransactionResult}
-import org.itsadigitaltrust.hardwarelogger.backend.entities.{HLEntityCreatorWithSomeKindOfID, HLEntityWithSomeKindOfID, InfoCreator}
+import org.itsadigitaltrust.hardwarelogger.backend.entities.{HLEntityCreatorWithSomeKindOfID, HLEntityWithSomeKindOfID, InfoCreator, MediaCreator, MemoryCreator}
 import org.itsadigitaltrust.hardwarelogger.backend.repos.{HLRepoWithID, HLRepoWithSerial}
 import ox.either.{fail, ok}
 
@@ -23,12 +23,9 @@ private trait UpdateAndInsertHelpers[EC <: HLEntityCreatorWithSomeKindOfID : {Cl
 
   def insert(ec: EC)(using oldItsaID: Option[String])(using DbCon): HLDBTransactionResult[Unit] =
     ox.either:
-      val result = repo.findByItsaID(ec.getItsaID)
       val currentItsaID = ec.getItsaID ?? HLDBErrorCode.UnknownError("No Itsa ID").fail()
-      if result.isEmpty then
-        if oldItsaID.isDefined && currentItsaID != oldItsaID.get then
+      if repo.findByItsaID(currentItsaID).isEmpty then
         repo.insert(ec)
-      end if
   end insert
 
 
@@ -43,22 +40,31 @@ private trait UpdateAndInsertHelpers[EC <: HLEntityCreatorWithSomeKindOfID : {Cl
    */
   def update(ecs: EC*)(using oldItsaID: Option[String])(using DbCon): HLDBTransactionResult[Unit] =
     ox.either:
-
       val head: EC = ecs.headOption.toRight(HLDBErrorCode.NoEntriesFound).ok()
       val idToMark = oldItsaID ?? head.getItsaID
-      val hasRecord = repo.findByItsaID(idToMark).isDefined
-      val errorCount = repo.getAllWithErrorSuffix(idToMark) + (if hasRecord then 1 else 0)
-      val creators = ecs.filter(_.getItsaID == idToMark)
-      creators.foreach: creator =>
-        val currentItsaID = creator.getItsaID
-
-        if errorCount > 0 then
-          val newItsaID = s"$currentItsaID-E$errorCount "
-          repo.updateItsaIDFromCreator(currentItsaID, newItsaID)
+      Seq(idToMark, head.getItsaID).distinct.foreach: idToArchive =>
+        val matchingIDs = repo.findAllByIDStartingWith(idToArchive).flatten.map(_.getItsaID)
+        if matchingIDs.contains(idToArchive) then
+          val nextErrorNumber = matchingIDs.iterator
+            .filter(_.startsWith(s"$idToArchive-E"))
+            .flatMap(_.drop(idToArchive.length + 2).toIntOption)
+            .maxOption
+            .getOrElse(0) + 1
+          repo.updateItsaIDFromCreator(idToArchive, s"$idToArchive-E$nextErrorNumber")
   end update
 
 end UpdateAndInsertHelpers
 private [database] object UpdateAndInsertHelpers:
+  given memoryUpdateAndInsertHelpers: UpdateAndInsertHelpers[MemoryCreator] with
+    override def insert(ec: MemoryCreator)(using oldItsaID: Option[String])(using DbCon): HLDBTransactionResult[Unit] =
+      repo.insert(ec)
+      Right(())
+
+  given mediaUpdateAndInsertHelpers: UpdateAndInsertHelpers[MediaCreator] with
+    override def insert(ec: MediaCreator)(using oldItsaID: Option[String])(using DbCon): HLDBTransactionResult[Unit] =
+      repo.insert(ec)
+      Right(())
+
   given infoUpdateAndInsertHelpers: UpdateAndInsertHelpers[InfoCreator] with
     override def update(ecs: InfoCreator*)(using oldItsaID: Option[String])(using DbCon): HLDBTransactionResult[Unit] =
       ecs.map(_.copy(lastUpdated = Timestamp.from(OffsetDateTime.now().toInstant)))

@@ -30,13 +30,18 @@ object TableEvent:
   final case class KeyPressedEvent[R <: Any](item: Option[R], key: String) extends TableEvent[R]
   final case class EditCommitEvent[R <: Any, V <: Any](item: Option[R], field: String, newValue: V) extends TableEvent[R]
   final case class UpdateItemEvent[R <: Any](item: Option[R], styleClasses: ObservableBuffer[String]) extends TableEvent[R]
+  final case class CellValueChanged[R <: Any](columnName: String, item: Option[R], value: Option[Any], styleClasses: ObservableBuffer[String]) extends TableEvent[R]
 trait TableDelegate[R <: Any]:
   val showHandCursorOnHover: Boolean = true
 
   val cellSelectionEnabled: BooleanProperty = BooleanProperty(true)
 
   def onSelected(row: Option[R]): Unit = ()
+  // apply styles to the entire row
   def onUpdateItem(event: TableEvent.UpdateItemEvent[R]): Unit = ()
+
 
   def onRowClicked(event: TableEvent.RowClickedEvent[R]): Unit = ()
   def onRowKeyboardKeyReleased(event: TableEvent.KeyPressedEvent[R]): Unit = ()
+
+  def onCellValueChanged(event: TableEvent.CellValueChanged[R]): Unit = ()

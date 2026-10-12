@@ -23,7 +23,13 @@ object PropertyReader:
       Option(props.getProperty(key))
         .toRight(s"Missing required property: $key")
         .flatMap(v => Try(v.toInt).toEither.left.map(_ => s"Invalid Int format for key: $key"))
-
+  
+  given PropertyReader[Long] with
+    def read(props: Properties, key: String): Either[String, Long] =
+      Option(props.getProperty(key))
+        .toRight(s"Missing required property: $key")
+        .flatMap(v => Try(v.toLong).toEither.left.map(_ => s"Invalid Long format for key: $key"))
+  
   given PropertyReader[Boolean] with
     def read(props: Properties, key: String): Either[String, Boolean] =
       Option(props.getProperty(key))

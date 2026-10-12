@@ -9,6 +9,11 @@
     -fx-background-color: -fx-background; /* Dynamically swaps light/dark */
 }
 
+/* Target only the inner text node when this cell is flagged */
+.danger-id-cell .text {
+    -fx-fill: -color-danger-fg !important;
+}
+
 .label
 {
     -fx-font-size: 14px;

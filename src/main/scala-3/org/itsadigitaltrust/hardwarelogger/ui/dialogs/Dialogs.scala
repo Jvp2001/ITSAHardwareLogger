@@ -3,8 +3,6 @@ package org.itsadigitaltrust.hardwarelogger.ui.dialogs
 import org.itsadigitaltrust.common.OSUtils
 import org.itsadigitaltrust.common.Operators.or
 
-
-import org.itsadigitaltrust.hardwarelogger.issuereporter.Description
 import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue
 
 import org.scalafx.extras.generic_pane.GenericDialogFX
@@ -30,6 +28,6 @@ object Dialogs:
   import org.itsadigitaltrust.hardwarelogger.ui.dialogs
   
 
-  export dialogs.{HardDriveExtraInformationDialog, IssueCustomisationDialog, WebViewDialog, showAboutDialog, showIssueCustomisationDialog, showHardDriveExtraInfoDialog}
+  export dialogs.{HardDriveExtraInformationDialog, WebViewDialog, showAboutDialog, showHardDriveExtraInfoDialog}
 
 end Dialogs

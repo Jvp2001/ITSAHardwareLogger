@@ -5,7 +5,7 @@ import scalafx.scene.Node
 
 import scala.reflect.ClassTag
 
-final case class DeferredField(
+final case class DeferredField[+A](
                                 /**
                                  * Create the visual UI control
                                  */
@@ -13,10 +13,10 @@ final case class DeferredField(
                                 /**
                                  * Gets the value from the UI element created by [[DeferredField#controlBuilder]]. 
                                  */
-                                flushValue: () => Any
+                                flushValue: () => A
                               )
 
-final case class FieldUI(label: String, field: DeferredField, annotations: List[UISchemaAnnotation]):
+final case class FieldUI[A](label: String, field: DeferredField[Any], annotations: List[UISchemaAnnotation]):
   /** Checks if an annotation of a specific type exists on the field.
    * Example: field.hasAnnotation[Readonly]
    */

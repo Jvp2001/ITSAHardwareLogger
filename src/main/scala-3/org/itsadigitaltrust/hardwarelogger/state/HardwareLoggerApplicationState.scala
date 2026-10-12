@@ -12,15 +12,23 @@ import org.itsadigitaltrust.hardwarelogger.services.validation.GlobalValidationC
 import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
 import org.itsadigitaltrust.hardwarelogger.shared.HardwareLoggerSharedData
 import org.scalafx.extras.BusyWorker.SimpleTask
-import ox.{Ox, Fork}
+import ox.{Fork, Ox}
 import ox.either.ok
 import scalafx.application.Platform
 
 import java.util.concurrent.atomic.AtomicReference
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 private[state] type Data = HardwareLoggerSharedData
 
+extension (drives: Option[Seq[HardDriveModel]])
+  def filterBySerial: Option[Seq[HardDriveModel]] =
+    drives.map (_.groupBy (_.serial).map:
+      case (serialNumber, duplicates) =>
+        duplicates.find(drive => HardDriveModel.hasLoggedItsaID(drive.itsaID)) match
+        case Some (driveWithId) => driveWithId
+        case _ => duplicates.head
+      ).map(_.toSeq)
 case class HardwareLoggerApplicationState()(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)
   extends HWLLoggable, RequiresGlobalValidationContext:
 
@@ -42,9 +50,28 @@ case class HardwareLoggerApplicationState()(using hardwareGrabberService: Hardwa
   def battery: Option[Seq[BatteryStatusModel]] = getData.battery
 
   def addDrives(hardDriveModels: HardDriveModel*): Unit =
-    updateData { current =>
+    updateData: current =>
       current.copy(drives = (current.drives ?? Seq()).concat(hardDriveModels).?)
-    }
+
+
+  def updateDriveItsaIDBySerial(serial: Option[String], newItsaID: Option[String]): Unit =
+    serial.map: driveSerial =>
+      hardDrives.map: drives =>
+        val foundDrive = drives.find(_.serial == driveSerial)
+        val updatedDrive = foundDrive.map: drive =>
+          val newDrive = newItsaID.map: newID =>
+            drive.copy(itsaID = newID)
+          (drives.indexOf(drive), newDrive)
+        val updatedDrives = updatedDrive.map: (index, drive) =>
+          drive.map(drives.updated(index, _)) ?? Seq()
+        dataRef.updateAndGet: data =>
+          val newDrives = updatedDrives
+          end newDrives
+          data.copy(drives = newDrives.map(_.toSeq))
+    .orElse: 
+      logger.warn("No drive found with serial number")
+      None
+  end updateDriveItsaIDBySerial
 
   // ==========================================
   // Extracted Component Reload Options (Thread-Safe)
@@ -57,14 +84,15 @@ case class HardwareLoggerApplicationState()(using hardwareGrabberService: Hardwa
         option.headOption.map: info =>
           val issues: Seq[GeneralDriveStatus] =
             val drives = hardDrives ?? Seq()
-            drives.collect:
-              case drive if !drive.inGoodHealth => GeneralDriveStatus.BadHealth
-              case drive if databaseService.findBySerialNumber[HardDriveModel](drive.itsaID).isLeft => GeneralDriveStatus.NotLogged
-              case _ => GeneralDriveStatus.NoIssues
-            .distinct
+            val driveIssues = drives.flatMap: drive =>
+              Seq(
+                Option.when(!drive.inGoodHealth)(GeneralDriveStatus.BadHealth),
+                Option.when(databaseService.findWipingIDBySerialNumber(drive.serial).ok().isEmpty)(GeneralDriveStatus.NotLogged)
+              ).flatten
+            if driveIssues.isEmpty then Seq(GeneralDriveStatus.NoIssues) else driveIssues.distinct
           end issues
           val mem = memory
-          val versionID = s"${info.versionID} ${BuildInfo.version.toLowerCase.replaceAll("-snapshot", " ")}"
+          val versionID = s"${info.versionID} ${BuildInfo.version}"
           info.copy(
             model = info.model.split("\\(").headOption.getOrElse(info.model),
             versionID = versionID,
@@ -83,11 +111,16 @@ case class HardwareLoggerApplicationState()(using hardwareGrabberService: Hardwa
 
   private def checkItsaID()(using HLDatabaseService)(using Ox): Either[Throwable, Option[String]] =
     ox.either:
-      val id = getData.info
+      val info = getData.info
         .flatMap(_.headOption)
-        .flatMap: info =>
-          databaseService.findBySerialNumber[GeneralInfoModel](info.serial).toOption.flatMap(_.itsaID)
+      val id = info
+        .flatMap(model =>
+          databaseService.findBySerialNumber[GeneralInfoModel](model.serial).toOption.flatMap(_.itsaID)
             .flatMap(_.split("-E").headOption)
+        )
+      if info.nonEmpty then
+        updateData: data =>
+          data.copy(info = data.info.map(_.map(_.copy(itsaID = id))))
       NotificationCentre.sendItsaIDChangedNotification(id ?? "")
       id
   end checkItsaID
@@ -100,9 +133,18 @@ case class HardwareLoggerApplicationState()(using hardwareGrabberService: Hardwa
 
   private def reloadHardDrives()(using HardwareGrabberService)(using Ox): Either[Throwable, Seq[HardDriveModel]] =
     ox.either:
-      val result: Option[Seq[HardDriveModel]] = hardwareGrabberService.loadHardDrives().?
-      updateData(_.copy(drives = result))
-      result ?? Seq()
+      val physicalDrives: Seq[HardDriveModel] = hardwareGrabberService.loadHardDrives().? ?? Seq()
+      val result = physicalDrives.map: drive =>
+        val loggedID =
+          if ProgramMode.isInHardDriveMode then
+            databaseService.findWipingIDBySerialNumber(drive.serial).ok()
+          else
+            databaseService.findDiskIDBySerialNumber(drive.serial).ok()
+        drive.copy(itsaID = loggedID.getOrElse("NOT LOGGED"))
+      updateData: data =>
+        val newDrives = result ++ data.drives ?? Seq()
+        data.copy(drives = newDrives.distinct.?.filterBySerial)
+      result
 
   private def reloadProcessors()(using HardwareGrabberService)(using Ox): Either[Throwable, Seq[ProcessorModel]] =
     ox.either:
@@ -168,11 +210,11 @@ case class HardwareLoggerApplicationState()(using hardwareGrabberService: Hardwa
           Platform.runLater(task.progress() = index / totalNumberOfItems)
 
       // 3. Process structural schema layout configurations sequentially
-      performSequentialTask("Checking for ITSA ID..."):
-        checkItsaID()
-
       performSequentialTask("Loading general info..."):
         reloadGeneralInfo()
+
+      performSequentialTask("Checking for ITSA ID..."):
+        checkItsaID()
 
       // ====================================================
       // PHASE 2: Tell all ViewModels to reload now that data is safe

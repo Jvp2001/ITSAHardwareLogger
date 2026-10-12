@@ -5,22 +5,16 @@ import javafx.util.converter.DefaultStringConverter
 import org.itsadigitaltrust.common.Operators.{?, ??, or, |>}
 import scalafx.beans.property.StringProperty
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
-import scalafx.Includes.*
-import org.itsadigitaltrust.hardwarelogger.issuereporter.{Description, ReportedIssue}
-import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, ReportedIssue}
+import org.itsadigitaltrust.hardwarelogger.services.{IssueReporterService, LoggerManagerModule}
 import ch.qos.logback.classic.LoggerContext
 import org.itsadigitaltrust.common.logging.HWLLoggable
 import org.itsadigitaltrust.hardwarelogger.core.HWLoggerShowMessage
 import org.itsadigitaltrust.logviewer.{ItsaLogViewer, LogIconFactory}
-import org.kordamp.ikonli.javafx.FontIcon
-import org.kordamp.ikonli.materialdesign2.MaterialDesignA
-import org.kordamp.ikonli.materialdesign2.MaterialDesignB
-import org.kordamp.ikonli.materialdesign2.MaterialDesignI
-import org.kordamp.ikonli.materialdesign2.MaterialDesignM
 import org.scalafx.extras.auto_dialog.AutoDialog
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import qupath.ui.logviewer.api.manager.LoggerManager
+import qupath.ui.logviewer.logging.logback.LogbackManager
 import qupath.ui.logviewer.ui.main.LogViewer
 import scalafx.application.Platform
 import scalafx.scene.control.Alert.AlertType.{Confirmation, Information}
@@ -30,29 +24,27 @@ import scalafx.util.StringConverter
 
 private given logIconFactory: LogIconFactory with
   def createIcon(level: Level): Option[Node] =
-    val icon = new FontIcon()
-    level match
+    val (symbol, styleClass) = level match
       case Level.TRACE =>
-        icon.setIconCode(MaterialDesignM.MAGNIFY)
-        icon.getStyleClass.add("text-subtle")
+        ("T", "text-subtle")
       case Level.DEBUG =>
-        icon.setIconCode(MaterialDesignB.BUG)
-        icon.getStyleClass.add("accent")
+        ("D", "accent")
       case Level.INFO =>
-        icon.setIconCode(MaterialDesignI.INFORMATION)
-        icon.getStyleClass.add("text")
+        ("I", "text")
       case Level.WARN =>
-        icon.setIconCode(MaterialDesignA.ALERT)
-        icon.getStyleClass.add("warning")
+        ("!", "warning")
       case Level.ERROR =>
-        icon.setIconCode(MaterialDesignA.ALERT_OCTAGON)
-        icon.getStyleClass.add("danger")
-  
-    icon.setIconSize(14)
-    icon.?
+        ("X", "danger")
+
+    val icon = new Label(symbol)
+    icon.setMinWidth(18)
+    icon.setAlignment(Pos.Center)
+    icon.getStyleClass.addAll("log-level", styleClass)
+    Some(icon)
 end logIconFactory
 
-class ItsaDebugView(using LoggerManager) extends ItsaLogViewer with HWLLoggable:
+// TODO: Pass this in.
+class ItsaDebugView/*(using LoggerManager)*/ extends ItsaLogViewer(using new LogbackManager) with HWLLoggable:
     vgrow = Always
     stylesheets += stylesheet"logviewer.css"
   
@@ -68,8 +60,7 @@ class ItsaDebugView(using LoggerManager) extends ItsaLogViewer with HWLLoggable:
 
 object ItsaDebugView:
 
-  import org.itsadigitaltrust.hardwarelogger.services.ReportedIssue as Issue
-  import org.itsadigitaltrust.hardwarelogger.core.given
+  
 
  
 
@@ -111,5 +102,4 @@ object ItsaDebugView:
 
 
 end ItsaDebugView
-
 

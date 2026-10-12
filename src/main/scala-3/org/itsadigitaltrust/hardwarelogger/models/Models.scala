@@ -133,6 +133,10 @@ object HLModel:
         case "HHD" if health.toDouble > 100 => true
         case _ => false
 
+  object HardDriveModel:
+    def hasLoggedItsaID(itsaID: String): Boolean =
+      Option(itsaID).exists(id => id.trim.nonEmpty && !id.trim.equalsIgnoreCase("NOT LOGGED"))
+
   enum HardDriveConnectionType(name: HDSentinelInterfaceTypeName) extends Enum[HardDriveConnectionType]:
     case SATA extends HardDriveConnectionType("S-ATA II")
     case NVME extends HardDriveConnectionType("NVMe")

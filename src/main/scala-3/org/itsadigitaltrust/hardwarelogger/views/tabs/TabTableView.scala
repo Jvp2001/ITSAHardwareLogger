@@ -72,7 +72,7 @@ end TableTabRow
 
 
 
-abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[Model], VM  <: TabTableViewModel[Model, RowViewModel]](using hardwareGrabberService: HardwareGrabberService)(using viewModel: VM) extends TableView[RowViewModel] with View[VM]:
+abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[Model], VM  <: TabTableViewModel[Model, RowViewModel]](using viewModel: VM) extends TableView[RowViewModel] with View[VM]:
 
   import TabTableView.*
 
@@ -122,7 +122,8 @@ abstract class TabTableView[Model <: HLModel, RowViewModel <: TableRowViewModel[
       cellValueFactory = cellData =>
         (cellData.value |> f).asInstanceOf[ObservableValue[P, P]]
       sortable = false
-      delegate.setReorderable(reorderableColumns)
+//      delegate.setReorderable(reorderableColumns)
+      delegate.setReorderable(true)
     columns += column
     column
 

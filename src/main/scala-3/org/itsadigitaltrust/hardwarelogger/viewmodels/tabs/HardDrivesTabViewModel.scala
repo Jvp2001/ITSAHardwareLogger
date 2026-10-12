@@ -5,7 +5,8 @@ import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.{KeyShortcut, Men
 import org.itsadigitaltrust.hardwarelogger.core.ui.*
 import org.itsadigitaltrust.hardwarelogger.delegates.{ClickContext, ProgramMode, TableDelegate, TableEvent}
 import org.itsadigitaltrust.hardwarelogger.models.HLModel.HardDriveModel
-import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService}
+import org.itsadigitaltrust.hardwarelogger.services.notificationcentre.{HardDriveIDsChangedEvent, NotificationCentre}
+import org.itsadigitaltrust.hardwarelogger.services.{HLDatabaseService, HardwareGrabberService, HardwareIDValidationService}
 import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import org.itsadigitaltrust.hardwarelogger.viewmodels.rows.HardDriveTableRowViewModel
 import org.scalafx.extras.generic_pane.GenericDialogFX
@@ -20,7 +21,7 @@ import scala.util.boundary
 import scala.util.boundary.break
 
 
-trait HardDrivesHardModeTestingHelperViewModel  (using hardwareGrabber: HardwareGrabberService, applicationState: HardwareLoggerApplicationState) extends MenuContributor:
+trait HardDrivesHardModeTestingHelperViewModel  (using hardwareGrabber: HardwareGrabberService, applicationState: HardwareLoggerApplicationState, hardwareIDValidationService: HardwareIDValidationService) extends MenuContributor:
   this: HardDrivesTabViewModel =>
 
   val xmlTextProperty = StringProperty("")
@@ -58,10 +59,10 @@ trait HardDrivesHardModeTestingHelperViewModel  (using hardwareGrabber: Hardware
 end HardDrivesHardModeTestingHelperViewModel
 
 
-final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(using HardwareGrabberService, HardwareLoggerApplicationState, MenuManagerService)
+final class HardDrivesTabViewModel(using databaseService: HLDatabaseService, hardwareIDValidationService: HardwareIDValidationService)(using HardwareGrabberService, HardwareLoggerApplicationState, MenuManagerService)
   extends TabTableViewModel(HardDriveTableRowViewModel.apply, _.drives) with TableDelegate[HardDriveTableRowViewModel] with HardDrivesHardModeTestingHelperViewModel:
   private final val unhealthyDriveClass = "unhealthy-drive"
-  
+
   val editIDColumn = BooleanProperty(false)
   // When its value is changed, it will trigger the table view to edit this cell
   val editingCellProperty: ObjectProperty[Option[(row: Int, column: Int)]] = ObjectProperty(None)
@@ -88,6 +89,8 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
     .get
   end onUpdateItem
 
+
+
   override def onRowKeyboardKeyReleased(event: TableEvent.KeyPressedEvent[HardDriveTableRowViewModel]): Unit =
     event.key.toLowerCase match
       case "i" =>
@@ -113,6 +116,15 @@ final class HardDrivesTabViewModel(using databaseService: HLDatabaseService)(usi
 
   override def onSelected(selectedRow: Option[HardDriveTableRowViewModel]): Unit =
     moreInfoDisabledProperty.value = selectedRow.isEmpty
+
+  override def onCellValueChanged(event: TableEvent.CellValueChanged[HardDriveTableRowViewModel]): Unit =
+    event match
+      case TableEvent.CellValueChanged("ID", item, newValue, _) if newValue.isDefined && item.isDefined =>
+        item.foreach(_.hasAValidIDProperty() = hardwareIDValidationService(newValue.get.toString).isRight)
+
+        item.get.idProperty() = newValue.get.toString
+        NotificationCentre.publish(HardDriveIDsChangedEvent)
+  end onCellValueChanged
 
   override def onProgramModeChanged(mode: ProgramMode): Either[Error, Unit] =
     editIDColumn() = ProgramMode.isInHardDriveMode

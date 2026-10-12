@@ -16,21 +16,22 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 // ==========================================
 // Strongly-Typed System Event Definitions
 // ==========================================
 sealed trait SystemEvent
 
-case class StartReloadEvent(task: SimpleTask[?]) extends SystemEvent
+final case class StartReloadEvent(task: SimpleTask[?]) extends SystemEvent
 case object ReloadViewModelsEvent extends SystemEvent
-case class ProgramModeChangedEvent(mode: ProgramMode) extends SystemEvent
-case class SaveToDBEvent()(using val context: GlobalValidationContext[HLModel])(using val oxCtx: Ox) extends SystemEvent with ForkBasedEvent[Unit]
-case class BackendValidationEvent()(using val context: GlobalValidationContext[HLModel])(using val oxCtx: Ox) extends SystemEvent with ForkBasedEvent[Unit]
-case class ItsaIDChangedEvent(itsaID: String) extends SystemEvent
-case class DuplicateIDFoundEvent(itsaID: String) extends SystemEvent
+final case class ProgramModeChangedEvent(mode: ProgramMode) extends SystemEvent
+final case class SaveToDBEvent()(using val context: GlobalValidationContext[HLModel])(using val oxCtx: Ox) extends SystemEvent with ForkBasedEvent[Unit]
+final case class BackendValidationEvent()(using val context: GlobalValidationContext[HLModel])(using val oxCtx: Ox) extends SystemEvent with ForkBasedEvent[Unit]
+final case class ItsaIDChangedEvent(itsaID: String) extends SystemEvent
+final case class DuplicateIDFoundEvent(itsaID: String) extends SystemEvent
 case object ConnectedSuccessfullyEvent extends SystemEvent
+case object HardDriveIDsChangedEvent extends SystemEvent
 
 // Helper trait to allow concurrent tasks to load asynchronously via Ox forks
 trait ForkBasedEvent[R]:

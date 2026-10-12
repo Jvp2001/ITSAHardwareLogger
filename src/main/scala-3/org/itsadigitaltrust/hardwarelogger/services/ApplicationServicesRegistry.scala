@@ -5,11 +5,13 @@ import org.itsadigitaltrust.hardwarelogger.backend.database.{HLDatabase, MySQLHL
 import org.itsadigitaltrust.hardwarelogger.backend.{DBProperties, DataSourceLoader, DataSourceLoaderService}
 import org.itsadigitaltrust.hardwarelogger.contextbasedemnubar.MenuManagerService
 import org.itsadigitaltrust.hardwarelogger.services.database.HLDatabaseServiceExceptionBase
+import org.itsadigitaltrust.hardwarelogger.state.HardwareLoggerApplicationState
 import qupath.ui.logviewer.api.manager.LoggerManager
 import qupath.ui.logviewer.logging.logback.LogbackManager
 
 trait HardwareGrabberModule:
-  given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberApplicationService.instance
+  given hardwareGrabberService: HardwareGrabberService = OshiHardwareGrabberApplicationService
+
 
 trait DatabaseModule(using localhost: Boolean = false) extends HardwareGrabberModule:
   private given dbProps: DBProperties = DBProperties.default.copy(
@@ -37,8 +39,11 @@ trait LoggerManagerModule:
 trait MenuManagerModule:
   given menuManagerService: MenuManagerService = new MenuManagerService
 
-trait ApplicationServicesRegistry extends HardwareGrabberModule, HardwareIDValidationModule, DatabaseModule, IssuesModule, LoggerManagerModule, MenuManagerModule:
+trait ApplicationServicesRegistry extends HardwareGrabberModule, HardwareIDValidationModule,
+  DatabaseModule, IssuesModule, LoggerManagerModule, MenuManagerModule:
   this: org.itsadigitaltrust.hardwarelogger.HardwareLoggerApplication.type =>
+  given applicationState: HardwareLoggerApplicationState = HardwareLoggerApplicationState()
+
 
 
 

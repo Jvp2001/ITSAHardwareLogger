@@ -10,6 +10,7 @@ import org.itsadigitaltrust.common.types.FrequencyType.Frequency
 import org.itsadigitaltrust.common.types.PercentageType.Percentage
 import org.itsadigitaltrust.hardwarelogger.backend.database.HLDatabase.given
 import org.itsadigitaltrust.hardwarelogger.backend.database.{EntityCreatorToEntityMapper, HLDatabase, RepoFromEntityCreator, UpdateAndInsert}
+import org.itsadigitaltrust.hardwarelogger.backend.HLDBErrorCode
 import org.itsadigitaltrust.hardwarelogger.backend.entities.*
 import org.itsadigitaltrust.hardwarelogger.backend.repos
 import org.itsadigitaltrust.hardwarelogger.backend.repos.*
@@ -71,6 +72,18 @@ object HLModelToBackendMappers:
   import EntityCreatorModelConversions.given
   import org.itsadigitaltrust.hardwarelogger.backend.database.RepoToEntityCreatorGivens.given
 
+  private def nextErrorID[EC <: HLEntityCreatorWithSomeKindOfID](itsaID: String)(using backend: HLDatabase, mapper: EntityCreatorToEntityMapper[EC], repo: RepoFromEntityCreator[EC, mapper.Out], ox: Ox): Either[HLDatabaseServiceExceptionBase, String] =
+    val matchingIDs = backend.findAllStartingWithItsaID[EC](itsaID) match
+      case Right(records) => records.map(_.getItsaID)
+      case Left(HLDBErrorCode.NoEntriesFound) => Vector.empty
+      case Left(error) => return Left(HLDatabaseServiceException(error))
+    val nextNumber = matchingIDs.iterator
+      .filter(_.startsWith(s"$itsaID-E"))
+      .flatMap(_.drop(itsaID.length + 2).toIntOption)
+      .maxOption
+      .getOrElse(0) + 1
+    Right(s"$itsaID-E$nextNumber")
+
   given requiresReadingItsaID(using backend: HLDatabase): RequiresReadingItsaID with
     override def itsaID: String = NotificationCentre.getFetchedData.flatMap(_.itsaID) ?? ""
 
@@ -81,22 +94,53 @@ object HLModelToBackendMappers:
 
 
     override def provideValidationContext(models: GeneralInfoModel*)(using context: GlobalValidationContext[? <: HLModel])(using Ox): Unit =
+      val itsaID = requiresReadingItsaID.itsaID
       models.foreach: model =>
-        model.itsaID.foreach: itsaID =>
-          val result = backend.findFirstByItsaID(itsaID)
-          if result.isRight then
+        val recordUsingID =
+          if itsaID.nonEmpty then backend.findFirstByItsaID[InfoCreator](itsaID)
+          else Left(HLDBErrorCode.NoEntriesFound)
+        val recordForSerial = backend.findBySerialNumber[InfoCreator](model.serial)
+        recordUsingID match
+          case Right(existing) if existing.genSerial.getOrElse("") != model.serial =>
             context += ValidationIssue(
               source = "General Info Model",
-              message = s"Entity with '$itsaID' already exists",
+              message = s"The ITSA ID '$itsaID' is already in use for a different computer. If you are sure it is correct, press Save; otherwise press Cancel.",
               isSoftWarning = true
             )
-          backend.findBySerialNumber(model.serial).map: found =>
-            if found.itsaID != itsaID then
-              context += ValidationIssue(
-                source = "General Info Model",
-                message = s"Entity '${found.itsaID}' with serial number '${model.serial}' already exists",
-                isSoftWarning = false
-              )
+          case Left(error) if error != HLDBErrorCode.NoEntriesFound =>
+            throw HLDatabaseServiceException(error)
+          case _ => ()
+        recordForSerial match
+          case Right(existing) if existing.itsaID != itsaID =>
+            context += ValidationIssue(
+              source = "General Info Model",
+              message = s"This computer is already recorded as '${existing.itsaID}'. Save to change its ITSA ID to '$itsaID'.",
+              isSoftWarning = true
+            )
+          case Left(error) if error != HLDBErrorCode.NoEntriesFound =>
+            throw HLDatabaseServiceException(error)
+          case _ => ()
+
+    override def executeSyncRules(models: GeneralInfoModel*)(using Ox): Result[Seq[GeneralInfoModel]] =
+      ox.either:
+        val itsaID = requiresReadingItsaID.itsaID
+        models.foreach: model =>
+          val owner = backend.findFirstByItsaID[InfoCreator](itsaID) match
+            case Right(existing) if existing.genSerial.getOrElse("") != model.serial => Some(existing)
+            case Right(_) | Left(HLDBErrorCode.NoEntriesFound) => None
+            case Left(error) => HLDatabaseServiceException(error).fail()
+          owner.foreach: existing =>
+            val replacementID = nextErrorID[InfoCreator](itsaID).ok()
+            backend.replaceItsaID[InfoCreator](itsaID, replacementID).left.map(HLDatabaseServiceException(_)).ok()
+
+          backend.findBySerialNumber[InfoCreator](model.serial) match
+            case Right(_) =>
+              backend.updateItsaIDBySerial[InfoCreator](model.serial, itsaID).left.map(HLDatabaseServiceException(_)).ok()
+            case Left(HLDBErrorCode.NoEntriesFound) =>
+              val creator = toCreator.convert(model).left.map(identity).ok()
+              backend.insert(creator).left.map(HLDatabaseServiceException(_)).ok()
+            case Left(error) => HLDatabaseServiceException(error).fail()
+        models
 
 
     private[database] def findAllSuffixedWithErrorNumber(itsaID: String): HLDatabaseOperations.Result[Seq[GeneralInfoModel]] =
@@ -117,6 +161,9 @@ object HLModelToBackendMappers:
     override type Out = InfoCreator
     override type Out2 = Info
 
+    override def executeSyncRules(models: ProcessorModel*)(using Ox): Result[Seq[ProcessorModel]] =
+      Right(models)
+
   end processorToInfoCreator
 
 
@@ -135,21 +182,16 @@ object HLModelToBackendMappers:
 
     override def provideValidationContext(models: HardDriveModel*)(using context: GlobalValidationContext[? <: HLModel])(using Ox): Unit =
       models.foreach: model =>
-        val hasWipingLog = backend.findBySerialNumber(model.serial).isRight
-        val hddIDAlreadyExists = backend.findAllByItsaID(model.itsaID).isRight
-        if hddIDAlreadyExists then
-          context += ValidationIssue(
-            source = "Hard Drive Model",
-            message = s"Hard drive '${model.serial}' with itsaID ${model.itsaID} already exists.",
-            isSoftWarning = true
-          )
-        if hasWipingLog then
-          context += ValidationIssue(
-            source = "Wiping Table Check",
-            message = s"Hard drive with serial number ${model.serial} does not exist in the wiping table.",
-            isSoftWarning = true
-          )
-          logger.warn(s"Hard drive with serial number ${model.serial} does not exist in the wiping table.")
+        backend.findBySerialNumber[WipingCreator](model.serial) match
+          case Left(HLDBErrorCode.NoEntriesFound) =>
+            context += ValidationIssue(
+              source = "Wiping Table Check",
+              message = s"Hard drive with serial number ${model.serial} does not exist in the wiping table.",
+              isSoftWarning = true
+            )
+            logger.warn(s"Hard drive with serial number ${model.serial} does not exist in the wiping table.")
+          case Left(error) => throw HLDatabaseServiceException(error)
+          case Right(_) => ()
 
     end provideValidationContext
 
@@ -157,25 +199,11 @@ object HLModelToBackendMappers:
     override def executeSyncRules(models: HardDriveModel*)(using Ox): Result[Seq[HardDriveModel]] =
       ox.either:
         val itsaID = requiresReadingItsaID.itsaID
-        val drivesInComputer = backend.findAllByItsaID(itsaID).toOption ?? Vector()
-        val notInComputer = models.filterNot(model => drivesInComputer.exists(_.serial == model.serial))
-        val hasWipingLogs = notInComputer.nonEmpty
-        backend.deleteByAllSerials(notInComputer.map(_.serial) *)//.left.map(HLDatabaseServiceException()).ok()
-        val result = models.map: model =>
-          backend.insert((model.copy(itsaID = itsaID) |> toCreator.convert).ok())
-          model
-
-        val suffixedModels: Seq[HardDriveModel] = wipingToWipingCreator.addLetterSuffixes(result*).ok()
-        if !hasWipingLogs then
-          suffixedModels.map(wipingToWipingCreator.toCreator.convert).map(_.map(backend.insert).ok())
-          suffixedModels
-        else
-          suffixedModels.map(toCreator.convert).map(_.map(backend.insert).ok())
-          suffixedModels
-          
-  
-
-
+        backend.deleteByItsaID[DiskCreator](itsaID).left.map(HLDatabaseServiceException(_)).ok()
+        backend.deleteByAllSerials[DiskCreator](models.map(_.serial)*).left.map(HLDatabaseServiceException(_)).ok()
+        val diskRecords = models.map(model => toCreator.convert(model.copy(itsaID = itsaID)).left.map(identity).ok())
+        backend.insertAll[DiskCreator](diskRecords).left.map(HLDatabaseServiceException(_)).ok()
+        models
 
     end executeSyncRules
 
@@ -200,78 +228,59 @@ object HLModelToBackendMappers:
      * Runs under an active Ox context, enabling parallel database checks if needed.
      */
     override def provideValidationContext(models: HardDriveModel*)(using context: GlobalValidationContext[? <: HLModel])(using Ox): Unit =
-      models.foreach: model =>
-        if backend.findBySerialNumber(model.serial).isLeft then
+      models.groupBy(_.itsaID).foreach:
+        case (itsaID, drives) if itsaID.nonEmpty && drives.map(_.serial).distinct.size > 1 =>
           context += ValidationIssue(
             source = "Wiping Table Check",
-            message = s"Hard drive with serial number ${model.serial} already exists in the wiping table.",
+            message = s"The HDD ID '$itsaID' is assigned to more than one hard drive in this save. Confirm the ID is correct before saving.",
             isSoftWarning = true
           )
-          logger.warn(s"Hard drive with serial number ${model.serial} already exists in the wiping table.")
-
-        backend.findAllByItsaID(model.itsaID).map:
-          _.foreach: disk =>
+        case _ => ()
+      models.foreach: model =>
+        val recordForSerial = backend.findBySerialNumber[WipingCreator](model.serial)
+        val recordUsingID = backend.findFirstByItsaID[WipingCreator](model.itsaID)
+        recordForSerial match
+          case Right(existing) if existing.hddID != model.itsaID =>
             context += ValidationIssue(
               source = "Wiping Table Check",
-              message = s"'${model.serial} & '${disk.serial}' both have the ID of '${model.itsaID}'.",
-              isSoftWarning = false
+              message = s"This hard drive is already recorded as '${existing.hddID}'. Save to change its HDD ID to '${model.itsaID}'.",
+              isSoftWarning = true
             )
-
-
-    end provideValidationContext
-
-
-    private final val letters = 'A' to 'Z'
-    private final val lettersInTheAlphabet = 26
-
-    private[database] def addLetterSuffixes(models: HardDriveModel*): Either[HLDatabaseServiceExceptionBase, Seq[HardDriveModel]] =
-
-      val result =
-        ox.either:
-          val disks: Seq[WipingCreator] = models.map(toCreator.convert).map(_.ok())
-          if disks.isEmpty then
-            Seq.empty[WipingCreator]
-          else
-            val baseId = disks.head.getItsaID
-            val foundDrives: Seq[WipingCreator] = backend.findAllStartingWithItsaID[WipingCreator](baseId).map(_.map(WipingCreator.apply)) ?? Seq.empty[WipingCreator]
-            val startIndex = foundDrives.size
-
-            def toLetters(n: Int): String =
-              if n <= 0 then ""
-              else
-                var x = n
-                val sb = new StringBuilder
-                
-                while x > 0 do
-                  x -= 1
-                  sb.insert(0, letters(x % lettersInTheAlphabet))
-                  x /= lettersInTheAlphabet
-                sb.toString
-
-            val newDisks = disks.zipWithIndex.map: (d, i) =>
-              val idx = startIndex + i
-              val suffix = toLetters(idx)
-              d.copy(hddID = baseId + suffix)
-
-            newDisks
-      end result
-
-      result.map: disks =>
-        models.zip(disks).map: (model, disk) =>
-          model.copy(itsaID = disk.hddID)
-
-
-    end addLetterSuffixes
-
+          case Left(error) if error != HLDBErrorCode.NoEntriesFound =>
+            throw HLDatabaseServiceException(error)
+          case _ => ()
+        recordUsingID match
+          case Right(existing) if existing.serial != model.serial =>
+            context += ValidationIssue(
+              source = "Wiping Table Check",
+              message = s"The HDD ID '${model.itsaID}' is already in use for a different hard drive. Please check that the HDD ID is correct. If you are sure it is correct, press Save; otherwise press Cancel.",
+              isSoftWarning = true
+            )
+          case Left(error) if error != HLDBErrorCode.NoEntriesFound =>
+            throw HLDatabaseServiceException(error)
+          case _ => ()
 
     override def executeSyncRules(models: HardDriveModel*)(using Ox): Result[Seq[HardDriveModel]] =
-      val itsaID = requiresReadingItsaID.itsaID
       ox.either:
-        backend.updateAndInsertAll[WipingCreator](models.map(toCreator.convert).map(_.ok()) *).left.map(HLDatabaseServiceException())
+        models.foreach: model =>
+          val owner = backend.findFirstByItsaID[WipingCreator](model.itsaID) match
+            case Right(existing) if existing.serial != model.serial => Some(existing)
+            case Right(_) | Left(HLDBErrorCode.NoEntriesFound) => None
+            case Left(error) => HLDatabaseServiceException(error).fail()
+          owner.foreach: _ =>
+            val replacementID = nextErrorID[WipingCreator](model.itsaID).ok()
+            backend.replaceItsaID[WipingCreator](model.itsaID, replacementID).left.map(HLDatabaseServiceException(_)).ok()
+
+          backend.findBySerialNumber[WipingCreator](model.serial) match
+            case Right(_) =>
+              backend.updateItsaIDBySerial[WipingCreator](model.serial, model.itsaID).left.map(HLDatabaseServiceException(_)).ok()
+            case Left(HLDBErrorCode.NoEntriesFound) =>
+              val creator = toCreator.convert(model).left.map(identity).ok()
+              backend.insert(creator).left.map(HLDatabaseServiceException(_)).ok()
+            case Left(error) => HLDatabaseServiceException(error).fail()
         models
 
   end wipingToWipingCreator
-
 
 end HLModelToBackendMappers
 
@@ -296,5 +305,3 @@ object OptionalHLModelToEntityMapper:
   given missing[Mode <: ProgramOperationMode, M <: HLModel](using NotGiven[HLModelToBackendMapper[Mode, M]]): OptionalHLModelToEntityMapper[Mode, M] with
     def value: Option[HLModelToBackendMapper[Mode, M]] =
       None
-
-

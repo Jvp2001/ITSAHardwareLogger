@@ -49,7 +49,8 @@ object repos extends RepoInstancesContainer:
 
 
     def findAllByIDSuffixedWith(creator: EC, suffix: String)(using DbCon): Vector[Option[E]] =
-      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '${creator.getItsaID}%$suffix"
+      val pattern = s"${creator.getItsaID}%$suffix"
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like $pattern"
       frag.query[E].run().toVectorOfOptions
 
     def findAllByIDStartingWith(id: String)(using DbCon): Vector[Option[E]] =
@@ -58,21 +59,22 @@ object repos extends RepoInstancesContainer:
       val idColName = getItsaIDFieldName
 
 
-      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '$id%'"
-      print(frag)
+      val pattern = s"$id%"
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like $pattern"
       frag.query[E].run().toVectorOfOptions
     end findAllByIDStartingWith
 
     def findAllByIDEndingWith(id: String)(using DbCon): Vector[Option[E]] =
-      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like '%$id'"
+      val pattern = s"%$id"
+      val frag = sql"select * from $table where ${table.selectDynamic(getItsaIDFieldName)} like $pattern"
       frag.query[E].run().toVectorOfOptions
     end findAllByIDEndingWith
     
     def replaceIdWith(old: String, `new`: String)(using DbCon)(using table: HLTableInfo[EC, E]): Unit =
-      val scalaName = (idScalaName, old)
+      val columnName = idScalaName
       val frag =
-        sql"""update $table set ${table.selectDynamic(scalaName._1)} = ${`new`}
-               where ${table.selectDynamic(scalaName._1)} = $scalaName._2"""
+        sql"""update $table set ${table.selectDynamic(columnName)} = ${`new`}
+               where ${table.selectDynamic(columnName)} = $old"""
       frag.update.run()
     end replaceIdWith
 
@@ -92,8 +94,8 @@ object repos extends RepoInstancesContainer:
       frag.update.run()
     end replaceIDByPrimaryKey
 
-    private def getPrimaryKeyColumnName: "int" | "id" =
-      if classOf[HLEntityWithHardDiskID] in classTag[EC].runtimeClass.getInterfaces then
+    protected def getPrimaryKeyColumnName: "int" | "id" =
+      if classOf[HLEntityCreatorWithHardDiskID] in classTag[EC].runtimeClass.getInterfaces then
         "int"
       else
         "id"
@@ -175,25 +177,25 @@ object repos extends RepoInstancesContainer:
     def findBySerialNumber(serial: String)(using DbCon, DbCodec[E]): Option[E] =
       // Prefer entries whose itsaID does NOT end with an error suffix like -E<number>
       val nonErrorPattern = itsaIDErrorSuffixPattern
-      val nonErrorFrag = sql"select * from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial and ${table.selectDynamic(getItsaIDFieldName)} not regexp ${nonErrorPattern.toString}"
+      val nonErrorFrag = sql"select * from $table where trim(${table.selectDynamic(serialColumnScalaName)}) = ${serial.trim} and ${table.selectDynamic(getItsaIDFieldName)} not regexp ${nonErrorPattern.toString}"
       val nonErrorResult = nonErrorFrag.query[E].run().headOption
       if nonErrorResult.nonEmpty then nonErrorResult
       else
-        val frag = sql"select * from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial"
+        val frag = sql"select * from $table where trim(${table.selectDynamic(serialColumnScalaName)}) = ${serial.trim}"
         frag.query[E].run().headOption
     end findBySerialNumber
     
-    def updateItsaIDBySerial(entityCreator: EC)(using DbCon): Unit =
-      val frag = sql"update $table set itsaid = ${table.selectDynamic("itsaID")} where ${table.selectDynamic(serialColumnScalaName)} = ${table.selectDynamic(serialColumnScalaName)}"
+    def replaceItsaIDBySerial(serial: String, newItsaID: String)(using dbCon: DbCon, dbCodec: DbCodec[E]): Unit =
+      val frag = sql"update $table set ${table.selectDynamic(getItsaIDFieldName)} = $newItsaID where trim(${table.selectDynamic(serialColumnScalaName)}) = ${serial.trim}"
       frag.update.run()
-    end updateItsaIDBySerial
+    end replaceItsaIDBySerial
 
     def deleteBySerialIfItsaIDDoesNotMatch(serial: String, itsaID: String)(using DbCon): Int =
-      val frag = sql"delete from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial and itsaid != $itsaID"
+      val frag = sql"delete from $table where trim(${table.selectDynamic(serialColumnScalaName)}) = ${serial.trim} and itsaid != $itsaID"
       frag.update.run()
     
     def deleteBySerial(serial: String)(using DbCon): Int = 
-      val frag = sql"delete from $table where ${table.selectDynamic(serialColumnScalaName)} = $serial"
+      val frag = sql"delete from $table where trim(${table.selectDynamic(serialColumnScalaName)}) = ${serial.trim}"
       frag.update.run()
     
   end HLRepoWithSerial
@@ -262,9 +264,3 @@ end repos
 //  extension(r: HLRepo[MemoryCreator, Memory])
 //    def insertOrUpdate(creator: MemoryCreator)(using table: TableInfo[MemoryCreator, Memory, Long]: Unit =
 //
-
-
-
-
-
-

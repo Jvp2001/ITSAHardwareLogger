@@ -4,80 +4,168 @@ import org.itsadigitaltrust.hardwarelogger.ui.derivation.annotations.Ignore
 
 import scala.compiletime.{constValue, constValueTuple, erasedValue, summonAll, summonInline}
 import scala.deriving.Mirror
+import org.itsadigitaltrust.common.ReflectionUtils
+import scalafx.scene.control.ComboBox
+import scalafx.scene.layout.VBox
+import scalafx.scene.Node
+
+import scala.annotation.tailrec
+import scala.reflect.ClassTag
 
 trait UISchema[A]:
-  def buildEditor(value: A): (List[FieldUI], () => A)
+  def buildEditor(value: A): (List[FieldUI[A]], () => A)
 
-  final def apply(value: A): (List[FieldUI], () => A) = buildEditor(value)
+  final def apply(value: A): (List[FieldUI[A]], () => A) = buildEditor(value)
 end UISchema
 
 object UISchema:
 
-  /**
-   * 💡 WHY DO WE NEED THIS TYPE ALIAS?
-   *
-   * In Scala 3, type identifiers extracted via abstract mirrors (like `m.MirroredElemTypes`)
-   * are treated by the compiler as opaque path-dependent types. If you pass them directly into
-   * an `inline match`, the macro compiler panics with a "cannot reduce inline match" error.
-   *
-   * By routing the type through this `AsTuple` proxy type alias, we force the compiler's
-   * type checker to strip away the opaque path wrapper and evaluate the underlying type
-   * structurally as a true, unrollable `Tuple` sequence.
-   */
   private type AsTuple[T <: Tuple] = T
 
-  // Recursively summons individual UI factories for each element in the structural type tuple
   private inline def summonDecoders[T <: Tuple]: List[UIControlFactory[?]] =
     inline erasedValue[AsTuple[T]] match
       case _: EmptyTuple => Nil
       case _: (t *: ts)  => summonInline[UIControlFactory[t]] :: summonDecoders[ts]
 
-  // Recursively extracts literal string representations of case class field names
-  private inline def summonLabels[T <: Tuple]: List[String] =
+  private inline def summonSumSchemas[T <: Tuple]: List[UISchema[?]] =
     inline erasedValue[AsTuple[T]] match
       case _: EmptyTuple => Nil
-      case _: (t *: ts)  => constValue[t].toString :: summonLabels[ts]
+      case _: (t *: ts)  => summonInline[UISchema[t]] :: summonSumSchemas[ts]
 
-  inline given derived[A](using m: Mirror.ProductOf[A]): UISchema[A] =
+  private inline def summonLabels[T](using Mirror.ProductOf[T]): List[String] =
+    ReflectionUtils.summonLabels[T]
+
+  // Dual derivation gateway routing
+  inline given derived[A: ClassTag](using m: Mirror.Of[A]): UISchema[A] =
+    inline m match
+      case sum: Mirror.SumOf[A]         => deriveSum[A](using sum)
+      case product: Mirror.ProductOf[A] => deriveProduct[A](using product)
+
+  // ─── 1. PRODUCT DERIVATION STRATEGY ─────────────────────────────────────
+  inline def deriveProduct[A](using m: Mirror.ProductOf[A], ct: ClassTag[A]): UISchema[A] =
     new UISchema[A]:
-      def buildEditor(value: A): (List[FieldUI], () => A) =
+      def buildEditor(value: A): (List[FieldUI[A]], () => A) =
+        val labels = constValueTuple[m.MirroredElemLabels].toList.map(_.toString)
+        val factories = summonDecoders[m.MirroredElemTypes].asInstanceOf[List[UIControlFactory[Any]]]
 
-        /**
-         * 💡 WHY DO WE USE THE '& Tuple' INTERSECTION TYPE HERE?
-         *
-         * `m.MirroredElemLabels` and `m.MirroredElemTypes` are abstract type definitions provided by
-         * the `Mirror` trait. Even though we (and the compiler) know they evaluate to tuples, their
-         * high-level type signatures do not explicitly inherit from `scala.Tuple`.
-         *
-         * By applying an Intersection Type (`m.MirroredElemLabels & Tuple`), we explicitly prove
-         * to the type-checker at the call site that these dependencies safely satisfy the `[T <: Tuple]`
-         * invariant constraint required by our inline unrolling methods.
-         */
-        val labels = summonLabels[m.MirroredElemLabels & Tuple]
-
-        val factories = summonDecoders[m.MirroredElemTypes & Tuple].asInstanceOf[List[UIControlFactory[Any]]]
-
-        // Extract runtime configuration values and match them alongside macro-parsed metadata annotations
         val runtimeValues = value.asInstanceOf[Product].productIterator.toList
         val allAnnots = Macros.findAllAnnotations[A]
 
-
-        // 1. First assemble all possible fields alongside their compiled metadata
         val allFields = labels.zip(runtimeValues).zip(factories).zip(allAnnots).map:
           case (((name, fieldValue), factory), annots) =>
             val managedField = factory.createField(fieldValue, annots)
-            FieldUI(name, managedField, annots)
-        
+            FieldUI[A](name, managedField, annots)
 
-        // 2. Filter out any fields marked with @Ignore using your new helper method
         val activeFields = allFields.filterNot(_.hasAnnotation[Ignore])
 
-        // 3. The reconstructor remains structurally bound to allFields to correctly satisfy
-        // the original positional constructor indices needed by m.fromProduct
         val reconstructor = () =>
-          val evaluatedArgs = allFields.map(_.field.flushValue())
-          m.fromProduct(Tuple.fromArray(evaluatedArgs.toArray).asInstanceOf[m.MirroredElemTypes])
+          // Parse values strictly mapping them back onto the Product target types
+          val evaluatedArgs = allFields.map: f =>
+            val flushed = f.field.flushValue()
+            // If a control fallback leaked a raw String where a structured type is required,
+            // intercept it here or parse its underlying instance value.
+            flushed
+
+          try
+            m.fromProduct(Tuple.fromArray(evaluatedArgs.toArray).asInstanceOf[m.MirroredElemTypes])
+          catch
+            case ex: ClassCastException =>
+              throw new RuntimeException(s"Failed to build product instance for ${ct.runtimeClass.getName}. Form field structural mapping mismatch.", ex)
 
         (activeFields, reconstructor)
+  // ─── 2. RECURSIVE SUM TYPE DERIVATION STRATEGY (FIXED) ──────────────────
+  inline def deriveSum[A](using sum: Mirror.SumOf[A]): UISchema[A] =
+    new UISchema[A]:
+      def buildEditor(instance: A): (List[FieldUI[A]], () => A) =
+        val caseLabels = constValueTuple[sum.MirroredElemLabels].toList.map(_.toString)
+        val caseSchemas = summonSumSchemas[sum.MirroredElemTypes].asInstanceOf[List[UISchema[Any]]]
+
+        val initialOrdinal = sum.ordinal(instance)
+        val initialCaseLabel = caseLabels(initialOrdinal)
+
+        var currentOrdinal = initialOrdinal
+        var activeFlushClosure: () => Any = () => instance
+
+        // Track the current live fields generated by the active inner case sub-form
+        var currentSubFields: List[FieldUI[Any]] = Nil
+
+        // Container selector for the enum variants
+        val caseChooser = new ComboBox[String](caseLabels):
+          value = initialCaseLabel
+
+        // Wrap the variant picker as its own dedicated form row field control
+        val typeChooserField = FieldUI[A](
+          label = "Issue Type",
+          field = DeferredField(
+            controlBuilder = () => caseChooser,
+            flushValue = () => instance // The chooser itself doesn't construct the instance
+          ),
+          annotations = Nil
+        )
+
+        def updateSubFormFields(targetOrdinal: Int, runtimeData: Any): List[FieldUI[A]] =
+          currentOrdinal = targetOrdinal
+          val targetedSchema = caseSchemas(targetOrdinal)
+          val (subFields, subFlush) = targetedSchema.buildEditor(runtimeData)
+          activeFlushClosure = subFlush
+          currentSubFields = subFields
+
+          // Map subfield updates back into the type signature A expected by the canvas layout
+          subFields.asInstanceOf[List[FieldUI[A]]]
+
+        val initialSubFields = updateSubFormFields(initialOrdinal, instance)
+
+        // Bind variant selector logic changes to update fields dynamically on user input
+        caseChooser.value.onChange: (_, _, chosenLabel) =>
+          val chosenOrdinal = caseLabels.indexOf(chosenLabel)
+          if chosenOrdinal != currentOrdinal && chosenOrdinal >= 0 then
+            val defaultInstance = instantiateDefaultCase[sum.MirroredElemTypes & Tuple](chosenOrdinal)
+            updateSubFormFields(chosenOrdinal, defaultInstance)
+
+        // Note: If you want the GUI grid container layout to visually refresh inside the dialog
+        // when changing the dropdown, you should trigger a UI refresh callback here.
+
+        val topLevelFields = typeChooserField :: initialSubFields
+
+        val topLevelReconstructor = () =>
+          // Evaluates the active inner schema context flush closure to construct the real object token safely
+          activeFlushClosure().asInstanceOf[A]
+
+        (topLevelFields, topLevelReconstructor)
+  end deriveSum
+
+  // Statically sweeps the unrolled variant mirrors to produce safe default construct objects
+  private inline def instantiateDefaultCase[T <: Tuple](ordinal: Int): Any =
+    inline erasedValue[T] match
+      case _: EmptyTuple => throw new NoSuchElementException("Out of bounds ordinal match")
+      case _: (t *: ts) =>
+        if ordinal == 0 then
+          inline erasedValue[Mirror.Of[t]] match
+            // Variant case is a parameterless object case
+            case _: Mirror.Singleton =>
+              summonInline[Mirror.ProductOf[t]].fromProduct(EmptyTuple)
+            // Variant case is a param class setup, populate nested fields cleanly
+            case m: Mirror.ProductOf[t] =>
+              val fallbacks = fallbackTupleArgs[m.MirroredElemTypes & Tuple]
+              m.fromProduct(fallbacks.asInstanceOf[m.MirroredElemTypes])
+            case _ => null
+        else
+          instantiateDefaultCase[ts](ordinal - 1)
+  end instantiateDefaultCase
+
+
+  private inline def fallbackTupleArgs[T <: Tuple]: Tuple =
+    inline erasedValue[T] match
+      case _: EmptyTuple => EmptyTuple
+      case _: (t *: ts)  => fallbackDefault[t] *: fallbackTupleArgs[ts]
+
+  private inline def fallbackDefault[T]: T =
+    inline erasedValue[T] match
+      case _: String  => "".asInstanceOf[T]
+      case _: Int     => 0.asInstanceOf[T]
+      case _: Double  => 0.0.asInstanceOf[T]
+      case _: Boolean => false.asInstanceOf[T]
+      case _: Option[?] => None.asInstanceOf[T]
+      case _          => null.asInstanceOf[T]
 
 end UISchema
