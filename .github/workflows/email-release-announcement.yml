@@ -17,7 +17,8 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           RELEASE_EMAIL_RECIPIENTS: ${{ secrets.RELEASE_EMAIL_RECIPIENTS }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-        run: python3 - <<'PY'
+        run: |
+          python3 - <<'PY'
           import json
           import os
           import smtplib
