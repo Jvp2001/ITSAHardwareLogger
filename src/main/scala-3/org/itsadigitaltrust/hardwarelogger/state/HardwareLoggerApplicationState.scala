@@ -29,6 +29,16 @@ extension (drives: Option[Seq[HardDriveModel]])
         case Some (driveWithId) => driveWithId
         case _ => duplicates.head
       ).map(_.toSeq)
+
+object HardwareLoggerApplicationState:
+  private[state] def driveIssues(drives: Seq[HardDriveModel]): Seq[GeneralDriveStatus] =
+    val issues = drives.flatMap: drive =>
+      Seq(
+        Option.when(!drive.inGoodHealth)(GeneralDriveStatus.BadHealth),
+        Option.when(!HardDriveModel.hasLoggedItsaID(drive.itsaID))(GeneralDriveStatus.NotLogged)
+      ).flatten
+    if issues.isEmpty then Seq(GeneralDriveStatus.NoIssues) else issues.distinct
+
 case class HardwareLoggerApplicationState()(using hardwareGrabberService: HardwareGrabberService, databaseService: HLDatabaseService)
   extends HWLLoggable, RequiresGlobalValidationContext:
 
@@ -77,20 +87,12 @@ case class HardwareLoggerApplicationState()(using hardwareGrabberService: Hardwa
   // Extracted Component Reload Options (Thread-Safe)
   // ==========================================
 
-  private def reloadGeneralInfo()(using HardwareGrabberService, HLDatabaseService)(using Ox): Either[Throwable, Seq[GeneralInfoModel]] =
+  private def reloadGeneralInfo()(using HardwareGrabberService)(using Ox): Either[Throwable, Seq[GeneralInfoModel]] =
     ox.either:
       val option: Seq[GeneralInfoModel] = hardwareGrabberService.loadGeneralInfo().ok()
       val updatedOption =
         option.headOption.map: info =>
-          val issues: Seq[GeneralDriveStatus] =
-            val drives = hardDrives ?? Seq()
-            val driveIssues = drives.flatMap: drive =>
-              Seq(
-                Option.when(!drive.inGoodHealth)(GeneralDriveStatus.BadHealth),
-                Option.when(databaseService.findWipingIDBySerialNumber(drive.serial).ok().isEmpty)(GeneralDriveStatus.NotLogged)
-              ).flatten
-            if driveIssues.isEmpty then Seq(GeneralDriveStatus.NoIssues) else driveIssues.distinct
-          end issues
+          val issues = HardwareLoggerApplicationState.driveIssues(hardDrives ?? Seq())
           val mem = memory
           val versionID = s"${info.versionID} ${BuildInfo.version}"
           info.copy(

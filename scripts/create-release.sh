@@ -136,7 +136,6 @@ if [[ "$release_started" == true ]]; then
     fail "version is already stable but its recovery tag is missing: $tag"
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse "refs/tags/$tag^{commit}")" ]] ||
     fail "stable version recovery requires HEAD to be the commit tagged $tag"
-  release_commit=$(git rev-parse HEAD)
   previous_tag=$(git describe --tags --abbrev=0 "$tag^" 2>/dev/null || true)
 else
   if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
@@ -198,14 +197,15 @@ if [[ "$release_started" == false ]]; then
   git add build.sbt
   git commit -m "Release $tag"
   git tag -a "$tag" -m "Release $tag"
-  release_commit=$(git rev-parse HEAD)
 fi
 
 sbt assembly
 [[ -s "$jar_file" ]] || fail "assembly completed without producing the release JAR: $jar_file"
 
+git push origin "refs/tags/$tag"
+
 if ! gh release view "$tag" >/dev/null 2>&1; then
-  gh_args=(release create "$tag" "$jar_file" --title "$title" --notes-file "$notes" --target "$release_commit")
+  gh_args=(release create "$tag" "$jar_file" --title "$title" --notes-file "$notes")
   if [[ "$draft" == true ]]; then
     gh_args+=(--draft)
   fi
@@ -217,4 +217,4 @@ sed -i -E \
   "$repo_root/build.sbt"
 git add build.sbt
 git commit -m "Start $next_version development"
-git push origin "$branch" "refs/tags/$tag"
+git push origin "$branch"

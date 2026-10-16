@@ -86,6 +86,8 @@ final class HardwareLoggerRootViewModel(using hardwareGrabberService: HardwareGr
     else
       validateID()
 
+  setIDToMatchValueInDB()
+
   def reload(): Unit =
     performReload()
   end reload
