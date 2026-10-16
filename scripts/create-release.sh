@@ -199,7 +199,7 @@ if [[ "$release_started" == false ]]; then
   git tag -a "$tag" -m "Release $tag"
 fi
 
-sbt assembly
+sbt -batch assembly
 [[ -s "$jar_file" ]] || fail "assembly completed without producing the release JAR: $jar_file"
 
 git push origin "refs/tags/$tag"
