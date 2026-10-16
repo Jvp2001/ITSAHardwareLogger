@@ -2,8 +2,7 @@
 package org.itsadigitaltrust.hardwarelogger.backend
 
 import com.mysql.cj.jdbc.MysqlDataSource
-import org.itsadigitaltrust.common.AssetLoader.asset
-import org.itsadigitaltrust.common.Operators.{??, |>}
+import org.itsadigitaltrust.common.Operators.|>
 import org.itsadigitaltrust.common.{ConfigsManager, config}
 import org.itsadigitaltrust.common.configformats.{ConfigComment, ConfigGroupPrefix, JavaPropertiesReader, PropertyReader, ToConfigFormat}
 import org.itsadigitaltrust.common.logging.HWLLoggable
@@ -48,7 +47,7 @@ object DBProperties:
     maxReconnects = 5,
     serverTimeZone = "UTC",
     username = "itsa",
-    password = "itsa123",
+    password = "",
     primaryAddress = "10.0.1.222",
     fallbackAddress = "localhost",
     timeout = 5,
@@ -86,26 +85,33 @@ final class DataSourceLoader(val dbProps: DBProperties) extends DataSourceLoader
       dbProps: HLSqlDataSource
 object DataSourceLoader extends HWLLoggable:
 
-  /**
-   * Factory method to load configuration via PureConfig from a raw String or fall back gracefully.
-   */
   def load(): Either[HLDBErrorCode, DataSourceLoader] =
-//    org.itsadigitaltrust.common.ConfigsManager.readConfig(config"db.properties")
-//      .toEither
-//      .left.map(err => HLDBErrorCode.PropertiesError)  // Explicitly widen to the base trait/enum
-//      .map: rawPropertiesString =>
-    val encoded = ToConfigFormat(DBProperties.default)
-    
-    println("Reading config file")
-    val readData = encoded |> JavaPropertiesReader.read[DBProperties]
-    readData
-    match
-        case Right(props) =>
-          logger.info(s"Loaded DB properties: $props")
-          Right(new DataSourceLoader(props))
-        case Left(failures) =>
-          logger.warn("Could not load DB properties from the file; falling back to the default.")
-          Right(new DataSourceLoader(DBProperties.default))
+    val defaultConfig = ToConfigFormat(DBProperties.default)
+    ConfigsManager
+      .writeConfigIfMissing("db.properties", defaultConfig)
+      .toEither
+      .left
+      .map: error =>
+        logger.error(s"Could not create database configuration file: ${error.getMessage}")
+        HLDBErrorCode.PropertiesError
+      .flatMap: _ =>
+        ConfigsManager
+          .readConfig(config"db.properties")
+          .toEither
+          .left
+          .map: error =>
+            logger.error(s"Could not read database configuration file: ${error.getMessage}")
+            HLDBErrorCode.PropertiesError
+          .flatMap: rawProperties =>
+            JavaPropertiesReader
+              .read[DBProperties](rawProperties)
+              .left
+              .map: error =>
+                logger.error(s"Invalid database configuration: $error")
+                HLDBErrorCode.PropertiesError
+              .map: props =>
+                logger.info("Loaded DB properties.")
+                new DataSourceLoader(props)
 
   def apply(): Either[HLDBErrorCode, DataSourceLoader] =
     load()
@@ -121,4 +127,3 @@ object ToConfigFormatTesting extends HWLLoggable:
     println("Reading config file")
     val readData = encoded |> JavaPropertiesReader.read[DBProperties]
     println(readData)
-

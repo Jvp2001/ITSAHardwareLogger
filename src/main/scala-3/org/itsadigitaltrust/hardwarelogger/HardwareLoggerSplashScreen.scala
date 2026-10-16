@@ -1,7 +1,6 @@
 package org.itsadigitaltrust.hardwarelogger
 
 import javafx.beans.value.ObservableValue
-import org.itsadigitaltrust.common.AssetLoader.service
 import org.itsadigitaltrust.common.ConfigsManager
 import org.itsadigitaltrust.common.configformats.ToConfigFormat
 import org.itsadigitaltrust.hardwarelogger.backend.DBProperties
@@ -81,9 +80,9 @@ final class HardwareLoggerSplashScreenViewModel(parent: Option[Window] = None)(u
               .ok()
           val issueReporterConfigPath =
             ConfigsManager
-              .copyFromResources(
-                service"issuereporter.properties",
-                "issuereporter.properties"
+              .writeConfigIfMissing(
+                "issuereporter.properties",
+                "repo=0\nlogin=Jvp2001\noauth=\n"
               )
               .toEither
               .ok()
