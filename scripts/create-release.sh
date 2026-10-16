@@ -204,8 +204,10 @@ fi
 sbt assembly
 [[ -s "$jar_file" ]] || fail "assembly completed without producing the release JAR: $jar_file"
 
+git push origin "refs/tags/$tag"
+
 if ! gh release view "$tag" >/dev/null 2>&1; then
-  gh_args=(release create "$tag" "$jar_file" --title "$title" --notes-file "$notes" --target "$release_commit")
+  gh_args=(release create "$tag" "$jar_file" --title "$title" --notes-file "$notes")
   if [[ "$draft" == true ]]; then
     gh_args+=(--draft)
   fi
