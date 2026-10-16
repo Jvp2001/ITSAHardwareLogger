@@ -4,7 +4,7 @@ ThisBuild / packageOptions += Package.ManifestAttributes(
 )
 ThisBuild / normalizedName := "ITSA Hardware Logger"
 // Development version: the release script publishes X.Y.Z, then bumps this to the next X.Y.Z-SNAPSHOT.
-ThisBuild / version := "0.4.0-SNAPSHOT"
+ThisBuild / version := "0.4.1-SNAPSHOT"
 ThisBuild / organization := "org.itsadigitaltrust"
 ThisBuild / scalaVersion := "3.9.0"
 ThisBuild / organizationName := "ITSA Digital Trust"
